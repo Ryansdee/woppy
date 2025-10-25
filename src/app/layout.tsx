@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "WOPPY - Trouvez des étudiants prêts à aider",
   description: "Connectez-vous avec des étudiants talentueux disponibles pour des emplois flexibles dans votre région.",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
