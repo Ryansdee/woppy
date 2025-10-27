@@ -84,9 +84,9 @@ export default function DashboardPage() {
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <QuickAction href="/jobs/create" icon={<Megaphone className="w-5 h-5" />} label="Publier une annonce" primary />
               <QuickAction href="/jobs" icon={<ListChecks className="w-5 h-5" />} label="Voir les annonces" />
-              <QuickAction href="/etudiants" icon={<Users className="w-5 h-5" />} label="Étudiants disponibles" />
+              <QuickAction href="/students" icon={<Users className="w-5 h-5" />} label="Étudiants disponibles" />
               <QuickAction href="/messages" icon={<MessageSquare className="w-5 h-5" />} label="Messagerie" />
-              <QuickAction href="/profil" icon={<UserCog className="w-5 h-5" />} label="Modifier mon profil" />
+              <QuickAction href="/dashboard/profile" icon={<UserCog className="w-5 h-5" />} label="Modifier mon profil" />
             </div>
 
             <div className="mt-6 flex items-center gap-4 text-sm text-gray-600">

@@ -183,6 +183,27 @@ export default function Navbar() {
           >
             {user && (
               <>
+                <div className="flex flex-col gap-1 pt-2 border-b border-[#e4d2ff] pb-2">
+                  {links.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <button
+                        key={link.href}
+                        onClick={() => {
+                          router.push(link.href);
+                          setMenuOpen(false);
+                        }}
+                        className={`text-sm transition-colors ${
+                          isActive
+                            ? 'text-[#8a6bfe] font-semibold'
+                            : 'text-gray-700 hover:text-[#8a6bfe]'
+                        }`}
+                      >
+                        {link.name}
+                      </button>
+                    );
+                  })}
+                </div>
                 <button
                   onClick={() => {
                     router.push('/messages');
