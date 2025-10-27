@@ -21,6 +21,7 @@ interface UserProfile {
   city?: string;
   photoURL?: string;
   hasStudentProfile?: boolean;
+  isAvailable?: boolean;
   studentProfile?: {
     age?: string;
     description?: string;
@@ -34,23 +35,16 @@ export default function DashboardProfilePage() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  // -------------------------
   // 🔐 Authentification
-  // -------------------------
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.push('/auth/login');
-      } else {
-        setUser(u);
-      }
+      if (!u) router.push('/auth/login');
+      else setUser(u);
     });
     return () => unsub();
   }, [router]);
 
-  // -------------------------
   // 📦 Charger le profil
-  // -------------------------
   useEffect(() => {
     if (!user) return;
 
@@ -71,9 +65,7 @@ export default function DashboardProfilePage() {
     loadProfile();
   }, [user]);
 
-  // -------------------------
-  // 💾 Sauvegarder le profil
-  // -------------------------
+  // 💾 Sauvegarder le profil complet
   const handleSave = async () => {
     if (!user || !profile) return;
     setSaving(true);
@@ -92,6 +84,25 @@ export default function DashboardProfilePage() {
     }
   };
 
+  // ⚡ Mise à jour immédiate de la disponibilité
+  const handleAvailabilityToggle = async (checked: boolean) => {
+    if (!user) return;
+    setProfile((prev) => ({ ...prev!, isAvailable: checked }));
+
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        isAvailable: checked,
+        updatedAt: serverTimestamp(),
+      });
+      console.log(
+        `✅ Disponibilité mise à jour : ${checked ? 'Disponible' : 'Indisponible'}`
+      );
+    } catch (err) {
+      console.error('❌ Erreur mise à jour disponibilité:', err);
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
@@ -106,9 +117,6 @@ export default function DashboardProfilePage() {
       </div>
     );
 
-  // -------------------------
-  // ✏️ Interface
-  // -------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br text-black from-[#f5e5ff] via-white to-[#e8d5ff]">
       <div className="max-w-3xl mx-auto p-6">
@@ -144,6 +152,36 @@ export default function DashboardProfilePage() {
               Changer la photo
             </button>
           </div>
+
+          {/* Disponibilité */}
+          {profile.hasStudentProfile && (
+            <div className="flex items-center justify-between bg-[#f8f6ff] border border-[#e5d9ff] px-5 py-3 rounded-xl">
+              <div>
+                <h2 className="font-semibold text-gray-800">Disponibilité</h2>
+                <p className="text-sm text-gray-600 mb-1">
+                  Activez cette option pour apparaître comme disponible sur la plateforme.
+                </p>
+                <div className="text-sm font-medium text-gray-700">
+                  {profile.isAvailable ? (
+                    <span className="text-green-600">Disponible</span>
+                  ) : (
+                    <span className="text-red-500">Indisponible</span>
+                  )}
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={!!profile.isAvailable}
+                  onChange={(e) => handleAvailabilityToggle(e.target.checked)}
+                />
+                <div className="w-14 h-8 bg-gray-300 rounded-full peer-checked:bg-[#8a6bfe] transition-all"></div>
+                <div className="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6" />
+              </label>
+            </div>
+          )}
 
           {/* Informations principales */}
           <div className="grid md:grid-cols-2 gap-4">
@@ -181,7 +219,7 @@ export default function DashboardProfilePage() {
             />
           </div>
 
-          {/* Profil étudiant (si applicable) */}
+          {/* Profil étudiant */}
           {profile.hasStudentProfile && (
             <div className="mt-4 border-t pt-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
@@ -239,7 +277,7 @@ export default function DashboardProfilePage() {
   );
 }
 
-// Champ de saisie réutilisable
+// 🧩 Composant champ texte réutilisable
 function InputField({
   label,
   value,

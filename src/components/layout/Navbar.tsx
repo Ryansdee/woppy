@@ -181,24 +181,6 @@ export default function Navbar() {
             transition={{ duration: 0.2 }}
             className="md:hidden flex flex-col gap-3 px-6 pb-4 bg-white/90 border-t border-[#e5d4ff] backdrop-blur-md"
           >
-            {links.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={`text-sm font-medium transition ${
-                    isActive
-                      ? 'text-[#8a6bfe] font-semibold'
-                      : 'text-gray-700 hover:text-[#8a6bfe]'
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
-
             {user && (
               <>
                 <button

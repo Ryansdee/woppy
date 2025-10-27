@@ -1,28 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Loader2, Search, User, MessageSquare } from 'lucide-react';
+import {
+  Loader2,
+  Search,
+  User,
+  MessageSquare,
+  MapPin,
+  Filter,
+  X,
+  Sparkles,
+  BookOpen,
+} from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// 🔹 Type des données utilisateur
 interface Student {
   uid: string;
   firstName?: string;
   lastName?: string;
-  displayName?: string;
   username?: string;
-  email?: string;
   photoURL?: string;
   bio?: string;
-  isOnline?: boolean;
+  isAvailable?: boolean;
   hasStudentProfile?: boolean;
   city?: string;
   studentProfile?: {
     description?: string;
-    age?: string;
     experiences?: {
       id: string;
       title: string;
@@ -36,77 +42,307 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterAvailable, setFilterAvailable] = useState<boolean | null>(null);
+  const [selectedCity, setSelectedCity] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  // 🔄 Charger uniquement les utilisateurs avec un profil étudiant actif
   useEffect(() => {
     const q = query(collection(db, 'users'), where('hasStudentProfile', '==', true));
-
     const unsub = onSnapshot(q, (snap) => {
-      const list: Student[] = snap.docs.map((d) => ({
-        uid: d.id,
-        ...d.data(),
-      })) as Student[];
+      const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() })) as Student[];
       setStudents(list);
       setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
-  // 🔍 Recherche
-  const filtered = students.filter(
-    (s) =>
-      s.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-      s.lastName?.toLowerCase().includes(search.toLowerCase()) ||
-      s.username?.toLowerCase().includes(search.toLowerCase()) ||
-      s.city?.toLowerCase().includes(search.toLowerCase()) ||
-      s.studentProfile?.description?.toLowerCase().includes(search.toLowerCase())
-  );
+  // 🏙️ Liste dynamique des villes selon les résultats visibles
+  const cities = useMemo(() => {
+    const visibleCities = new Set(
+      students
+        .filter((s) => filterAvailable === null || s.isAvailable === filterAvailable)
+        .map((s) => s.city)
+        .filter(Boolean)
+    );
+    return Array.from(visibleCities).sort();
+  }, [students, filterAvailable]);
+
+  // 🔍 Filtrage pondéré et optimisé
+  const filtered = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return students
+      .map((s) => {
+        const searchable = [
+          s.firstName,
+          s.lastName,
+          s.username,
+          s.city,
+          s.bio,
+          s.studentProfile?.description,
+          s.studentProfile?.experiences
+            ?.map((e) => `${e.title} ${e.description}`)
+            .join(' '),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        const score =
+          (s.firstName?.toLowerCase().includes(normalizedSearch) ? 2 : 0) +
+          (s.lastName?.toLowerCase().includes(normalizedSearch) ? 2 : 0) +
+          (searchable.includes(normalizedSearch) ? 1 : 0);
+
+        const matchesAvailability =
+          filterAvailable === null || s.isAvailable === filterAvailable;
+        const matchesCity = selectedCity === 'all' || s.city === selectedCity;
+
+        return { ...s, score, matchesAvailability, matchesCity };
+      })
+      .filter(
+        (s) =>
+          (normalizedSearch === '' || s.score > 0) &&
+          s.matchesAvailability &&
+          s.matchesCity
+      )
+      .sort((a, b) => b.score - a.score);
+  }, [students, search, filterAvailable, selectedCity]);
+
+  const availableCount = students.filter((s) => s.isAvailable).length;
+  const totalCount = students.length;
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring" as const,
+        stiffness: 100
+      }
+    }
+  };
 
   if (loading)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
-        <Loader2 className="animate-spin w-10 h-10 mb-4 text-[#8a6bfe]" />
-        <p className="text-gray-600 animate-pulse">Chargement des étudiants...</p>
+        <Loader2 className="animate-spin w-12 h-12 text-[#8a6bfe]" />
+        <p className="text-gray-600 mt-4 font-medium">Chargement des étudiants...</p>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* ====== Header ====== */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <User className="text-[#8a6bfe]" /> Étudiants disponibles
-          </h1>
+    <div className="min-h-screen bg-gradient-to-br py-4 from-[#f5e5ff] via-white to-[#e8d5ff]">
+      {/* 🎯 Header avec stats */}
+      <div className="bg-white/60 backdrop-blur-lg border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-[#8a6bfe] to-[#6b4ff0] rounded-xl text-white">
+                  <User className="w-6 h-6" />
+                </div>
+                Étudiants
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {totalCount} profils • {availableCount} disponibles
+              </p>
+            </div>
 
-          <div className="relative w-full sm:w-72 mt-4 sm:mt-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Rechercher un étudiant..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none transition-all"
-            />
+            {/* 🔍 Recherche + Filtres */}
+            <div className="flex gap-3 flex-1 lg:max-w-xl">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, ville ou compétence..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none shadow-sm hover:shadow-md transition-all"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg"
+                  >
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-3 bg-white border rounded-xl flex items-center gap-2 transition-all hover:shadow-md ${
+                  showFilters ? 'border-[#8a6bfe] text-[#8a6bfe]' : 'border-gray-200 text-gray-700'
+                }`}
+              >
+                <Filter className="w-5 h-5" />
+                <span className="hidden sm:inline">Filtres</span>
+              </button>
+            </div>
           </div>
+
+          {/* Résumé des filtres actifs */}
+          {(filterAvailable !== null || selectedCity !== 'all' || search) && (
+            <div className="flex flex-wrap gap-2 mt-3 text-sm">
+              {search && (
+                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
+                  🔍 {search}
+                  <button onClick={() => setSearch('')}>
+                    <X className="w-3 h-3 text-gray-500" />
+                  </button>
+                </span>
+              )}
+              {filterAvailable !== null && (
+                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
+                  {filterAvailable ? '🟢 Disponibles' : '🔴 Indisponibles'}
+                  <button onClick={() => setFilterAvailable(null)}>
+                    <X className="w-3 h-3 text-gray-500" />
+                  </button>
+                </span>
+              )}
+              {selectedCity !== 'all' && (
+                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
+                  📍 {selectedCity}
+                  <button onClick={() => setSelectedCity('all')}>
+                    <X className="w-3 h-3 text-gray-500" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 🎛️ Filtres déroulants */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 pb-2 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setFilterAvailable(null)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      filterAvailable === null
+                        ? 'bg-[#8a6bfe] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tous ({totalCount})
+                  </button>
+                  <button
+                    onClick={() => setFilterAvailable(true)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      filterAvailable === true
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Disponibles ({availableCount})
+                  </button>
+                  <button
+                    onClick={() => setFilterAvailable(false)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      filterAvailable === false
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Indisponibles ({totalCount - availableCount})
+                  </button>
+
+                  {cities.length > 0 && (
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#8a6bfe]"
+                    >
+                      <option value="all">Toutes les villes</option>
+                      {cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-gray-600">
+            {filtered.length} {filtered.length === 1 ? 'résultat' : 'résultats'}{' '}
+            {search && `pour "${search}"`}
+          </p>
+          {filtered.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Sparkles className="w-4 h-4 text-[#8a6bfe]" />
+              Profils mis à jour en temps réel
+            </div>
+          )}
         </div>
 
-        {/* ====== Liste des étudiants ====== */}
+        {/* Liste des étudiants */}
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-500">Aucun étudiant trouvé.</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Search className="w-10 h-10 text-[#8a6bfe] mb-3" />
+            <p className="text-xl font-semibold text-gray-700 mb-1">Aucun résultat</p>
+            <p className="text-gray-500 mb-4">
+              Essayez de modifier vos critères ou réinitialisez les filtres.
+            </p>
+            <button
+              onClick={() => {
+                setSearch('');
+                setFilterAvailable(null);
+                setSelectedCity('all');
+              }}
+              className="px-5 py-2 bg-[#8a6bfe] text-white rounded-lg hover:bg-[#7a5aee]"
+            >
+              Réinitialiser
+            </button>
+          </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div
+            className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+          >
             {filtered.map((student) => (
               <motion.div
                 key={student.uid}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className="bg-white/80 backdrop-blur-md rounded-2xl shadow-md p-6 flex flex-col items-center text-center border border-gray-100 hover:shadow-lg transition"
+                variants={itemVariants}
+                whileHover={{ y: -4 }}
+                onHoverStart={() => setHoveredCard(student.uid)}
+                onHoverEnd={() => setHoveredCard(null)}
+                className="relative bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 overflow-hidden transition-all"
               >
-                {/* Avatar */}
-                <div className="relative">
+                <div className="h-20 bg-gradient-to-br from-[#8a6bfe] via-[#9b7dff] to-[#b19cff] relative">
+                  <div className="absolute top-3 right-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        student.isAvailable ? 'bg-green-500' : 'bg-red-500'
+                      } text-white`}
+                    >
+                      {student.isAvailable ? 'Disponible' : 'Indisponible'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative -mt-12 px-6">
                   <img
                     src={
                       student.photoURL ||
@@ -115,58 +351,59 @@ export default function StudentsPage() {
                       )}&background=8a6bfe&color=fff`
                     }
                     alt={student.firstName || student.username}
-                    className="w-20 h-20 rounded-full object-cover mb-3"
+                    className="w-24 h-24 rounded-2xl object-cover border-4 bg-[#8a6bfe] border-white shadow-xl"
                   />
-                  {student.isOnline && (
-                    <span className="absolute bottom-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                  )}
                 </div>
 
-                {/* Nom */}
-                <h2 className="font-semibold text-lg text-gray-900">
-                  {student.firstName} {student.lastName}
-                </h2>
-                {student.city && <p className="text-sm text-gray-500">{student.city}</p>}
+                <div className="px-6 pb-6">
+                  <h3 className="font-bold text-lg text-gray-900">
+                    {student.firstName} {student.lastName}
+                  </h3>
+                  {student.city && (
+                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {student.city}
+                    </p>
+                  )}
 
-                {/* Description */}
-                <p className="text-sm text-gray-600 mt-2 line-clamp-3">
-                  {student.studentProfile?.description ||
-                    student.bio ||
-                    'Aucune description disponible.'}
-                </p>
+                  <p className="text-sm text-gray-600 mt-3 line-clamp-2">
+                    {student.studentProfile?.description ||
+                      student.bio ||
+                      'Étudiant disponible pour des missions.'}
+                  </p>
 
-                {/* Expériences récentes */}
-                {student.studentProfile?.experiences && student.studentProfile.experiences.length > 0 && (
-                  <div className="mt-3 text-left w-full">
-                    <p className="text-sm font-semibold text-gray-700 mb-1">Expériences récentes :</p>
-                    <ul className="space-y-1">
+                  {student.studentProfile?.experiences &&
+                    student.studentProfile.experiences.length > 0 && (
+                    <div className="mt-4 space-y-1">
+                      <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" /> Expériences
+                      </p>
                       {student.studentProfile.experiences.slice(0, 2).map((exp) => (
-                        <li key={exp.id} className="text-xs text-gray-600 line-clamp-1">
-                          • <span className="font-medium">{exp.title}</span> — {exp.description}
-                        </li>
+                        <div key={exp.id} className="text-xs text-gray-700 truncate">
+                          • {exp.title}
+                        </div>
                       ))}
-                    </ul>
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* Actions */}
-                <div className="flex gap-3 mt-5">
-                  <Link
-                    href={`/profile/${student.uid}`}
-                    className="text-[#8a6bfe] text-sm font-medium hover:underline"
-                  >
-                    Voir le profil
-                  </Link>
-                  <Link
-                    href={`/messages?newChat=${student.uid}`}
-                    className="text-sm flex items-center gap-1 text-[#8a6bfe] hover:underline"
-                  >
-                    <MessageSquare className="w-4 h-4" /> Message
-                  </Link>
+                  <div className="flex gap-2 mt-5">
+                    <Link
+                      href={`/profile/${student.uid}`}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#8a6bfe] to-[#7a5aee] text-white text-sm rounded-lg text-center hover:shadow-lg transition-all"
+                    >
+                      Voir le profil
+                    </Link>
+                    <Link
+                      href={`/messages?newChat=${student.uid}`}
+                      className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
