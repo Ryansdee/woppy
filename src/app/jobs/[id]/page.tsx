@@ -1,396 +1,418 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Euro, Clock, Calendar, Briefcase, User, Star, CheckCircle, AlertCircle, MessageCircle, Share2, Bookmark, ArrowLeft, Users } from 'lucide-react';
+import { auth, db } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  doc,
+  getDoc,
+  addDoc,
+  collection,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
+import {
+  MapPin,
+  Euro,
+  Clock,
+  Calendar,
+  ArrowLeft,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  Bell,
+  MessageSquare,
+  User,
+} from 'lucide-react';
 
-interface Job {
+interface Annonce {
   id: string;
-  title: string;
   description: string;
-  city: string;
-  address?: string;
-  hourlyRate: number;
-  duration: string;
   date: string;
-  startTime?: string;
-  category: string;
-  employer: {
-    name: string;
-    rating: number;
-    reviewCount: number;
-    jobsPosted: number;
-    responseRate: number;
-    avatar?: string;
-  };
-  requirements: string[];
-  benefits: string[];
-  applicants: number;
-  createdAt: string;
-  urgent?: boolean;
-  verified: boolean;
-  status: 'open' | 'closed' | 'in_progress';
+  duree: string;
+  lieu: string;
+  remuneration: number;
+  statut: string;
+  userId: string;
+  createdAt?: any;
 }
 
-// Données de démonstration
-const mockJob: Job = {
-  id: '1',
-  title: 'Aide au déménagement de meubles',
-  description: 'Bonjour, je recherche une personne dynamique et motivée pour m\'aider à déménager mes meubles de mon appartement vers une unité de stockage.\n\nLe travail consiste principalement à :\n- Porter et déplacer des meubles (canapé, armoire, table, chaises)\n- Charger et décharger le camion de location\n- Protéger les meubles avec des couvertures\n- Aider à l\'organisation dans l\'unité de stockage\n\nLe matériel de protection (gants, couvertures) sera fourni. Le camion est déjà réservé. Nous serons 2 personnes au total pour effectuer ce déménagement.\n\nC\'est un travail physique qui demande une bonne condition physique. L\'ambiance sera décontractée et je fournirai des boissons et snacks pendant les pauses.',
-  city: 'Louvain-la-Neuve',
-  address: 'Rue des Wallons 72',
-  hourlyRate: 12,
-  duration: '3-5 heures',
-  date: '15 mars 2025',
-  startTime: '09:00',
-  category: 'Déménagement',
-  employer: {
-    name: 'Marie Dubois',
-    rating: 4.8,
-    reviewCount: 12,
-    jobsPosted: 15,
-    responseRate: 95,
-  },
-  requirements: [
-    'Bonne condition physique',
-    'Capacité à porter des charges lourdes',
-    'Ponctualité et sérieux',
-    'Expérience en déménagement (souhaitée mais pas obligatoire)',
-  ],
-  benefits: [
-    'Rémunération attractive : 12€/h',
-    'Matériel de protection fourni',
-    'Boissons et snacks offerts',
-    'Ambiance décontractée',
-    'Paiement le jour même',
-  ],
-  applicants: 5,
-  createdAt: 'Il y a 2 heures',
-  urgent: true,
-  verified: true,
-  status: 'open',
-};
+interface Candidature {
+  id: string;
+  userId: string;
+  statut: string;
+  date: any;
+  userName?: string;
+  photoURL?: string;
+}
 
-export default function JobDetailPage() {
-  const params = useParams();
-  const [job] = useState<Job>(mockJob);
-  const [hasApplied, setHasApplied] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [applicationMessage, setApplicationMessage] = useState('');
+interface Chat {
+  id: string;
+  participants: string[];
+  annonceId?: string;
+  createdAt?: any;
+}
 
-  const handleApply = () => {
-    setShowApplicationModal(true);
-  };
 
-  const submitApplication = () => {
-    // TODO: Envoyer la candidature via API
-    setHasApplied(true);
-    setShowApplicationModal(false);
-    console.log('Application submitted', { jobId: job.id, message: applicationMessage });
-  };
+export default function AnnonceDetailPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [annonce, setAnnonce] = useState<Annonce | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [candidatures, setCandidatures] = useState<Candidature[]>([]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f5e5ff] to-white">
+  // Auth
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (!u) router.push('/auth/login');
+      else setUser(u);
+    });
+    return () => unsub();
+  }, [router]);
 
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <Link href="/jobs" className="flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition">
-          <ArrowLeft size={20} />
-          <span>Retour aux offres</span>
+  // Charger l’annonce
+  useEffect(() => {
+    async function fetchAnnonce() {
+      if (!id) return;
+      try {
+        const ref = doc(db, 'annonces', id as string);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setAnnonce({ id: snap.id, ...snap.data() } as Annonce);
+        } else {
+          setAnnonce(null);
+        }
+      } catch (err) {
+        console.error('Erreur Firestore :', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAnnonce();
+  }, [id]);
+
+  // Charger les candidatures si l'utilisateur est l'auteur
+useEffect(() => {
+  async function fetchCandidatures() {
+    if (!annonce || !user || user.uid !== annonce.userId) return;
+    try {
+      const q = query(collection(db, 'candidatures'), where('annonceId', '==', annonce.id));
+      const snap = await getDocs(q);
+
+      const data = await Promise.all(
+        snap.docs.map(async (docSnap) => {
+          const c = { id: docSnap.id, ...docSnap.data() } as Candidature;
+
+          const userRef = doc(db, 'users', c.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const udata = userSnap.data();
+            c.userName = `${udata.firstName || ''} ${udata.lastName || ''}`.trim();
+
+            // 🔥 Si le user a une photo dans Firestore, on la garde
+            if (udata.photoURL) {
+              c.photoURL = udata.photoURL;
+            } else {
+              // Sinon on génère un avatar par défaut
+              c.photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                c.userName || 'Utilisateur'
+              )}&background=8a6bfe&color=fff&size=64`;
+            }
+          }
+
+          return c;
+        })
+      );
+
+      setCandidatures(data);
+    } catch (err) {
+      console.error('Erreur chargement candidatures:', err);
+    }
+  }
+
+  fetchCandidatures();
+}, [annonce, user]);
+
+
+  // Postuler
+  async function handlePostuler() {
+    if (!user || !annonce) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      // 1️⃣ Enregistrer la candidature
+      await addDoc(collection(db, 'candidatures'), {
+        userId: user.uid,
+        annonceId: annonce.id,
+        statut: 'en attente',
+        date: serverTimestamp(),
+      });
+
+      // 2️⃣ Créer une notification pour l’annonceur
+      await addDoc(collection(db, 'notifications'), {
+        toUser: annonce.userId,
+        fromUser: user.uid,
+        type: 'nouvelle_candidature',
+        annonceId: annonce.id,
+        message: 'Un utilisateur est intéressé par votre annonce.',
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+
+      setMessage('Votre candidature a été envoyée avec succès 🎉');
+    } catch (err) {
+      console.error('Erreur lors de la candidature :', err);
+      setMessage('Erreur : impossible de postuler.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Envoyer un message à un candidat
+// 💬 Envoyer un message à un candidat
+async function handleMessage(candidatId: string) {
+  if (!user || !annonce) return;
+
+  try {
+    // 1️⃣ Vérifie si un chat existe déjà entre les deux
+    const q = query(
+      collection(db, "chats"),
+      where("participants", "array-contains", user.uid)
+    );
+    const snap = await getDocs(q);
+
+    let existingChat: Chat | null = null;
+
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      if (
+        Array.isArray(data.participants) &&
+        data.participants.includes(candidatId)
+      ) {
+        existingChat = { ...(data as Chat), id: docSnap.id };
+        break;
+      }
+    }
+
+    // 2️⃣ Si pas trouvé, on crée le chat proprement
+    if (!existingChat) {
+      const newChatRef = await addDoc(collection(db, "chats"), {
+        participants: [user.uid, candidatId],
+        annonceId: annonce.id,
+        createdAt: serverTimestamp(),
+        lastMessage: "Conversation initiée",
+        lastMessageTime: serverTimestamp(),
+        unreadCount: {
+          [user.uid]: 0,
+          [candidatId]: 1,
+        },
+      });
+
+      console.log("✅ Chat créé :", newChatRef.id);
+      router.push(`/messages?chatId=${newChatRef.id}`);
+    } else {
+      console.log("💬 Chat existant :", existingChat.id);
+      router.push(`/messages?chatId=${existingChat.id}`);
+    }
+  } catch (err) {
+    console.error("❌ Erreur lors de la création du chat :", err);
+  }
+}
+
+
+  if (loading)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600">
+        <Loader2 className="animate-spin w-8 h-8 mb-3 text-[#8a6bfe]" />
+        Chargement de l’annonce...
+      </div>
+    );
+
+  if (!annonce)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600 text-center">
+        <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
+        <p className="text-lg font-semibold">Annonce introuvable</p>
+        <Link href="/jobs" className="mt-4 text-[#8a6bfe] hover:underline">
+          Retour à la liste
         </Link>
       </div>
+    );
 
-      {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-6 pb-12">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Colonne principale */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* En-tête de l'offre */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="bg-[#f5e5ff] text-[#8a6bfe] px-3 py-1 rounded-full text-sm font-medium">
-                      {job.category}
-                    </span>
-                    {job.urgent && (
-                      <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                        <AlertCircle size={14} />
-                        URGENT
-                      </span>
-                    )}
-                    {job.verified && (
-                      <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                        <CheckCircle size={14} />
-                        Vérifié
-                      </span>
-                    )}
-                  </div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-3">{job.title}</h1>
-                  <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={18} className="text-[#8a6bfe]" />
-                      <span>{job.city}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar size={18} className="text-[#8a6bfe]" />
-                      <span>{job.date}</span>
-                      {job.startTime && <span className="text-sm">à {job.startTime}</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={18} className="text-[#8a6bfe]" />
-                      <span>{job.duration}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="text-3xl font-bold text-[#8a6bfe] flex items-center gap-1">
-                    <Euro size={28} />
-                    {job.hourlyRate}/h
-                  </div>
-                  <p className="text-sm text-gray-500">Publié {job.createdAt}</p>
-                </div>
-              </div>
+  const isAuteur = user?.uid === annonce.userId;
 
-              {/* Actions rapides */}
-              <div className="flex gap-3 pt-6 border-t border-gray-100">
-                <button
-                  onClick={() => setIsSaved(!isSaved)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition ${
-                    isSaved
-                      ? 'bg-[#8a6bfe] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Bookmark size={18} className={isSaved ? 'fill-white' : ''} />
-                  {isSaved ? 'Sauvegardé' : 'Sauvegarder'}
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
-                  <Share2 size={18} />
-                  Partager
-                </button>
-                <div className="flex-1"></div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Users size={18} />
-                  <span className="text-sm font-medium">{job.applicants} candidature(s)</span>
-                </div>
-              </div>
-            </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <Link
+          href="/jobs"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-6"
+        >
+          <ArrowLeft size={18} />
+          Retour aux annonces
+        </Link>
 
-            {/* Description */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Briefcase size={24} className="text-[#8a6bfe]" />
-                Description de la mission
-              </h2>
-              <div className="prose max-w-none">
-                {job.description.split('\n').map((paragraph, index) => (
-                  <p key={index} className="text-gray-700 mb-3 leading-relaxed">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            {/* Prérequis */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ce que nous recherchons</h2>
-              <ul className="space-y-3">
-                {job.requirements.map((req, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Avantages */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ce que nous offrons</h2>
-              <ul className="space-y-3">
-                {job.benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Star size={20} className="text-[#8a6bfe] flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Localisation */}
-            {job.address && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <MapPin size={24} className="text-[#8a6bfe]" />
-                  Localisation
-                </h2>
-                <div className="bg-gray-100 rounded-xl p-4">
-                  <p className="text-gray-900 font-semibold">{job.address}</p>
-                  <p className="text-gray-600">{job.city}</p>
-                </div>
-                <p className="text-sm text-gray-500 mt-3">
-                  💡 L'adresse exacte sera communiquée après acceptation de votre candidature
-                </p>
-              </div>
-            )}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+          <div className="flex justify-between items-start mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 leading-snug">
+              {annonce.description.slice(0, 80)}...
+            </h1>
+            <span
+              className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                annonce.statut === 'ouverte'
+                  ? 'bg-green-100 text-green-700'
+                  : annonce.statut === 'en cours'
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-gray-200 text-gray-600'
+              }`}
+            >
+              {annonce.statut}
+            </span>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Bouton de candidature */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-24">
-              {hasApplied ? (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={32} className="text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Candidature envoyée !</h3>
-                  <p className="text-gray-600 mb-4">
-                    L'employeur a reçu votre candidature et vous contactera bientôt.
-                  </p>
-                  <Link
-                    href="/messages"
-                    className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2"
-                  >
-                    <MessageCircle size={20} />
-                    Voir mes messages
-                  </Link>
-                </div>
+          <p className="text-gray-700 mb-8 leading-relaxed">{annonce.description}</p>
+
+          <div className="grid md:grid-cols-2 gap-6 text-sm">
+            <Link href={`/profile/${annonce.userId}`}>
+            <DetailItem
+              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
+              label="Auteur de l'annonce"
+              value={isAuteur ? 'Vous-même' : `${annonce.userId}`}
+            />
+            </Link>
+            <DetailItem
+              icon={<MapPin size={18} className="text-[#8a6bfe]" />}
+              label="Lieu"
+              value={annonce.lieu}
+            />
+            <DetailItem
+              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
+              label="Date du service"
+              value={annonce.date}
+            />
+            <DetailItem
+              icon={<Clock size={18} className="text-[#8a6bfe]" />}
+              label="Durée estimée"
+              value={annonce.duree ? `${annonce.duree} heure(s)` : 'Non précisé'}
+            />
+            <DetailItem
+              icon={<Euro size={18} className="text-[#8a6bfe]" />}
+              label="Rémunération proposée"
+              value={`${annonce.remuneration} € / h`}
+            />
+          </div>
+
+          {isAuteur ? (
+            <div className="mt-10 border-t border-gray-100 pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <User className="text-[#8a6bfe]" /> Candidats intéressés
+              </h3>
+              {candidatures.length === 0 ? (
+                <p className="text-sm text-gray-600">Aucune candidature reçue pour le moment.</p>
               ) : (
-                <>
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold text-[#8a6bfe] mb-2">
-                      {job.hourlyRate}€/h
+                <div className="space-y-3">
+                  {candidatures.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl p-4"
+                    >
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src={
+                          c.photoURL ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(c.userName || 'Utilisateur')}&background=8a6bfe&color=fff&size=64`
+                        }
+                        alt={c.userName || 'Utilisateur inconnu'}
+                        width={48}
+                        height={48}
+                        className="rounded-full border border-gray-200 object-cover"
+                      />
+                      <div>
+                        <Link href={`/profile/${c.userId}`} className="hover:underline">
+                        <p className="font-semibold text-gray-900">{c.userName || 'Utilisateur inconnu'}</p>
+                        </Link>
+                        <p className="text-xs text-gray-500">
+                          {c.statut} —{' '}
+                          {c.date?.seconds
+                            ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
+                            : 'Date inconnue'}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-gray-600">Pour {job.duration}</p>
-                  </div>
-                  <button
-                    onClick={handleApply}
-                    className="w-full bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition mb-3"
-                  >
-                    Postuler maintenant
-                  </button>
-                  <p className="text-xs text-gray-500 text-center">
-                    Vous pourrez ajouter un message personnalisé
-                  </p>
-                </>
+                      <button
+                        onClick={() => handleMessage(c.userId)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition hover:cursor-pointer"
+                      >
+                        <MessageSquare size={16} />
+                        Envoyer un message
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-
-            {/* Info employeur */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <User size={20} className="text-[#8a6bfe]" />
-                À propos de l'employeur
-              </h3>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  {job.employer.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{job.employer.name}</p>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{job.employer.rating}</span>
-                    <span className="text-gray-500">({job.employer.reviewCount} avis)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Annonces publiées</span>
-                  <span className="font-semibold text-gray-900">{job.employer.jobsPosted}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Taux de réponse</span>
-                  <span className="font-semibold text-green-600">{job.employer.responseRate}%</span>
-                </div>
-              </div>
-
-              <Link
-                href={`/messages?employer=${job.employer.name}`}
-                className="w-full mt-4 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2"
+          ) : (
+            <div className="mt-10 border-t border-gray-100 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <button
+                onClick={handlePostuler}
+                disabled={submitting}
+                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50"
               >
-                <MessageCircle size={18} />
-                Contacter
-              </Link>
+                {submitting ? (
+                  <>
+                    <Loader2 className="animate-spin w-5 h-5" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} />
+                    Postuler à cette annonce
+                  </>
+                )}
+              </button>
             </div>
+          )}
 
-            {/* Conseils */}
-            <div className="bg-[#f5e5ff] border border-[#8a6bfe]/20 rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">💡 Conseils</h3>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li>• Lisez attentivement la description</li>
-                <li>• Personnalisez votre candidature</li>
-                <li>• Soyez ponctuel et professionnel</li>
-                <li>• N'hésitez pas à poser des questions</li>
-              </ul>
-            </div>
-          </div>
+          {message && (
+            <p
+              className={`mt-4 text-center font-medium ${
+                message.includes('succès') ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              <Bell className="inline w-4 h-4 mr-1" />
+              {message}
+            </p>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Modal de candidature */}
-      {showApplicationModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Postuler pour cette mission</h2>
-            <p className="text-gray-600 mb-6">
-              Présentez-vous brièvement et expliquez pourquoi vous êtes le candidat idéal pour cette mission.
-            </p>
-
-            {/* Récapitulatif */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-2">{job.title}</h3>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>{job.city}</span>
-                <span>•</span>
-                <span>{job.date}</span>
-                <span>•</span>
-                <span className="text-[#8a6bfe] font-semibold">{job.hourlyRate}€/h</span>
-              </div>
-            </div>
-
-            {/* Message */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message de motivation
-              </label>
-              <textarea
-                value={applicationMessage}
-                onChange={(e) => setApplicationMessage(e.target.value)}
-                rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent resize-none"
-                placeholder="Bonjour, je suis intéressé(e) par votre annonce car..."
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                💡 Mentionnez vos expériences pertinentes et votre disponibilité
-              </p>
-            </div>
-
-            {/* Boutons */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowApplicationModal(false)}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={submitApplication}
-                disabled={!applicationMessage.trim()}
-                className="flex-1 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Envoyer ma candidature
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+function DetailItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-1">{icon}</div>
+      <div>
+        <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
+        <div className="text-gray-800 font-medium">{value}</div>
+      </div>
     </div>
   );
 }
