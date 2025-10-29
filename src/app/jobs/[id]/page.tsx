@@ -58,7 +58,6 @@ interface Chat {
   createdAt?: any;
 }
 
-
 export default function AnnonceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -99,56 +98,54 @@ export default function AnnonceDetailPage() {
     fetchAnnonce();
   }, [id]);
 
-  // Charger les candidatures si l'utilisateur est l'auteur
-useEffect(() => {
-  async function fetchCandidatures() {
-    if (!annonce || !user || user.uid !== annonce.userId) return;
-    try {
-      const q = query(collection(db, 'candidatures'), where('annonceId', '==', annonce.id));
-      const snap = await getDocs(q);
-
-      const data = await Promise.all(
-        snap.docs.map(async (docSnap) => {
-          const c = { id: docSnap.id, ...docSnap.data() } as Candidature;
-
-          const userRef = doc(db, 'users', c.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const udata = userSnap.data();
-            c.userName = `${udata.firstName || ''} ${udata.lastName || ''}`.trim();
-
-            // 🔥 Si le user a une photo dans Firestore, on la garde
-            if (udata.photoURL) {
-              c.photoURL = udata.photoURL;
+  // Charger les candidatures + infos user associées
+  useEffect(() => {
+    async function fetchCandidaturesWithUserData() {
+      if (!annonce || !user || user.uid !== annonce.userId) return;
+      try {
+        const q = query(collection(db, 'candidatures'), where('annonceId', '==', annonce.id));
+        const snap = await getDocs(q);
+        const data = await Promise.all(
+          snap.docs.map(async (docSnap) => {
+            const c = { id: docSnap.id, ...docSnap.data() } as Candidature;
+            const userRef = doc(db, 'users', c.userId);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+              const u = userSnap.data();
+              return {
+                ...c,
+                userName:
+                  `${u.firstName || ''} ${u.lastName || ''}`.trim() ||
+                  u.email?.split('@')[0] ||
+                  'Utilisateur inconnu',
+                photoURL:
+                  u.photoURL ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur'
+                  )}&background=8a6bfe&color=fff&size=64`,
+              };
             } else {
-              // Sinon on génère un avatar par défaut
-              c.photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                c.userName || 'Utilisateur'
-              )}&background=8a6bfe&color=fff&size=64`;
+              return {
+                ...c,
+                userName: 'Utilisateur inconnu',
+                photoURL: `https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64`,
+              };
             }
-          }
-
-          return c;
-        })
-      );
-
-      setCandidatures(data);
-    } catch (err) {
-      console.error('Erreur chargement candidatures:', err);
+          })
+        );
+        setCandidatures(data);
+      } catch (err) {
+        console.error('❌ Erreur lors du chargement des candidatures:', err);
+      }
     }
-  }
+    fetchCandidaturesWithUserData();
+  }, [annonce, user]);
 
-  fetchCandidatures();
-}, [annonce, user]);
-
-
-  // Postuler
   async function handlePostuler() {
     if (!user || !annonce) return;
     setSubmitting(true);
     setMessage(null);
     try {
-      // 1️⃣ Enregistrer la candidature
       await addDoc(collection(db, 'candidatures'), {
         userId: user.uid,
         annonceId: annonce.id,
@@ -156,7 +153,6 @@ useEffect(() => {
         date: serverTimestamp(),
       });
 
-      // 2️⃣ Créer une notification pour l’annonceur
       await addDoc(collection(db, 'notifications'), {
         toUser: annonce.userId,
         fromUser: user.uid,
@@ -176,57 +172,34 @@ useEffect(() => {
     }
   }
 
-  // Envoyer un message à un candidat
-// 💬 Envoyer un message à un candidat
-async function handleMessage(candidatId: string) {
-  if (!user || !annonce) return;
-
-  try {
-    // 1️⃣ Vérifie si un chat existe déjà entre les deux
-    const q = query(
-      collection(db, "chats"),
-      where("participants", "array-contains", user.uid)
-    );
-    const snap = await getDocs(q);
-
-    let existingChat: Chat | null = null;
-
-    for (const docSnap of snap.docs) {
-      const data = docSnap.data();
-      if (
-        Array.isArray(data.participants) &&
-        data.participants.includes(candidatId)
-      ) {
-        existingChat = { ...(data as Chat), id: docSnap.id };
-        break;
+  async function handleMessage(candidatId: string) {
+    if (!user || !annonce) return;
+    try {
+      const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+      const snap = await getDocs(q);
+      let existingChat: Chat | null = null;
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        if (Array.isArray(data.participants) && data.participants.includes(candidatId)) {
+          existingChat = { ...(data as Chat), id: docSnap.id };
+          break;
+        }
       }
+      if (!existingChat) {
+        const newChatRef = await addDoc(collection(db, 'chats'), {
+          participants: [user.uid, candidatId],
+          annonceId: annonce.id,
+          createdAt: serverTimestamp(),
+          lastMessage: 'Conversation initiée',
+          lastMessageTime: serverTimestamp(),
+          unreadCount: { [user.uid]: 0, [candidatId]: 1 },
+        });
+        router.push(`/messages?chatId=${newChatRef.id}`);
+      } else router.push(`/messages?chatId=${existingChat.id}`);
+    } catch (err) {
+      console.error('❌ Erreur lors de la création du chat :', err);
     }
-
-    // 2️⃣ Si pas trouvé, on crée le chat proprement
-    if (!existingChat) {
-      const newChatRef = await addDoc(collection(db, "chats"), {
-        participants: [user.uid, candidatId],
-        annonceId: annonce.id,
-        createdAt: serverTimestamp(),
-        lastMessage: "Conversation initiée",
-        lastMessageTime: serverTimestamp(),
-        unreadCount: {
-          [user.uid]: 0,
-          [candidatId]: 1,
-        },
-      });
-
-      console.log("✅ Chat créé :", newChatRef.id);
-      router.push(`/messages?chatId=${newChatRef.id}`);
-    } else {
-      console.log("💬 Chat existant :", existingChat.id);
-      router.push(`/messages?chatId=${existingChat.id}`);
-    }
-  } catch (err) {
-    console.error("❌ Erreur lors de la création du chat :", err);
   }
-}
-
 
   if (loading)
     return (
@@ -251,22 +224,22 @@ async function handleMessage(candidatId: string) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <Link
           href="/jobs"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-6"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-4 sm:mb-6"
         >
           <ArrowLeft size={18} />
           Retour aux annonces
         </Link>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-          <div className="flex justify-between items-start mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 leading-snug">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
               {annonce.description.slice(0, 80)}...
             </h1>
             <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${
+              className={`text-xs font-semibold px-3 py-1 rounded-full self-start sm:self-auto ${
                 annonce.statut === 'ouverte'
                   ? 'bg-green-100 text-green-700'
                   : annonce.statut === 'en cours'
@@ -278,41 +251,27 @@ async function handleMessage(candidatId: string) {
             </span>
           </div>
 
-          <p className="text-gray-700 mb-8 leading-relaxed">{annonce.description}</p>
+          <p className="text-gray-700 mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base">
+            {annonce.description}
+          </p>
 
-          <div className="grid md:grid-cols-2 gap-6 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-sm">
             <Link href={`/profile/${annonce.userId}`}>
-            <DetailItem
-              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
-              label="Auteur de l'annonce"
-              value={isAuteur ? 'Vous-même' : `${annonce.userId}`}
-            />
+              <DetailItem
+                icon={<Calendar size={18} className="text-[#8a6bfe]" />}
+                label="Auteur de l'annonce"
+                value={isAuteur ? 'Vous-même' : `${annonce.userId}`}
+              />
             </Link>
-            <DetailItem
-              icon={<MapPin size={18} className="text-[#8a6bfe]" />}
-              label="Lieu"
-              value={annonce.lieu}
-            />
-            <DetailItem
-              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
-              label="Date du service"
-              value={annonce.date}
-            />
-            <DetailItem
-              icon={<Clock size={18} className="text-[#8a6bfe]" />}
-              label="Durée estimée"
-              value={annonce.duree ? `${annonce.duree} heure(s)` : 'Non précisé'}
-            />
-            <DetailItem
-              icon={<Euro size={18} className="text-[#8a6bfe]" />}
-              label="Rémunération proposée"
-              value={`${annonce.remuneration} € / h`}
-            />
+            <DetailItem icon={<MapPin size={18} className="text-[#8a6bfe]" />} label="Lieu" value={annonce.lieu} />
+            <DetailItem icon={<Calendar size={18} className="text-[#8a6bfe]" />} label="Date" value={annonce.date} />
+            <DetailItem icon={<Clock size={18} className="text-[#8a6bfe]" />} label="Durée" value={`${annonce.duree} h`} />
+            <DetailItem icon={<Euro size={18} className="text-[#8a6bfe]" />} label="Rémunération" value={`${annonce.remuneration} €/h`} />
           </div>
 
           {isAuteur ? (
-            <div className="mt-10 border-t border-gray-100 pt-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6">
+              <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
                 <User className="text-[#8a6bfe]" /> Candidats intéressés
               </h3>
               {candidatures.length === 0 ? (
@@ -322,34 +281,31 @@ async function handleMessage(candidatId: string) {
                   {candidatures.map((c) => (
                     <div
                       key={c.id}
-                      className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl p-4"
+                      className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5"
                     >
-                    <div className="flex items-center gap-3">
-                      <Image
-                        src={
-                          c.photoURL ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(c.userName || 'Utilisateur')}&background=8a6bfe&color=fff&size=64`
-                        }
-                        alt={c.userName || 'Utilisateur inconnu'}
-                        width={48}
-                        height={48}
-                        className="rounded-full border border-gray-200 object-cover"
-                      />
-                      <div>
-                        <Link href={`/profile/${c.userId}`} className="hover:underline">
-                        <p className="font-semibold text-gray-900">{c.userName || 'Utilisateur inconnu'}</p>
-                        </Link>
-                        <p className="text-xs text-gray-500">
-                          {c.statut} —{' '}
-                          {c.date?.seconds
-                            ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
-                            : 'Date inconnue'}
-                        </p>
+                      <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                        <Image
+                          src={c.photoURL || ''}
+                          alt={c.userName || 'Utilisateur'}
+                          width={48}
+                          height={48}
+                          className="rounded-full border border-gray-200 object-cover"
+                        />
+                        <div>
+                          <Link href={`/profile/${c.userId}`} className="hover:underline">
+                            <p className="font-semibold text-gray-900 text-sm sm:text-base">{c.userName}</p>
+                          </Link>
+                          <p className="text-xs text-gray-500">
+                            {c.statut} —{' '}
+                            {c.date?.seconds
+                              ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
+                              : 'Date inconnue'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
                       <button
                         onClick={() => handleMessage(c.userId)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition hover:cursor-pointer"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition text-sm sm:text-base"
                       >
                         <MessageSquare size={16} />
                         Envoyer un message
@@ -360,11 +316,11 @@ async function handleMessage(candidatId: string) {
               )}
             </div>
           ) : (
-            <div className="mt-10 border-t border-gray-100 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 onClick={handlePostuler}
                 disabled={submitting}
-                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center justify-center gap-2 text-sm sm:text-base disabled:opacity-50"
               >
                 {submitting ? (
                   <>
@@ -408,10 +364,10 @@ function DetailItem({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-1">{icon}</div>
+      <div className="mt-1 shrink-0">{icon}</div>
       <div>
         <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
-        <div className="text-gray-800 font-medium">{value}</div>
+        <div className="text-gray-800 font-medium break-words">{value}</div>
       </div>
     </div>
   );
