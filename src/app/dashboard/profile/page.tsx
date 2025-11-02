@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 import { Loader2, Save, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -25,6 +26,8 @@ interface UserProfile {
   studentProfile?: {
     age?: string;
     description?: string;
+    cardURL?: string;
+    verificationStatus?: 'pending' | 'verified' | 'rejected';
   };
 }
 
@@ -33,7 +36,9 @@ export default function DashboardProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingCard, setUploadingCard] = useState(false);
   const router = useRouter();
+  const storage = getStorage();
 
   // 🔐 Authentification
   useEffect(() => {
@@ -47,25 +52,21 @@ export default function DashboardProfilePage() {
   // 📦 Charger le profil
   useEffect(() => {
     if (!user) return;
-
     const loadProfile = async () => {
       try {
         const userRef = doc(db, 'users', user.uid);
         const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          setProfile(snap.data() as UserProfile);
-        }
+        if (snap.exists()) setProfile(snap.data() as UserProfile);
       } catch (err) {
         console.error('Erreur chargement profil:', err);
       } finally {
         setLoading(false);
       }
     };
-
     loadProfile();
   }, [user]);
 
-  // 💾 Sauvegarder le profil complet
+  // 💾 Sauvegarder le profil
   const handleSave = async () => {
     if (!user || !profile) return;
     setSaving(true);
@@ -84,25 +85,59 @@ export default function DashboardProfilePage() {
     }
   };
 
-  // ⚡ Mise à jour immédiate de la disponibilité
+  // ⚡ Mise à jour disponibilité
   const handleAvailabilityToggle = async (checked: boolean) => {
     if (!user) return;
     setProfile((prev) => ({ ...prev!, isAvailable: checked }));
-
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         isAvailable: checked,
         updatedAt: serverTimestamp(),
       });
-      console.log(
-        `✅ Disponibilité mise à jour : ${checked ? 'Disponible' : 'Indisponible'}`
-      );
     } catch (err) {
       console.error('❌ Erreur mise à jour disponibilité:', err);
     }
   };
 
+  // 📤 Upload carte étudiante
+  const handleCardUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingCard(true);
+
+    try {
+      const storageRef = ref(storage, `studentCards/${user.uid}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const updatedProfile: UserProfile = {
+        ...profile!,
+        studentProfile: {
+          ...profile?.studentProfile,
+          cardURL: downloadURL,
+          verificationStatus: 'pending',
+        },
+      };
+
+      setProfile(updatedProfile);
+
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        studentProfile: updatedProfile.studentProfile,
+        updatedAt: serverTimestamp(),
+      });
+
+      alert('✅ Carte étudiante envoyée pour vérification.');
+    } catch (err) {
+      console.error('Erreur upload carte:', err);
+      alert('❌ Erreur lors de l’upload.');
+    } finally {
+      setUploadingCard(false);
+    }
+  };
+
+  // 🌀 États de chargement
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
@@ -117,6 +152,7 @@ export default function DashboardProfilePage() {
       </div>
     );
 
+  // 🧱 Contenu principal
   return (
     <div className="min-h-screen bg-gradient-to-br text-black from-[#f5e5ff] via-white to-[#e8d5ff]">
       <div className="max-w-3xl mx-auto p-6">
@@ -129,6 +165,7 @@ export default function DashboardProfilePage() {
         </motion.h1>
 
         <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-6">
+
           {/* Photo de profil */}
           <div className="flex items-center gap-4">
             <div className="relative w-24 h-24">
@@ -152,6 +189,62 @@ export default function DashboardProfilePage() {
               Changer la photo
             </button>
           </div>
+
+          {/* Bloc carte étudiante */}
+          {profile.hasStudentProfile && (
+            <div className="border border-[#e5d9ff] rounded-xl p-4 bg-[#f8f6ff]">
+              <h2 className="font-semibold text-gray-800 mb-2">
+                Vérification carte étudiante
+              </h2>
+              {profile.studentProfile?.cardURL ? (
+                <div className="flex items-center gap-4">
+                  <Image
+                    src={profile.studentProfile.cardURL}
+                    alt="Carte étudiante"
+                    width={120}
+                    height={80}
+                    className="rounded-md border"
+                  />
+                  <p className="text-sm text-gray-700">
+                    Statut :{' '}
+                    {profile.studentProfile.verificationStatus === 'pending' && (
+                      <span className="text-yellow-600 font-medium">
+                        En attente
+                      </span>
+                    )}
+                    {profile.studentProfile.verificationStatus === 'verified' && (
+                      <span className="text-green-600 font-medium">
+                        Vérifiée ✅
+                      </span>
+                    )}
+                    {profile.studentProfile.verificationStatus === 'rejected' && (
+                      <span className="text-red-600 font-medium">
+                        Refusée ❌
+                      </span>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 mb-2">
+                  Aucune carte étudiante envoyée.
+                </p>
+              )}
+
+              <label className="flex items-center gap-2 cursor-pointer text-[#8a6bfe] hover:underline">
+                <Upload className="w-4 h-4" />
+                <span>
+                  {uploadingCard ? 'Envoi en cours...' : 'Uploader une carte'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCardUpload}
+                  className="hidden"
+                  disabled={uploadingCard}
+                />
+              </label>
+            </div>
+          )}
 
           {/* Disponibilité */}
           {profile.hasStudentProfile && (
@@ -206,6 +299,7 @@ export default function DashboardProfilePage() {
             />
           </div>
 
+          {/* Bio */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Bio
@@ -277,7 +371,7 @@ export default function DashboardProfilePage() {
   );
 }
 
-// 🧩 Composant champ texte réutilisable
+// 🧩 Champ texte réutilisable
 function InputField({
   label,
   value,

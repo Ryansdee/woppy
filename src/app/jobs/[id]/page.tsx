@@ -40,6 +40,8 @@ interface Annonce {
   statut: string;
   userId: string;
   createdAt?: any;
+  userName?: string;
+  userPhotoURL?: string;
 }
 
 interface Candidature {
@@ -77,15 +79,37 @@ export default function AnnonceDetailPage() {
     return () => unsub();
   }, [router]);
 
-  // Charger l’annonce
+  // Charger l’annonce + infos de l’auteur
   useEffect(() => {
     async function fetchAnnonce() {
       if (!id) return;
       try {
         const ref = doc(db, 'annonces', id as string);
         const snap = await getDoc(ref);
+
         if (snap.exists()) {
-          setAnnonce({ id: snap.id, ...snap.data() } as Annonce);
+          const annonceData = { id: snap.id, ...snap.data() } as Annonce;
+
+          // Ajouter les infos de l’auteur depuis la table users
+          const userRef = doc(db, 'users', annonceData.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const u = userSnap.data();
+            annonceData.userName =
+              `${u.firstName || ''} ${u.lastName || ''}`.trim() ||
+              u.email?.split('@')[0] ||
+              'Utilisateur inconnu';
+            annonceData.userPhotoURL =
+              u.photoURL ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                annonceData.userName || 'Utilisateur'
+              )}&background=8a6bfe&color=fff&size=64`;
+          } else {
+            annonceData.userName = 'Utilisateur inconnu';
+            annonceData.userPhotoURL = `https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64`;
+          }
+
+          setAnnonce(annonceData);
         } else {
           setAnnonce(null);
         }
@@ -260,7 +284,7 @@ export default function AnnonceDetailPage() {
               <DetailItem
                 icon={<Calendar size={18} className="text-[#8a6bfe]" />}
                 label="Auteur de l'annonce"
-                value={isAuteur ? 'Vous-même' : `${annonce.userId}`}
+                value={isAuteur ? 'Vous-même' : annonce.userName || 'Utilisateur'}
               />
             </Link>
             <DetailItem icon={<MapPin size={18} className="text-[#8a6bfe]" />} label="Lieu" value={annonce.lieu} />

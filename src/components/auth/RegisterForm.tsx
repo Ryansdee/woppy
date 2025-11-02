@@ -184,9 +184,9 @@ const handleFinalSubmit = async (e: React.FormEvent) => {
     // 2. Upload de la photo de profil dans Firebase Storage
     let photoURL = "";
     if (formData.profilePhoto) {
-      const storageRef = ref(storage, `profilePhotos/${user.uid}`);
-      await uploadBytes(storageRef, formData.profilePhoto);
-      photoURL = await getDownloadURL(storageRef);
+    const storageRef = ref(storage, `profilePhotos/${user.uid}/${formData.profilePhoto.name}`);
+    await uploadBytes(storageRef, formData.profilePhoto);
+    const photoURL = await getDownloadURL(storageRef);
 
       // Met à jour le profil Firebase Auth
       await updateProfile(user, {
