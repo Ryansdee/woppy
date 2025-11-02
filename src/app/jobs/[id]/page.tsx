@@ -15,6 +15,8 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 import {
   MapPin,
@@ -29,6 +31,10 @@ import {
   MessageSquare,
   User,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// ✅ Carte Leaflet dynamique
+const WoppyMap = dynamic(() => import('@/components/WoppyMap'), { ssr: false });
 
 interface Annonce {
   id: string;
@@ -69,6 +75,7 @@ export default function AnnonceDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
+  const [position, setPosition] = useState<[number, number] | null>(null);
 
   // Auth
   useEffect(() => {
@@ -79,18 +86,17 @@ export default function AnnonceDetailPage() {
     return () => unsub();
   }, [router]);
 
-  // Charger l’annonce + infos de l’auteur
+  // Charger annonce
   useEffect(() => {
     async function fetchAnnonce() {
       if (!id) return;
       try {
         const ref = doc(db, 'annonces', id as string);
         const snap = await getDoc(ref);
-
         if (snap.exists()) {
           const annonceData = { id: snap.id, ...snap.data() } as Annonce;
 
-          // Ajouter les infos de l’auteur depuis la table users
+          // Infos auteur
           const userRef = doc(db, 'users', annonceData.userId);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
@@ -106,13 +112,12 @@ export default function AnnonceDetailPage() {
               )}&background=8a6bfe&color=fff&size=64`;
           } else {
             annonceData.userName = 'Utilisateur inconnu';
-            annonceData.userPhotoURL = `https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64`;
+            annonceData.userPhotoURL =
+              'https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64';
           }
 
           setAnnonce(annonceData);
-        } else {
-          setAnnonce(null);
-        }
+        } else setAnnonce(null);
       } catch (err) {
         console.error('Erreur Firestore :', err);
       } finally {
@@ -122,9 +127,9 @@ export default function AnnonceDetailPage() {
     fetchAnnonce();
   }, [id]);
 
-  // Charger les candidatures + infos user associées
+  // Charger candidatures
   useEffect(() => {
-    async function fetchCandidaturesWithUserData() {
+    async function fetchCandidatures() {
       if (!annonce || !user || user.uid !== annonce.userId) return;
       try {
         const q = query(collection(db, 'candidatures'), where('annonceId', '==', annonce.id));
@@ -159,11 +164,59 @@ export default function AnnonceDetailPage() {
         );
         setCandidatures(data);
       } catch (err) {
-        console.error('❌ Erreur lors du chargement des candidatures:', err);
+        console.error('Erreur candidatures:', err);
       }
     }
-    fetchCandidaturesWithUserData();
+    fetchCandidatures();
   }, [annonce, user]);
+
+  // Géocodage
+  useEffect(() => {
+    async function geocodeAdresse() {
+      if (!annonce?.lieu) return;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            annonce.lieu
+          )}`
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        }
+      } catch (err) {
+        console.error('Erreur géocodage :', err);
+      }
+    }
+    geocodeAdresse();
+  }, [annonce]);
+
+  // 🕒 Auto-suppression après 2h si fini
+  useEffect(() => {
+    if (!annonce?.statut || annonce.statut !== 'fini') return;
+    if (!annonce.createdAt?.seconds) return;
+
+    const creationTime = annonce.createdAt.seconds * 1000;
+    const twoHoursLater = creationTime + 2 * 60 * 60 * 1000;
+    const now = Date.now();
+    const delay = twoHoursLater - now;
+
+    if (delay <= 0) {
+      deleteDoc(doc(db, 'annonces', annonce.id)).catch(console.error);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        await deleteDoc(doc(db, 'annonces', annonce.id));
+        console.log('Annonce supprimée automatiquement après 2h');
+      } catch (err) {
+        console.error('Erreur suppression auto :', err);
+      }
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [annonce]);
 
   async function handlePostuler() {
     if (!user || !annonce) return;
@@ -189,7 +242,7 @@ export default function AnnonceDetailPage() {
 
       setMessage('Votre candidature a été envoyée avec succès 🎉');
     } catch (err) {
-      console.error('Erreur lors de la candidature :', err);
+      console.error('Erreur candidature :', err);
       setMessage('Erreur : impossible de postuler.');
     } finally {
       setSubmitting(false);
@@ -221,7 +274,7 @@ export default function AnnonceDetailPage() {
         router.push(`/messages?chatId=${newChatRef.id}`);
       } else router.push(`/messages?chatId=${existingChat.id}`);
     } catch (err) {
-      console.error('❌ Erreur lors de la création du chat :', err);
+      console.error('Erreur chat :', err);
     }
   }
 
@@ -263,7 +316,7 @@ export default function AnnonceDetailPage() {
               {annonce.description.slice(0, 80)}...
             </h1>
             <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full self-start sm:self-auto ${
+              className={`text-xs font-semibold px-3 py-1 rounded-full ${
                 annonce.statut === 'ouverte'
                   ? 'bg-green-100 text-green-700'
                   : annonce.statut === 'en cours'
@@ -280,65 +333,96 @@ export default function AnnonceDetailPage() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-sm">
-            <Link href={`/profile/${annonce.userId}`}>
-              <DetailItem
-                icon={<Calendar size={18} className="text-[#8a6bfe]" />}
-                label="Auteur de l'annonce"
-                value={isAuteur ? 'Vous-même' : annonce.userName || 'Utilisateur'}
-              />
-            </Link>
+            <DetailItem
+              icon={<User size={18} className="text-[#8a6bfe]" />}
+              label="Auteur de l'annonce"
+              value={isAuteur ? 'Vous-même' : annonce.userName || 'Utilisateur'}
+            />
             <DetailItem icon={<MapPin size={18} className="text-[#8a6bfe]" />} label="Lieu" value={annonce.lieu} />
             <DetailItem icon={<Calendar size={18} className="text-[#8a6bfe]" />} label="Date" value={annonce.date} />
             <DetailItem icon={<Clock size={18} className="text-[#8a6bfe]" />} label="Durée" value={`${annonce.duree} h`} />
             <DetailItem icon={<Euro size={18} className="text-[#8a6bfe]" />} label="Rémunération" value={`${annonce.remuneration} €/h`} />
           </div>
 
+          {position && <WoppyMap position={position} lieu={annonce.lieu} />}
+
           {isAuteur ? (
-            <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6">
-              <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-                <User className="text-[#8a6bfe]" /> Candidats intéressés
-              </h3>
-              {candidatures.length === 0 ? (
-                <p className="text-sm text-gray-600">Aucune candidature reçue pour le moment.</p>
-              ) : (
-                <div className="space-y-3">
-                  {candidatures.map((c) => (
-                    <div
-                      key={c.id}
-                      className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5"
+            <>
+              {/* 🧭 Gestion du statut */}
+              <div className="mb-6 mt-8 border-t border-gray-100 pt-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-3">Statut de l'annonce</h3>
+                <div className="flex flex-wrap gap-3">
+                  {['ouverte', 'en cours', 'fini'].map((s) => (
+                    <button
+                      key={s}
+                      onClick={async () => {
+                        if (!annonce?.id) return;
+                        try {
+                          await updateDoc(doc(db, 'annonces', annonce.id), { statut: s });
+                          setAnnonce({ ...annonce, statut: s });
+                        } catch (err) {
+                          console.error('Erreur update statut :', err);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium border transition ${
+                        annonce?.statut === s
+                          ? 'bg-[#8a6bfe] text-white border-[#8a6bfe]'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-[#8a6bfe]'
+                      }`}
                     >
-                      <div className="flex items-center gap-3 mb-3 sm:mb-0">
-                        <Image
-                          src={c.photoURL || ''}
-                          alt={c.userName || 'Utilisateur'}
-                          width={48}
-                          height={48}
-                          className="rounded-full border border-gray-200 object-cover"
-                        />
-                        <div>
-                          <Link href={`/profile/${c.userId}`} className="hover:underline">
-                            <p className="font-semibold text-gray-900 text-sm sm:text-base">{c.userName}</p>
-                          </Link>
-                          <p className="text-xs text-gray-500">
-                            {c.statut} —{' '}
-                            {c.date?.seconds
-                              ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
-                              : 'Date inconnue'}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleMessage(c.userId)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition text-sm sm:text-base"
-                      >
-                        <MessageSquare size={16} />
-                        Envoyer un message
-                      </button>
-                    </div>
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+
+              {/* 📋 Candidatures */}
+              <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <User className="text-[#8a6bfe]" /> Candidats intéressés
+                </h3>
+                {candidatures.length === 0 ? (
+                  <p className="text-sm text-gray-600">Aucune candidature reçue pour le moment.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {candidatures.map((c) => (
+                      <div
+                        key={c.id}
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5"
+                      >
+                        <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                          <Image
+                            src={c.photoURL || ''}
+                            alt={c.userName || 'Utilisateur'}
+                            width={48}
+                            height={48}
+                            className="rounded-full border border-gray-200 object-cover"
+                          />
+                          <div>
+                            <Link href={`/profile/${c.userId}`} className="hover:underline">
+                              <p className="font-semibold text-gray-900 text-sm sm:text-base">{c.userName}</p>
+                            </Link>
+                            <p className="text-xs text-gray-500">
+                              {c.statut} —{' '}
+                              {c.date?.seconds
+                                ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
+                                : 'Date inconnue'}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleMessage(c.userId)}
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition text-sm sm:text-base"
+                        >
+                          <MessageSquare size={16} />
+                          Envoyer un message
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
@@ -390,9 +474,10 @@ function DetailItem({
     <div className="flex items-start gap-3">
       <div className="mt-1 shrink-0">{icon}</div>
       <div>
-        <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
+          <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
         <div className="text-gray-800 font-medium break-words">{value}</div>
       </div>
     </div>
   );
 }
+
