@@ -48,7 +48,7 @@ export default function WoppyMap({
 
       // ✅ Fond clair Carto (fonctionne sans clé API)
       L.tileLayer(
-        'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg',
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
         {
           attribution:
             '© <strong>Woppy</strong>',

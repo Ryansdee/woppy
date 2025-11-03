@@ -54,7 +54,7 @@ export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
     });
 
     // 🗺️ Couche de fond (satellite Stadia)
-    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '© <strong>WOPPY</strong> · Données © <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
     }).addTo(map);
 
