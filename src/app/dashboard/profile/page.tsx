@@ -12,10 +12,29 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
-import { Loader2, Save, Upload } from 'lucide-react';
+import {
+  Loader2,
+  Save,
+  Upload,
+  Banknote,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// ✅ Type pour une expérience
+interface Experience {
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+// ✅ Type pour le profil utilisateur
 interface UserProfile {
+  availabilitySchedule: any;
+  experiences?: Experience[];
   firstName?: string;
   lastName?: string;
   bio?: string;
@@ -40,7 +59,7 @@ export default function DashboardProfilePage() {
   const router = useRouter();
   const storage = getStorage();
 
-  // 🔐 Authentification
+  // 🔐 Authentification utilisateur
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) router.push('/auth/login');
@@ -49,7 +68,7 @@ export default function DashboardProfilePage() {
     return () => unsub();
   }, [router]);
 
-  // 📦 Charger le profil
+  // 📦 Charger les données du profil
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
@@ -85,7 +104,7 @@ export default function DashboardProfilePage() {
     }
   };
 
-  // ⚡ Mise à jour disponibilité
+  // ⚡ Mise à jour de la disponibilité
   const handleAvailabilityToggle = async (checked: boolean) => {
     if (!user) return;
     setProfile((prev) => ({ ...prev!, isAvailable: checked }));
@@ -137,6 +156,39 @@ export default function DashboardProfilePage() {
     }
   };
 
+  // ➕ Ajouter une expérience
+  const handleAddExperience = () => {
+    const newExp: Experience = {
+      title: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      description: '',
+    };
+    setProfile({
+      ...profile!,
+      experiences: [...(profile?.experiences || []), newExp],
+    });
+  };
+
+  // 🗑️ Supprimer une expérience
+  const handleRemoveExperience = (index: number) => {
+    const updated = [...(profile?.experiences || [])];
+    updated.splice(index, 1);
+    setProfile({ ...profile!, experiences: updated });
+  };
+
+  // ✏️ Modifier une expérience
+  const handleUpdateExperience = (
+    index: number,
+    field: keyof Experience,
+    value: string
+  ) => {
+    const updated = [...(profile?.experiences || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setProfile({ ...profile!, experiences: updated });
+  };
+
   // 🌀 États de chargement
   if (loading)
     return (
@@ -152,7 +204,10 @@ export default function DashboardProfilePage() {
       </div>
     );
 
-  // 🧱 Contenu principal
+  const isCardVerified =
+    profile.studentProfile?.verificationStatus === 'verified';
+
+  // 🧱 Interface principale
   return (
     <div className="min-h-screen bg-gradient-to-br text-black from-[#f5e5ff] via-white to-[#e8d5ff]">
       <div className="max-w-3xl mx-auto p-6">
@@ -165,8 +220,7 @@ export default function DashboardProfilePage() {
         </motion.h1>
 
         <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-6">
-
-          {/* Photo de profil */}
+          {/* 📸 Photo de profil */}
           <div className="flex items-center gap-4">
             <div className="relative w-24 h-24">
               <Image
@@ -190,7 +244,7 @@ export default function DashboardProfilePage() {
             </button>
           </div>
 
-          {/* Bloc carte étudiante */}
+          {/* 🪪 Carte étudiante */}
           {profile.hasStudentProfile && (
             <div className="border border-[#e5d9ff] rounded-xl p-4 bg-[#f8f6ff]">
               <h2 className="font-semibold text-gray-800 mb-2">
@@ -203,7 +257,10 @@ export default function DashboardProfilePage() {
                     alt="Carte étudiante"
                     width={120}
                     height={80}
-                    className="rounded-md border"
+                    className="rounded-md border cursor-pointer"
+                    onClick={() =>
+                      window.open(profile.studentProfile?.cardURL, '_blank')
+                    }
                   />
                   <p className="text-sm text-gray-700">
                     Statut :{' '}
@@ -230,7 +287,7 @@ export default function DashboardProfilePage() {
                 </p>
               )}
 
-              <label className="flex items-center gap-2 cursor-pointer text-[#8a6bfe] hover:underline">
+              <label className="flex items-center gap-2 cursor-pointer text-[#8a6bfe] hover:underline mt-2">
                 <Upload className="w-4 h-4" />
                 <span>
                   {uploadingCard ? 'Envoi en cours...' : 'Uploader une carte'}
@@ -246,37 +303,94 @@ export default function DashboardProfilePage() {
             </div>
           )}
 
-          {/* Disponibilité */}
-          {profile.hasStudentProfile && (
-            <div className="flex items-center justify-between bg-[#f8f6ff] border border-[#e5d9ff] px-5 py-3 rounded-xl">
-              <div>
-                <h2 className="font-semibold text-gray-800">Disponibilité</h2>
-                <p className="text-sm text-gray-600 mb-1">
-                  Activez cette option pour apparaître comme disponible sur la plateforme.
+          {/* 💳 Lier son compte bancaire */}
+          <div className="flex justify-center">
+            <button
+              disabled={!isCardVerified}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg font-medium transition ${
+                isCardVerified
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              onClick={() => {
+                if (isCardVerified) router.push('/dashboard/bank-link');
+                else
+                  alert(
+                    '❌ Vous devez d’abord faire vérifier votre carte étudiante.'
+                  );
+              }}
+            >
+              <Banknote className="w-5 h-5" />
+              Lier son compte bancaire
+            </button>
+          </div>
+
+              {/* 📅 Calendrier de disponibilité */}
+              <div className="border border-[#e5d9ff] rounded-xl p-5 bg-[#f8f6ff] mt-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                  Calendrier de disponibilité
+                </h2>
+                <p className="text-sm text-gray-600 mb-3">
+                  Choisis tes jours et horaires disponibles.
                 </p>
-                <div className="text-sm font-medium text-gray-700">
-                  {profile.isAvailable ? (
-                    <span className="text-green-600">Disponible</span>
-                  ) : (
-                    <span className="text-red-500">Indisponible</span>
-                  )}
-                </div>
-              </div>
+                {['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'].map((day) => (
+                  <div key={day} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={profile?.availabilitySchedule?.[day]?.enabled || false}
+                        onChange={(e) => {
+                          const updated = {
+                            ...profile?.availabilitySchedule,
+                            [day]: {
+                              ...(profile?.availabilitySchedule?.[day] || {}),
+                              enabled: e.target.checked,
+                            },
+                          };
+                          setProfile({ ...profile!, availabilitySchedule: updated });
+                        }}
+                        className="w-4 h-4 accent-[#8a6bfe]"
+                      />
+                      <span className="font-medium text-gray-700">{day}</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={profile?.availabilitySchedule?.[day]?.start || ''}
+                        onChange={(e) => {
+                          const updated = {
+                            ...profile?.availabilitySchedule,
+                            [day]: {
+                              ...(profile?.availabilitySchedule?.[day] || {}),
+                              start: e.target.value,
+                            },
+                          };
+                          setProfile({ ...profile!, availabilitySchedule: updated });
+                        }}
+                        className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+                      />
+                      <span>-</span>
+                      <input
+                        type="time"
+                        value={profile?.availabilitySchedule?.[day]?.end || ''}
+                        onChange={(e) => {
+                          const updated = {
+                            ...profile?.availabilitySchedule,
+                            [day]: {
+                              ...(profile?.availabilitySchedule?.[day] || {}),
+                              end: e.target.value,
+                            },
+                          };
+                          setProfile({ ...profile!, availabilitySchedule: updated });
+                        }}
+                        className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>  
 
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={!!profile.isAvailable}
-                  onChange={(e) => handleAvailabilityToggle(e.target.checked)}
-                />
-                <div className="w-14 h-8 bg-gray-300 rounded-full peer-checked:bg-[#8a6bfe] transition-all"></div>
-                <div className="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-6" />
-              </label>
-            </div>
-          )}
-
-          {/* Informations principales */}
+          {/* 🧍 Informations personnelles */}
           <div className="grid md:grid-cols-2 gap-4">
             <InputField
               label="Prénom"
@@ -299,7 +413,7 @@ export default function DashboardProfilePage() {
             />
           </div>
 
-          {/* Bio */}
+          {/* ✍️ Bio */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Bio
@@ -313,7 +427,82 @@ export default function DashboardProfilePage() {
             />
           </div>
 
-          {/* Profil étudiant */}
+          {/* 💼 Expériences professionnelles */}
+          <div className="border-t pt-4">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">
+              Expériences professionnelles
+            </h2>
+            {(profile.experiences || []).map((exp, i) => (
+              <div
+                key={i}
+                className="bg-[#f9f7ff] border border-[#e2d9ff] rounded-xl p-4 mb-3 shadow-sm relative"
+              >
+                <button
+                  onClick={() => handleRemoveExperience(i)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <InputField
+                    label="Titre du poste"
+                    value={exp.title}
+                    onChange={(e) =>
+                      handleUpdateExperience(i, 'title', e.target.value)
+                    }
+                  />
+                  <InputField
+                    label="Entreprise / Organisation"
+                    value={exp.company}
+                    onChange={(e) =>
+                      handleUpdateExperience(i, 'company', e.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4 mt-3">
+                  <InputField
+                    label="Date de début"
+                    type="month"
+                    value={exp.startDate}
+                    onChange={(e) =>
+                      handleUpdateExperience(i, 'startDate', e.target.value)
+                    }
+                  />
+                  <InputField
+                    label="Date de fin"
+                    type="month"
+                    value={exp.endDate}
+                    onChange={(e) =>
+                      handleUpdateExperience(i, 'endDate', e.target.value)
+                    }
+                  />
+                </div>
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={exp.description}
+                    onChange={(e) =>
+                      handleUpdateExperience(i, 'description', e.target.value)
+                    }
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none"
+                    rows={3}
+                    placeholder="Décris ton rôle, tes missions, les résultats obtenus..."
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={handleAddExperience}
+              className="flex items-center gap-2 mt-2 text-[#8a6bfe] hover:text-[#6b4dfc] font-medium"
+            >
+              <Plus className="w-4 h-4" /> Ajouter une expérience
+            </button>
+          </div>
+
+          {/* 🎓 Profil étudiant */}
           {profile.hasStudentProfile && (
             <div className="mt-4 border-t pt-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
@@ -350,7 +539,7 @@ export default function DashboardProfilePage() {
             </div>
           )}
 
-          {/* Bouton de sauvegarde */}
+          {/* 💾 Sauvegarde */}
           <div className="flex justify-end">
             <button
               onClick={handleSave}
@@ -371,7 +560,7 @@ export default function DashboardProfilePage() {
   );
 }
 
-// 🧩 Champ texte réutilisable
+// 🧩 Composant réutilisable pour les champs de saisie
 function InputField({
   label,
   value,
