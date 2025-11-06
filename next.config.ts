@@ -25,4 +25,4 @@ const nextConfig: NextConfig = {
 };
 
 // ⚡️ Combinaison Next.js + PWA
-export default withPWAConfig(nextConfig);
+export default withPWAConfig(nextConfig as any);
