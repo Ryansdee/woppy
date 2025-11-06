@@ -11,6 +11,7 @@ export const metadata = {
   title: 'WOPPY - Trouvez des étudiants prêts à aider',
   description: 'Connectez-vous avec des étudiants talentueux disponibles pour des emplois flexibles dans votre région.',
   icons: { icon: '/favicon.ico' },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
