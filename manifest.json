@@ -1,0 +1,22 @@
+{
+  "name": "Woppy Dashboard",
+  "short_name": "Woppy",
+  "description": "Ton espace étudiant Woppy — annonces, profils, et opportunités.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3e7ff",
+  "theme_color": "#8a6bfe",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
