@@ -13,9 +13,10 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import Cookies from 'js-cookie';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -33,30 +34,44 @@ export default function Navbar() {
     { name: 'Références', href: '/references' },
   ];
 
-  // 🔐 Gestion utilisateur
+  // 🧠 Lecture du cookie woppy_user
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u || null);
-    });
-    return () => unsub();
+    const loadUser = () => {
+      const cookie = Cookies.get('woppy_user');
+      if (cookie) {
+        try {
+          setUser(JSON.parse(cookie));
+        } catch {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    loadUser();
+
+    // 🔁 se met à jour si l’utilisateur se reconnecte depuis un autre onglet
+    window.addEventListener('focus', loadUser);
+    return () => window.removeEventListener('focus', loadUser);
   }, []);
 
-  // 🔔 Notifications Firestore
+  // 🔔 Notifications Firestore (si cookie -> user.uid)
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) return;
     const q = query(
       collection(db, 'notifications'),
       where('toUser', '==', user.uid),
       where('read', '==', false)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      setNotifCount(snap.size);
-    });
+    const unsub = onSnapshot(q, (snap) => setNotifCount(snap.size));
     return () => unsub();
   }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
+    Cookies.remove('woppy_user'); // nettoie le cookie aussi
+    setUser(null);
     router.push('/auth/login');
   };
 
@@ -96,7 +111,7 @@ export default function Navbar() {
             );
           })}
 
-          {/* === MESSAGES (icône uniquement) === */}
+          {/* === MESSAGES === */}
           {user && (
             <button
               onClick={() => router.push('/messages')}
@@ -111,7 +126,7 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* === NOTIFS === */}
+          {/* === NOTIFICATIONS === */}
           {user && (
             <button
               onClick={() => router.push('/notifications')}
@@ -204,6 +219,7 @@ export default function Navbar() {
                     );
                   })}
                 </div>
+
                 <button
                   onClick={() => {
                     router.push('/messages');

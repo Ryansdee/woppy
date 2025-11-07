@@ -54,9 +54,14 @@ export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
     });
 
     // 🗺️ Couche de fond (satellite Stadia)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© <strong>WOPPY</strong> · Données © <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
-    }).addTo(map);
+    L.tileLayer(
+      'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+      {
+        maxZoom: 20,
+        attribution:
+          '© <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a>, © <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a>, © <a href="https://openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+      }
+    ).addTo(map);
 
     // 🟣 Icône Woppy (ton logo)
     const woppyIcon = L.icon({
@@ -64,7 +69,7 @@ export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
       iconSize: [42, 42],
       iconAnchor: [21, 58],
       popupAnchor: [0, -50],
-      className: 'leaflet-woppy-icon border border-black rounded-full',
+      className: 'leaflet-woppy-icon shadow-xl rounded-full ',
     });
 
     const bounds = L.latLngBounds([]);

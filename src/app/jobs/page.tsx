@@ -33,6 +33,7 @@ const AnnoncesMap = dynamic(() => import('@/components/AnnoncesMap'), { ssr: fal
 interface Annonce {
   id: string;
   description: string;
+  titre: string;
   date: string;
   duree: string;
   lieu: string;
@@ -402,8 +403,8 @@ export default function AnnoncesPage() {
 
                         {/* Titre + desc */}
                         <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#8a6bfe] transition-colors">
-                          {a.description?.slice(0, 60)}
-                          {a.description?.length > 60 && '...'}
+                          {a.titre?.slice(0, 60)}
+                          {a.titre?.length > 60 && '...'}
                         </h3>
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{a.description}</p>
 
@@ -466,7 +467,7 @@ export default function AnnoncesPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/annonces/nouvelle"
+              href="/jobs/create"
               className="group bg-white text-[#8a6bfe] px-7 sm:px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition-all shadow-2xl inline-flex items-center gap-3 justify-center"
             >
               <div className="p-2 bg-[#8a6bfe]/10 rounded-lg group-hover:bg-[#8a6bfe]/20 transition-colors">
@@ -502,7 +503,7 @@ export default function AnnoncesPage() {
 
         {/* Bouton flottant "Publier" (mobile) */}
         <Link
-          href="/annonces/nouvelle"
+          href="/jobs/create"
           className="fixed sm:hidden bottom-6 right-6 bg-[#8a6bfe] text-white rounded-full shadow-xl p-4 hover:bg-[#7b5aff] transition"
           aria-label="Publier une annonce"
         >
@@ -576,7 +577,7 @@ function EmptyState({ resetFilters }: { resetFilters: () => void }) {
           Réinitialiser les filtres
         </button>
         <Link
-          href="/annonces/nouvelle"
+          href="/jobs/create"
           className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
         >
           <Plus size={20} />

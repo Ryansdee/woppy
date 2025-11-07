@@ -38,6 +38,7 @@ const WoppyMap = dynamic(() => import('@/components/WoppyMap'), { ssr: false });
 
 interface Annonce {
   id: string;
+  titre: string;
   description: string;
   date: string;
   duree: string;
@@ -48,6 +49,9 @@ interface Annonce {
   createdAt?: any;
   userName?: string;
   userPhotoURL?: string;
+  acceptedUserId?: string;
+  acceptedUserName?: string;
+  taskCompletion?: { author?: boolean; student?: boolean };
 }
 
 interface Candidature {
@@ -77,6 +81,9 @@ export default function AnnonceDetailPage() {
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
   const [position, setPosition] = useState<[number, number] | null>(null);
 
+  const formatLieu = annonce?.lieu.replaceAll(' ', '+');
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${formatLieu}`;
+
   // Auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -96,26 +103,17 @@ export default function AnnonceDetailPage() {
         if (snap.exists()) {
           const annonceData = { id: snap.id, ...snap.data() } as Annonce;
 
-          // Infos auteur
           const userRef = doc(db, 'users', annonceData.userId);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             const u = userSnap.data();
-            annonceData.userName =
-              `${u.firstName || ''} ${u.lastName || ''}`.trim() ||
-              u.email?.split('@')[0] ||
-              'Utilisateur inconnu';
+            annonceData.userName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur';
             annonceData.userPhotoURL =
               u.photoURL ||
               `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                annonceData.userName || 'Utilisateur'
+                annonceData.userName
               )}&background=8a6bfe&color=fff&size=64`;
-          } else {
-            annonceData.userName = 'Utilisateur inconnu';
-            annonceData.userPhotoURL =
-              'https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64';
           }
-
           setAnnonce(annonceData);
         } else setAnnonce(null);
       } catch (err) {
@@ -143,14 +141,11 @@ export default function AnnonceDetailPage() {
               const u = userSnap.data();
               return {
                 ...c,
-                userName:
-                  `${u.firstName || ''} ${u.lastName || ''}`.trim() ||
-                  u.email?.split('@')[0] ||
-                  'Utilisateur inconnu',
+                userName: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
                 photoURL:
                   u.photoURL ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur'
+                    u.firstName || 'Utilisateur'
                   )}&background=8a6bfe&color=fff&size=64`,
               };
             } else {
@@ -181,9 +176,7 @@ export default function AnnonceDetailPage() {
           )}`
         );
         const data = await res.json();
-        if (data.length > 0) {
-          setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-        }
+        if (data.length > 0) setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
       } catch (err) {
         console.error('Erreur géocodage :', err);
       }
@@ -191,65 +184,7 @@ export default function AnnonceDetailPage() {
     geocodeAdresse();
   }, [annonce]);
 
-  // 🕒 Auto-suppression après 2h si fini
-  useEffect(() => {
-    if (!annonce?.statut || annonce.statut !== 'fini') return;
-    if (!annonce.createdAt?.seconds) return;
-
-    const creationTime = annonce.createdAt.seconds * 1000;
-    const twoHoursLater = creationTime + 2 * 60 * 60 * 1000;
-    const now = Date.now();
-    const delay = twoHoursLater - now;
-
-    if (delay <= 0) {
-      deleteDoc(doc(db, 'annonces', annonce.id)).catch(console.error);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await deleteDoc(doc(db, 'annonces', annonce.id));
-        console.log('Annonce supprimée automatiquement après 2h');
-      } catch (err) {
-        console.error('Erreur suppression auto :', err);
-      }
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [annonce]);
-
-  async function handlePostuler() {
-    if (!user || !annonce) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      await addDoc(collection(db, 'candidatures'), {
-        userId: user.uid,
-        annonceId: annonce.id,
-        statut: 'en attente',
-        date: serverTimestamp(),
-      });
-
-      await addDoc(collection(db, 'notifications'), {
-        toUser: annonce.userId,
-        fromUser: user.uid,
-        type: 'nouvelle_candidature',
-        annonceId: annonce.id,
-        message: 'Un utilisateur est intéressé par votre annonce.',
-        createdAt: serverTimestamp(),
-        read: false,
-      });
-
-      setMessage('Votre candidature a été envoyée avec succès 🎉');
-    } catch (err) {
-      console.error('Erreur candidature :', err);
-      setMessage('Erreur : impossible de postuler.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleMessage(candidatId: string) {
+    async function handleMessage(candidatId: string) {
     if (!user || !annonce) return;
     try {
       const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
@@ -278,43 +213,161 @@ export default function AnnonceDetailPage() {
     }
   }
 
+
+
+  // 🔥 Auto-suppression 2h après statut fini
+  useEffect(() => {
+    if (!annonce?.statut || annonce.statut !== 'fini') return;
+    if (!annonce.createdAt?.seconds) return;
+
+    const creationTime = annonce.createdAt.seconds * 1000;
+    const twoHoursLater = creationTime + 2 * 60 * 60 * 1000;
+    const now = Date.now();
+    const delay = twoHoursLater - now;
+
+    if (delay <= 0) deleteDoc(doc(db, 'annonces', annonce.id)).catch(console.error);
+    else
+      setTimeout(async () => {
+        try {
+          await deleteDoc(doc(db, 'annonces', annonce.id));
+        } catch (err) {
+          console.error('Erreur suppression auto :', err);
+        }
+      }, delay);
+  }, [annonce]);
+
+  // 📩 Postuler
+  async function handlePostuler() {
+    if (!user || !annonce) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await addDoc(collection(db, 'candidatures'), {
+        userId: user.uid,
+        annonceId: annonce.id,
+        statut: 'en attente',
+        date: serverTimestamp(),
+      });
+      await addDoc(collection(db, 'notifications'), {
+        toUser: annonce.userId,
+        fromUser: user.uid,
+        type: 'nouvelle_candidature',
+        annonceId: annonce.id,
+        message: 'Un étudiant est intéressé par votre annonce.',
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+      setMessage('Votre candidature a été envoyée avec succès 🎉');
+    } catch (err) {
+      setMessage('Erreur : impossible de postuler.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ✅ Accepter un candidat
+  async function handleAccepterCandidat(c: Candidature) {
+    if (!annonce) return;
+    try {
+      await updateDoc(doc(db, 'annonces', annonce.id), {
+        statut: 'en cours',
+        acceptedUserId: c.userId,
+        acceptedUserName: c.userName,
+        taskCompletion: { author: false, student: false },
+      });
+      await updateDoc(doc(db, 'candidatures', c.id), { statut: 'acceptée' });
+      await addDoc(collection(db, 'notifications'), {
+        toUser: c.userId,
+        fromUser: user.uid,
+        type: 'acceptation',
+        annonceId: annonce.id,
+        message: 'Votre candidature a été acceptée ! 🎉',
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+      setAnnonce({
+        ...annonce,
+        statut: 'en cours',
+        acceptedUserId: c.userId,
+        acceptedUserName: c.userName,
+        taskCompletion: { author: false, student: false },
+      });
+      setMessage('Candidat accepté avec succès ✅');
+    } catch (err) {
+      console.error(err);
+      setMessage('Erreur : impossible d’accepter ce candidat.');
+    }
+  }
+
+  // ✅ Tâche effectuée
+async function handleTaskDone() {
+  if (!annonce || !user) return;
+
+  const isAuthor = user.uid === annonce.userId;
+  const isStudent = user.uid === annonce.acceptedUserId;
+  if (!isAuthor && !isStudent) return;
+
+  try {
+    const completion = annonce.taskCompletion || { author: false, student: false };
+    const updated = {
+      author: completion.author || isAuthor,
+      student: completion.student || isStudent,
+    };
+
+    // 🔥 Mise à jour Firestore
+    await updateDoc(doc(db, 'annonces', annonce.id), { taskCompletion: updated });
+
+    // 🔄 Met à jour le state local immédiatement
+    const updatedAnnonce = { ...annonce, taskCompletion: updated };
+    setAnnonce(updatedAnnonce);
+
+    // ✅ Si les deux ont confirmé la tâche :
+    if (updated.author && updated.student) {
+      await updateDoc(doc(db, 'annonces', annonce.id), { statut: 'fini' });
+
+      // Important : redirection immédiate pour l'auteur
+      if (isAuthor) {
+        router.push(`/review/${annonce.acceptedUserId}?annonceId=${annonce.id}`);
+        return;
+      }
+
+      setAnnonce({ ...updatedAnnonce, statut: 'fini' });
+    }
+  } catch (err) {
+    console.error('Erreur handleTaskDone:', err);
+  }
+}
+  const isAuteur = user?.uid === annonce?.userId;
+  const isAcceptedStudent = user?.uid === annonce?.acceptedUserId;
+
   if (loading)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600">
-        <Loader2 className="animate-spin w-8 h-8 mb-3 text-[#8a6bfe]" />
-        Chargement de l’annonce...
+      <div className="min-h-screen flex justify-center items-center text-gray-600">
+        <Loader2 className="animate-spin w-8 h-8 mr-2 text-[#8a6bfe]" /> Chargement...
       </div>
     );
 
   if (!annonce)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600 text-center">
-        <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
-        <p className="text-lg font-semibold">Annonce introuvable</p>
-        <Link href="/jobs" className="mt-4 text-[#8a6bfe] hover:underline">
-          Retour à la liste
-        </Link>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <AlertCircle className="text-red-500 w-8 h-8 mb-3" />
+        <p className="text-gray-700">Annonce introuvable.</p>
       </div>
     );
 
-  const isAuteur = user?.uid === annonce.userId;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <Link
           href="/jobs"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-4 sm:mb-6"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-6"
         >
-          <ArrowLeft size={18} />
-          Retour aux annonces
+          <ArrowLeft size={18} /> Retour aux annonces
         </Link>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
-              {annonce.description.slice(0, 80)}...
-            </h1>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <div className="flex justify-between flex-wrap items-start mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">{annonce.titre}</h1>
             <span
               className={`text-xs font-semibold px-3 py-1 rounded-full ${
                 annonce.statut === 'ouverte'
@@ -328,132 +381,133 @@ export default function AnnonceDetailPage() {
             </span>
           </div>
 
-          <p className="text-gray-700 mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base">
-            {annonce.description}
-          </p>
+          <p className="text-gray-700 mb-8 leading-relaxed">{annonce.description}</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <DetailItem
               icon={<User size={18} className="text-[#8a6bfe]" />}
-              label="Auteur de l'annonce"
-              value={isAuteur ? 'Vous-même' : annonce.userName || 'Utilisateur'}
+              label="Auteur"
+              value={isAuteur ? 'Vous-même' : annonce.userName}
             />
-            <DetailItem icon={<MapPin size={18} className="text-[#8a6bfe]" />} label="Lieu" value={annonce.lieu} />
-            <DetailItem icon={<Calendar size={18} className="text-[#8a6bfe]" />} label="Date" value={annonce.date} />
-            <DetailItem icon={<Clock size={18} className="text-[#8a6bfe]" />} label="Durée" value={`${annonce.duree} h`} />
-            <DetailItem icon={<Euro size={18} className="text-[#8a6bfe]" />} label="Rémunération" value={`${annonce.remuneration} €/h`} />
+            <DetailItem
+              icon={<MapPin size={18} className="text-[#8a6bfe]" />}
+              label="Lieu"
+              value={
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#8a6bfe] hover:underline"
+                >
+                  {annonce.lieu}
+                </a>
+              }
+            />
+            <DetailItem
+              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
+              label="Date"
+              value={annonce.date}
+            />
+            <DetailItem
+              icon={<Clock size={18} className="text-[#8a6bfe]" />}
+              label="Durée"
+              value={`${annonce.duree} h`}
+            />
+            <DetailItem
+              icon={<Euro size={18} className="text-[#8a6bfe]" />}
+              label="Rémunération"
+              value={`${annonce.remuneration} €/h`}
+            />
           </div>
 
           {position && <WoppyMap position={position} lieu={annonce.lieu} />}
 
-          {isAuteur ? (
+          {isAuteur && (
             <>
-              {/* 🧭 Gestion du statut */}
-              <div className="mb-6 mt-8 border-t border-gray-100 pt-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-3">Statut de l'annonce</h3>
-                <div className="flex flex-wrap gap-3">
-                  {['ouverte', 'en cours', 'fini'].map((s) => (
-                    <button
-                      key={s}
-                      onClick={async () => {
-                        if (!annonce?.id) return;
-                        try {
-                          await updateDoc(doc(db, 'annonces', annonce.id), { statut: s });
-                          setAnnonce({ ...annonce, statut: s });
-                        } catch (err) {
-                          console.error('Erreur update statut :', err);
-                        }
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium border transition ${
-                        annonce?.statut === s
-                          ? 'bg-[#8a6bfe] text-white border-[#8a6bfe]'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-[#8a6bfe]'
-                      }`}
-                    >
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 📋 Candidatures */}
-              <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+              <div className="mt-10 border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <User className="text-[#8a6bfe]" /> Candidats intéressés
                 </h3>
                 {candidatures.length === 0 ? (
-                  <p className="text-sm text-gray-600">Aucune candidature reçue pour le moment.</p>
+                  <p className="text-gray-500 text-sm">Aucune candidature reçue.</p>
                 ) : (
                   <div className="space-y-3">
                     {candidatures.map((c) => (
                       <div
                         key={c.id}
-                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5"
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4"
                       >
-                        <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                        <div className="flex items-center gap-3">
                           <Image
                             src={c.photoURL || ''}
-                            alt={c.userName || 'Utilisateur'}
+                            alt={c.userName || ''}
                             width={48}
                             height={48}
-                            className="rounded-full border border-gray-200 object-cover"
+                            className="rounded-full border object-cover"
                           />
                           <div>
-                            <Link href={`/profile/${c.userId}`} className="hover:underline">
-                              <p className="font-semibold text-gray-900 text-sm sm:text-base">{c.userName}</p>
-                            </Link>
-                            <p className="text-xs text-gray-500">
-                              {c.statut} —{' '}
-                              {c.date?.seconds
-                                ? new Date(c.date.seconds * 1000).toLocaleDateString('fr-BE')
-                                : 'Date inconnue'}
-                            </p>
+                            <p className="font-semibold">{c.userName}</p>
+                            <p className="text-xs text-gray-500">{c.statut}</p>
                           </div>
                         </div>
+                        <div className="flex gap-2 mt-3 sm:mt-0">
+                          <button
+                            onClick={() => handleAccepterCandidat(c)}
+                            disabled={annonce.acceptedUserId === c.userId}
+                            className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#7a5bfe]"
+                          >
+                            {annonce.acceptedUserId === c.userId ? 'Accepté' : 'Accepter'}
+                          </button>
                         <button
                           onClick={() => handleMessage(c.userId)}
                           className="inline-flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition text-sm sm:text-base"
                         >
                           <MessageSquare size={16} />
-                          Envoyer un message
                         </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             </>
-          ) : (
-            <div className="mt-8 sm:mt-10 border-t border-gray-100 pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          )}
+
+          {(isAuteur || isAcceptedStudent) && annonce.acceptedUserId && (
+            <div className="mt-8 border-t pt-6 text-center">
+              <button
+                onClick={handleTaskDone}
+                disabled={
+                  (isAuteur && annonce.taskCompletion?.author) ||
+                  (isAcceptedStudent && annonce.taskCompletion?.student)
+                }
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
+              >
+                <CheckCircle size={18} /> Tâche effectuée
+              </button>
+
+              {annonce.taskCompletion?.author && annonce.taskCompletion?.student && (
+                <p className="text-green-600 mt-3 font-medium">
+                  ✅ Tâche confirmée par les deux parties.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!isAuteur && !isAcceptedStudent && annonce.statut === 'ouverte' && (
+            <div className="mt-8 text-center">
               <button
                 onClick={handlePostuler}
                 disabled={submitting}
-                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white w-full sm:w-auto px-6 sm:px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center justify-center gap-2 text-sm sm:text-base disabled:opacity-50"
+                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 className="animate-spin w-5 h-5" />
-                    Envoi...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={18} />
-                    Postuler à cette annonce
-                  </>
-                )}
+                {submitting ? 'Envoi...' : 'Postuler à cette annonce'}
               </button>
             </div>
           )}
 
           {message && (
-            <p
-              className={`mt-4 text-center font-medium ${
-                message.includes('succès') ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              <Bell className="inline w-4 h-4 mr-1" />
-              {message}
-            </p>
+            <p className="mt-4 text-center text-sm text-[#8a6bfe] font-medium">{message}</p>
           )}
         </div>
       </div>
@@ -468,16 +522,15 @@ function DetailItem({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3">
       <div className="mt-1 shrink-0">{icon}</div>
       <div>
-          <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
+        <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
         <div className="text-gray-800 font-medium break-words">{value}</div>
       </div>
     </div>
   );
 }
-

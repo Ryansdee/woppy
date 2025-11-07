@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Calendar, MapPin, Euro, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, Euro, FileText, CheckCircle, Type } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NouvelleAnnoncePage() {
   const [user, setUser] = useState<any>(null);
   const [form, setForm] = useState({
+    titre: '',              // ✅ nouveau champ
     description: '',
     date: '',
     duree: '',
@@ -30,7 +31,9 @@ export default function NouvelleAnnoncePage() {
     return () => unsub();
   }, [router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -45,7 +48,7 @@ export default function NouvelleAnnoncePage() {
         userId: user.uid,
         createdAt: serverTimestamp(),
       });
-      setMessage('Annonce publiée avec succès !');
+      setMessage('Annonce publiée avec succès 🎉');
       setTimeout(() => router.push('/jobs'), 1200);
     } catch (err) {
       console.error('Erreur publication :', err);
@@ -58,7 +61,7 @@ export default function NouvelleAnnoncePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] text-gray-900 via-white to-[#e8d5ff] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900 flex flex-col">
       <nav className="p-6 flex justify-between items-center">
         <Link href="/dashboard" className="text-[#8a6bfe] font-semibold hover:underline">
           ← Retour au tableau de bord
@@ -71,6 +74,22 @@ export default function NouvelleAnnoncePage() {
           onSubmit={handleSubmit}
           className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-sm p-8 space-y-6"
         >
+          {/* ✅ Champ titre */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <Type size={18} /> Titre de l&apos;annonce <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="titre"
+              value={form.titre}
+              onChange={handleChange}
+              placeholder="Ex : Aide au déménagement, Babysitting, Cours de maths..."
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Description <span className="text-red-500">*</span>
@@ -113,7 +132,7 @@ export default function NouvelleAnnoncePage() {
                 value={form.duree}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                placeholder="Ex: 2"
+                placeholder="Ex : 2"
               />
             </div>
           </div>
@@ -146,7 +165,7 @@ export default function NouvelleAnnoncePage() {
                 value={form.remuneration}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                placeholder="Ex: 25"
+                placeholder="Ex : 25"
                 required
               />
             </div>
@@ -184,7 +203,11 @@ export default function NouvelleAnnoncePage() {
           </button>
 
           {message && (
-            <p className={`text-sm text-center mt-3 ${message.includes('succès') ? 'text-green-600' : 'text-red-600'}`}>
+            <p
+              className={`text-sm text-center mt-3 ${
+                message.includes('succès') ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
               <CheckCircle className="inline-block w-4 h-4 mr-1" />
               {message}
             </p>

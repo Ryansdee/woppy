@@ -1,24 +1,27 @@
 'use client';
 
+import useAuthPersistence from '@/lib/useAuthPersistence';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  ArrowRight,
-  Check,
-  Star,
-  MessageSquare,
-  MapPin,
-  Clock,
-  Euro,
-  Users,
-  Briefcase,
-  ShieldCheck,
-  CreditCard,
-  Sparkles
+  ArrowRight, Check, Star, MessageSquare, MapPin, Clock,
+  Users, Briefcase, ShieldCheck, CreditCard, Sparkles
 } from 'lucide-react';
-import "./globals.css";
+import Cookies from 'js-cookie';
+import { useEffect, useState } from 'react';
+import './globals.css';
 
 export default function HomePage() {
+  // Sync cookies <-> Firebase
+  useAuthPersistence();
+
+  // Détecte si un cookie d’auth existe
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  useEffect(() => {
+    const cookie = Cookies.get('woppy_user');
+    if (cookie) setIsLoggedIn(true);
+  }, []);
+
   return (
     <main className="min-h-screen w-full bg-white text-gray-900">
       {/* ===== NAVBAR ===== */}
@@ -36,15 +39,26 @@ export default function HomePage() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/auth/login" className="text-gray-600 hover:text-[#8a6bfe] font-medium">
-              Connexion
-            </Link>
-            <Link
-              href="/auth/register"
-              className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg transition"
-            >
-              Commencer
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg transition"
+              >
+                Accéder à mon espace
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login" className="text-gray-600 hover:text-[#8a6bfe] font-medium">
+                  Connexion
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg transition"
+                >
+                  Commencer
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Bouton mobile */}
@@ -64,13 +78,21 @@ export default function HomePage() {
           <Link href="#etudiants" className="hover:text-[#8a6bfe]">Étudiants</Link>
           <Link href="#paiement" className="hover:text-[#8a6bfe]">Paiement sécurisé</Link>
           <hr />
-          <Link href="/auth/login" className="text-gray-600">Connexion</Link>
-          <Link
-            href="/auth/register"
-            className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white text-center px-4 py-2.5 rounded-lg font-semibold mt-2"
-          >
-            Commencer
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white text-center px-4 py-2.5 rounded-lg font-semibold mt-2">
+              Mon espace
+            </Link>
+          ) : (
+            <>
+              <Link href="/auth/login" className="text-gray-600">Connexion</Link>
+              <Link
+                href="/auth/register"
+                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white text-center px-4 py-2.5 rounded-lg font-semibold mt-2"
+              >
+                Commencer
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -88,19 +110,31 @@ export default function HomePage() {
               Woppy connecte les étudiants vérifiés et les particuliers pour des petits jobs rapides, rémunérés et sécurisés à Louvain-la-Neuve et alentours.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link
-                href="/auth/register"
-                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg flex items-center justify-center gap-2 group"
-              >
-                Rejoindre gratuitement
-                <ArrowRight className="group-hover:translate-x-1 transition" size={20} />
-              </Link>
-              <Link
-                href="/auth/login"
-                className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-[#8a6bfe] hover:text-[#8a6bfe]"
-              >
-                J’ai déjà un compte
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg flex items-center justify-center gap-2 group"
+                >
+                  Accéder à mon espace
+                  <ArrowRight className="group-hover:translate-x-1 transition" size={20} />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/register"
+                    className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg flex items-center justify-center gap-2 group"
+                  >
+                    Rejoindre gratuitement
+                    <ArrowRight className="group-hover:translate-x-1 transition" size={20} />
+                  </Link>
+                  <Link
+                    href="/auth/login"
+                    className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-[#8a6bfe] hover:text-[#8a6bfe]"
+                  >
+                    J’ai déjà un compte
+                  </Link>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <div className="flex items-center gap-2"><Check className="text-green-500" size={18} /> Sans CV</div>
@@ -134,43 +168,17 @@ export default function HomePage() {
       <section id="features" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto text-center mb-16">
           <h2 className="text-4xl font-bold mb-4 text-[#4C3E87]">Pourquoi choisir Woppy ?</h2>
-          <p className="text-lg text-gray-600">
-            Un environnement sûr, humain et rapide pour chaque mission.
-          </p>
+          <p className="text-lg text-gray-600">Un environnement sûr, humain et rapide pour chaque mission.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
           {[
-            {
-              icon: <Briefcase className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Publiez vos besoins',
-              desc: 'Créez une annonce locale pour un coup de main ponctuel. Woppy s’occupe de la visibilité et de la sélection des étudiants.',
-            },
-            {
-              icon: <Users className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Étudiants vérifiés à la main',
-              desc: 'Chaque carte étudiante est contrôlée par notre équipe. Pas de faux profils, pas de triche. Vous embauchez en toute confiance.',
-            },
-            {
-              icon: <MessageSquare className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Messagerie intégrée',
-              desc: 'Discutez avant d’accepter une mission. Gardez toutes vos conversations au même endroit.',
-            },
-            {
-              icon: <CreditCard className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Paiement sécurisé Stripe',
-              desc: 'L’argent est bloqué tant que la mission n’est pas terminée. Woppy prélève 15% pour la gestion et la sécurité.',
-            },
-            {
-              icon: <ShieldCheck className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Protection et confiance',
-              desc: 'Profils notés, avis vérifiés et système de litiges intégré. Vous êtes couvert à chaque étape.',
-            },
-            {
-              icon: <Sparkles className="w-8 h-8 text-[#8a6bfe]" />,
-              title: 'Simple et gratuit à l’inscription',
-              desc: 'Inscrivez-vous en 2 minutes. Aucun abonnement, aucune carte bancaire demandée.',
-            },
+            { icon: <Briefcase className="w-8 h-8 text-[#8a6bfe]" />, title: 'Publiez vos besoins', desc: 'Créez une annonce locale pour un coup de main ponctuel. Woppy s’occupe de la visibilité et de la sélection des étudiants.' },
+            { icon: <Users className="w-8 h-8 text-[#8a6bfe]" />, title: 'Étudiants vérifiés à la main', desc: 'Chaque carte étudiante est contrôlée par notre équipe. Pas de faux profils, pas de triche. Vous embauchez en toute confiance.' },
+            { icon: <MessageSquare className="w-8 h-8 text-[#8a6bfe]" />, title: 'Messagerie intégrée', desc: 'Discutez avant d’accepter une mission. Gardez toutes vos conversations au même endroit.' },
+            { icon: <CreditCard className="w-8 h-8 text-[#8a6bfe]" />, title: 'Paiement sécurisé Stripe', desc: 'L’argent est bloqué tant que la mission n’est pas terminée. Woppy prélève 15% pour la gestion et la sécurité.' },
+            { icon: <ShieldCheck className="w-8 h-8 text-[#8a6bfe]" />, title: 'Protection et confiance', desc: 'Profils notés, avis vérifiés et système de litiges intégré. Vous êtes couvert à chaque étape.' },
+            { icon: <Sparkles className="w-8 h-8 text-[#8a6bfe]" />, title: 'Simple et gratuit à l’inscription', desc: 'Inscrivez-vous en 2 minutes. Aucun abonnement, aucune carte bancaire demandée.' },
           ].map((f, i) => (
             <div key={i} className="bg-[#f8f6ff] rounded-2xl p-8 border border-[#ebe3ff] hover:shadow-md transition">
               <div className="mb-4">{f.icon}</div>
@@ -252,18 +260,29 @@ export default function HomePage() {
             Sécurité, rapidité et liberté en un clic.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/auth/register"
-              className="bg-white text-[#8a6bfe] px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg flex items-center justify-center gap-2"
-            >
-              Créer mon compte <ArrowRight size={20} />
-            </Link>
-            <Link
-              href="/auth/login"
-              className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10"
-            >
-              Se connecter
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="bg-white text-[#8a6bfe] px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg flex items-center justify-center gap-2"
+              >
+                Aller à mon espace <ArrowRight size={20} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/register"
+                  className="bg-white text-[#8a6bfe] px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg flex items-center justify-center gap-2"
+                >
+                  Créer mon compte <ArrowRight size={20} />
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10"
+                >
+                  Se connecter
+                </Link>
+              </>
+            )}
           </div>
           <p className="mt-6 text-sm opacity-80">
             ✓ Gratuit • ✓ Étudiants vérifiés manuellement • ✓ Paiements Stripe sécurisés
