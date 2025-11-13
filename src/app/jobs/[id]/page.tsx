@@ -31,10 +31,6 @@ import {
   MessageSquare,
   User,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
-// ✅ Carte Leaflet dynamique
-const WoppyMap = dynamic(() => import('@/components/WoppyMap'), { ssr: false });
 
 interface Annonce {
   id: string;
@@ -419,8 +415,6 @@ async function handleTaskDone() {
               value={`${annonce.remuneration} €/h`}
             />
           </div>
-
-          {position && <WoppyMap position={position} lieu={annonce.lieu} />}
 
           {isAuteur && (
             <>

@@ -8,6 +8,7 @@ const L = typeof window !== 'undefined' ? require('leaflet') : null;
 
 interface Annonce {
   id: string;
+  titre: string;
   description: string;
   lieu: string;
   remuneration: number;
@@ -55,11 +56,11 @@ export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
 
     // 🗺️ Couche de fond (satellite Stadia)
     L.tileLayer(
-      'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       {
         maxZoom: 20,
         attribution:
-          '© <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a>, © <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a>, © <a href="https://openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+          '© <strong>Woppy</strong>',
       }
     ).addTo(map);
 
@@ -107,7 +108,7 @@ export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
 
         const popupNode = L.DomUtil.create('div', 'popup-woppy');
         popupNode.innerHTML = `
-          <b>${a.description}</b><br/>
+          <b>${a.titre}</b><br/>
           <small>${a.lieu}</small><br/>
           <b style="color:#8a6bfe;">${a.remuneration} €/h</b><br/>
         `;

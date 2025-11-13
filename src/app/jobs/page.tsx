@@ -35,7 +35,7 @@ interface Annonce {
   description: string;
   titre: string;
   date: string;
-  duree: string;
+  duree: number;
   lieu: string;
   remuneration: number;
   statut: 'ouverte' | 'en cours' | 'fermée' | string;
@@ -412,7 +412,8 @@ export default function AnnoncesPage() {
                         <div className="space-y-2">
                           <InfoRow icon={<MapPin size={14} className="text-[#8a6bfe]" />} text={a.lieu} />
                           <InfoRow icon={<Calendar size={14} className="text-[#8a6bfe]" />} text={a.date} />
-                          <InfoRow icon={<Clock size={14} className="text-[#8a6bfe]" />} text={a.duree} />
+                          <InfoRow icon={<Clock size={14} className="text-[#8a6bfe]" />} text={`${a.duree} heure${a.duree > 1 ? 's' : ''}`} 
+                            />
                         </div>
                       </div>
 
