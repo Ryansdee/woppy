@@ -228,8 +228,8 @@ export default function ReferencesPage() {
 
       {/* FORMULAIRE AJOUT */}
       <section className="py-12 px-6">
-        <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Laisser un avis</h2>
+        <div className="max-w-3xl mx-auto bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-2xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold mb-6 text-white">Laisser un avis</h2>
 
           {!user && (
             <p className="text-red-600 mb-6">
@@ -237,7 +237,7 @@ export default function ReferencesPage() {
             </p>
           )}
 
-          <div className="grid gap-4">
+          <div className="grid gap-4 text-white">
             <label className="text-sm font-medium">Destinataire</label>
             <select
               value={recipientId}

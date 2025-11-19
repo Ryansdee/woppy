@@ -130,12 +130,34 @@ export default function DashboardPage() {
               label="Mon profil"
             />
             {role === 'collaborator' && (
+              <>
+                <QuickAction
+                  href="/dashboard/collaborateur"
+                  icon={<UserCheck className="w-8 h-8" />}
+                  label="Espace collaborateur"
+                  primary />
+              </>
+            )}
+            { role === 'admin' && (
+              <>
+                <QuickAction
+                  href="/dashboard/collaborateur"
+                  icon={<UserCheck className="w-8 h-8" />}
+                  label="Espace collaborateur"
+                  primary />
               <QuickAction
-                href="/dashboard/collaborateur"
-                icon={<UserCheck className="w-8 h-8" />}
-                label="Espace collaborateur"
+                href="/dashboard/jobs-career"
+                icon={<UserCog className="w-8 h-8" />}
+                label="Espace création de postes"
                 primary
               />
+              <QuickAction 
+              href="/dashboard/applications"
+              icon={<ListChecks className="w-8 h-8" />}
+              label="Gérer les candidatures"
+              primary
+              />
+              </>
             )}
           </div>
 

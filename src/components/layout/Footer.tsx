@@ -13,8 +13,8 @@
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">W</span>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-xl"><Image src="/images/logo.png" alt="Logo Woppy" width={32} height={32} className="rounded-md"></Image></span>
                 </div>
                 <span className="text-2xl font-bold text-white">Woppy</span>
               </div>

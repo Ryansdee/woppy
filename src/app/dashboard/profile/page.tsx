@@ -111,6 +111,37 @@ export default function DashboardProfilePage() {
     }
   };
 
+  // Upload de la photo de profil
+const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file || !user) return;
+
+  try {
+    const storageRef = ref(storage, `profilePhotos/${user.uid}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+
+    const updatedProfile: UserProfile = {
+      ...profile!,
+      photoURL: downloadURL,
+    };
+
+    setProfile(updatedProfile);
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      photoURL: downloadURL,
+      updatedAt: serverTimestamp(),
+    });
+
+    alert('✅ Photo de profil mise à jour !');
+  } catch (err) {
+    console.error('Erreur upload photo:', err);
+    alert('❌ Erreur lors de l’upload.');
+  }
+};
+
+
   // Upload carte étudiante
   const handleCardUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,9 +333,16 @@ export default function DashboardProfilePage() {
                 className="rounded-full object-cover"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#8a6bfe] text-white rounded-lg hover:bg-[#7a5bee] transition">
+
+            <label className="flex items-center gap-2 px-4 py-2 bg-[#8a6bfe] text-white rounded-lg hover:bg-[#7a5bee] transition cursor-pointer">
               <Upload className="w-4 h-4" /> Changer la photo
-            </button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </label>
           </div>
 
           {/* Carte étudiante */}

@@ -226,7 +226,7 @@ export default function UserProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-[#f9f5ff] via-[#f5eaff] to-[#faf5ff] text-gray-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Link
-          href="/dashboard"
+          href="/students"
           className="inline-flex items-center gap-2 text-gray-700 hover:text-[#8a6bfe] transition mb-8 font-medium"
         >
           <ArrowLeft size={18} /> Retour
