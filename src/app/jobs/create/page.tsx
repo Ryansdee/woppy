@@ -1,219 +1,346 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { Calendar, MapPin, Euro, FileText, CheckCircle, Type } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { db, storage } from "@/lib/firebase";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import {
+  MapPin,
+  Euro,
+  Calendar,
+  Clock,
+  Image as ImageIcon,
+  Users,
+  Plus,
+  Loader2,
+  X,
+} from "lucide-react";
 
-export default function NouvelleAnnoncePage() {
-  const [user, setUser] = useState<any>(null);
+export default function CreateAnnoncePage() {
+  const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [preview, setPreview] = useState<string[]>([]);
+
   const [form, setForm] = useState({
-    titre: '',              // ✅ nouveau champ
-    description: '',
-    date: '',
-    duree: '',
-    lieu: '',
-    remuneration: '',
-    statut: 'ouverte',
+    titre: "",
+    description: "",
+    date: "",
+    duree: "",
+    lieu: "",
+    remuneration: "",
+    maxApplicants: 1,
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const router = useRouter();
 
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    null
+  );
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+
+  /* ----------------------------- AUTOCOMPLETE ----------------------------- */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.push('/auth/login');
-      else setUser(u);
-    });
-    return () => unsub();
-  }, [router]);
+    const q = form.lieu.trim();
+    if (!q || q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const timer = setTimeout(async () => {
+      setIsLoadingAddress(true);
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=be&limit=5`
+        );
+
+        const data = await res.json();
+        setSuggestions(data);
+      } catch (_) {}
+
+      setIsLoadingAddress(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form.lieu]);
+
+  const selectAddress = (s: any) => {
+    setForm({ ...form, lieu: s.display_name });
+    setCoords({ lat: Number(s.lat), lon: Number(s.lon) });
+    setSuggestions([]);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  /* ----------------------------- IMAGE UPLOAD ----------------------------- */
+  const handleSelectPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+
+    const files = Array.from(e.target.files);
+
+    setPhotos((p) => [...p, ...files]);
+
+    const previews = files.map((f) => URL.createObjectURL(f));
+    setPreview((p) => [...p, ...previews]);
+  };
+
+  const removePhoto = (i: number) => {
+    setPhotos((p) => p.filter((_, idx) => idx !== i));
+    setPreview((p) => p.filter((_, idx) => idx !== i));
+  };
+
+  /* ----------------------------- SUBMIT ----------------------------- */
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
-    setIsLoading(true);
+    if (loading) return;
+    setLoading(true);
 
     try {
-      await addDoc(collection(db, 'annonces'), {
-        ...form,
-        userId: user.uid,
+      // upload des photos
+      const uploaded: string[] = [];
+
+      for (const file of photos) {
+        const storageRef = ref(
+          storage,
+          `annonces_photos/${Date.now()}_${file.name}`
+        );
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        uploaded.push(url);
+      }
+
+      await addDoc(collection(db, "annonces"), {
+        titre: form.titre,
+        description: form.description,
+        date: form.date,
+        duree: Number(form.duree),
+        lieu: form.lieu,
+        coords: coords ? coords : null,
+        remuneration: Number(form.remuneration),
+
+        statut: "ouverte",
+
+        photos: uploaded,
+
+        maxApplicants: Number(form.maxApplicants),
+        currentApplicants: 0,
+        applicants: [],
+
+        userId: "TO_REPLACE_WITH_UID", // tu mettras l'UID ici
+
         createdAt: serverTimestamp(),
       });
-      setMessage('Annonce publiée avec succès 🎉');
-      setTimeout(() => router.push('/jobs'), 1200);
-    } catch (err) {
-      console.error('Erreur publication :', err);
-      setMessage("Une erreur est survenue lors de la publication.");
-    } finally {
-      setIsLoading(false);
+
+      alert("Annonce créée !");
+      window.location.href = "/annonces";
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la création.");
     }
+
+    setLoading(false);
   };
 
-  if (!user) return null;
+  /* ----------------------------- UI ----------------------------- */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900 flex flex-col">
-      <nav className="p-6 flex justify-between items-center">
-        <Link href="/dashboard" className="text-[#8a6bfe] font-semibold hover:underline">
-          ← Retour au tableau de bord
-        </Link>
-        <h1 className="text-xl font-bold text-gray-900">Publier une annonce</h1>
-      </nav>
+    <div className="max-w-2xl mx-auto px-6 py-10 text-gray-900">
+      <h1 className="text-3xl font-bold mb-6">
+        Publier une annonce
+      </h1>
 
-      <main className="flex-1 px-6 py-12 flex justify-center">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-sm p-8 space-y-6"
-        >
-          {/* ✅ Champ titre */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <Type size={18} /> Titre de l&apos;annonce <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="titre"
-              value={form.titre}
-              onChange={handleChange}
-              placeholder="Ex : Aide au déménagement, Babysitting, Cours de maths..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-              required
-            />
-          </div>
+      <form onSubmit={submit} className="space-y-6">
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              rows={4}
-              placeholder="Décris le service demandé ou proposé..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition resize-none"
-              required
-            />
-          </div>
+        {/* TITRE */}
+        <div>
+          <label className="font-medium text-sm">Titre</label>
+          <input
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.titre}
+            onChange={(e) =>
+              setForm({ ...form, titre: e.target.value })
+            }
+            required
+          />
+        </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Calendar size={18} /> Date du service <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                required
-              />
+        {/* DESCRIPTION */}
+        <div>
+          <label className="font-medium text-sm">
+            Description du travail
+          </label>
+          <textarea
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white resize-none"
+            rows={4}
+            value={form.description}
+            onChange={(e) =>
+              setForm({ ...form, description: e.target.value })
+            }
+            required
+          />
+        </div>
+
+        {/* DATE */}
+        <div>
+          <label className="font-medium text-sm flex items-center gap-2">
+            <Calendar size={16} /> Date du service
+          </label>
+          <input
+            type="date"
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.date}
+            onChange={(e) =>
+              setForm({ ...form, date: e.target.value })
+            }
+            required
+          />
+        </div>
+
+        {/* DUREE */}
+        <div>
+          <label className="font-medium text-sm flex items-center gap-2">
+            <Clock size={16} /> Durée estimée (heures)
+          </label>
+          <input
+            type="number"
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.duree}
+            onChange={(e) =>
+              setForm({ ...form, duree: e.target.value })
+            }
+            required
+          />
+        </div>
+
+        {/* ADRESSE + AUTOCOMPLETE */}
+        <div className="relative">
+          <label className="font-medium text-sm flex items-center gap-2">
+            <MapPin size={16} /> Adresse
+          </label>
+          <input
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.lieu}
+            onChange={(e) =>
+              setForm({ ...form, lieu: e.target.value })
+            }
+            placeholder="Louvain-la-Neuve…"
+            required
+          />
+
+          {isLoadingAddress && (
+            <div className="absolute right-3 top-10 animate-spin">
+              <Loader2 size={18} />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Durée estimée (en heures)
-              </label>
-              <input
-                type="number"
-                name="duree"
-                min="0.5"
-                step="0.5"
-                value={form.duree}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                placeholder="Ex : 2"
-              />
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <MapPin size={18} /> Lieu du service <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="lieu"
-                value={form.lieu}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                placeholder="Ville ou adresse"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Euro size={18} /> Rémunération proposée (€) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="remuneration"
-                min="0"
-                step="0.5"
-                value={form.remuneration}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-                placeholder="Ex : 25"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <FileText size={18} /> Statut de l&apos;annonce
-            </label>
-            <select
-              name="statut"
-              value={form.statut}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent transition"
-            >
-              <option value="ouverte">Ouverte</option>
-              <option value="en cours">En cours</option>
-              <option value="termine">Terminée</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Publication...</span>
-              </>
-            ) : (
-              'Publier mon annonce'
-            )}
-          </button>
-
-          {message && (
-            <p
-              className={`text-sm text-center mt-3 ${
-                message.includes('succès') ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              <CheckCircle className="inline-block w-4 h-4 mr-1" />
-              {message}
-            </p>
           )}
-        </form>
-      </main>
+
+          {suggestions.length > 0 && (
+            <div className="absolute z-20 w-full bg-white shadow-xl rounded-xl mt-2 border">
+              {suggestions.map((s: any, i) => (
+                <button
+                  type="button"
+                  key={i}
+                  onClick={() => selectAddress(s)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-xl"
+                >
+                  {s.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* REMUNERATION */}
+        <div>
+          <label className="font-medium text-sm flex items-center gap-2">
+            <Euro size={16} /> Rémunération (€ / heure)
+          </label>
+          <input
+            type="number"
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.remuneration}
+            onChange={(e) =>
+              setForm({ ...form, remuneration: e.target.value })
+            }
+            required
+          />
+        </div>
+
+        {/* NOMBRE D'ÉTUDIANTS */}
+        <div>
+          <label className="font-medium text-sm flex items-center gap-2">
+            <Users size={16} /> Étudiants recherchés
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            className="w-full mt-1 px-4 py-3 rounded-xl border bg-white"
+            value={form.maxApplicants}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                maxApplicants: Number(e.target.value),
+              })
+            }
+            required
+          />
+        </div>
+
+        {/* UPLOAD PHOTOS */}
+        <div>
+          <label className="font-medium text-sm flex items-center gap-2">
+            <ImageIcon size={16} /> Photos du travail
+          </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleSelectPhotos}
+            className="mt-2"
+          />
+
+          {/* PREVIEW */}
+          {preview.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {preview.map((url, i) => (
+                <div
+                  key={i}
+                  className="relative w-full h-24 bg-gray-100 rounded-xl overflow-hidden"
+                >
+                  <img
+                    src={url}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 bg-white/80 rounded-full p-1 shadow"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* SUBMIT */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-[#8a6bfe] text-white font-semibold rounded-xl shadow-lg hover:bg-[#7a5bee] transition flex items-center justify-center gap-2"
+        >
+          {loading && <Loader2 className="animate-spin" size={20} />}
+          Publier
+        </button>
+      </form>
     </div>
   );
 }

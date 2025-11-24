@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
+
 import {
   doc,
   getDoc,
@@ -15,6 +16,7 @@ import {
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
+
 import { onAuthStateChanged } from 'firebase/auth';
 import {
   Loader2,
@@ -27,12 +29,16 @@ import {
   MessageSquare,
   Building2,
 } from 'lucide-react';
+
 import { motion } from 'framer-motion';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import * as frLocale from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
+/* ==========================
+   Réglages calendrier
+========================== */
 const locales = { fr: frLocale };
 const localizer = dateFnsLocalizer({
   format,
@@ -42,6 +48,9 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+/* ==========================
+   Interfaces
+========================== */
 interface Experience {
   title: string;
   company?: string;
@@ -88,9 +97,20 @@ interface Annonce {
   createdAt?: any;
 }
 
+interface Review {
+  id: string;
+  rating?: number;
+  comment?: string;
+  createdAt?: any;
+}
+
+/* ==========================
+   Page Profil Étudiant
+========================== */
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
+
   const uid =
     typeof params.uid === 'string'
       ? params.uid
@@ -104,11 +124,13 @@ export default function UserProfilePage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
 
+  /* Auth */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u));
     return () => unsub();
   }, []);
 
+  /* Responsive */
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -116,39 +138,126 @@ export default function UserProfilePage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  /* Charger Profil + Annonces publiées */
   useEffect(() => {
     async function fetchUser() {
       if (!uid) return;
+
       try {
         const userRef = doc(db, 'users', uid);
         const snap = await getDoc(userRef);
-        if (snap.exists()) setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        }
 
         const annoncesRef = collection(db, 'annonces');
-        const q = query(annoncesRef, where('userId', '==', uid));
-        const annoncesSnap = await getDocs(q);
-        const annoncesData = annoncesSnap.docs.map((d) => ({
+        const qAnnonces = query(annoncesRef, where('userId', '==', uid));
+        const annoncesSnap = await getDocs(qAnnonces);
+
+        const list = annoncesSnap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         })) as Annonce[];
 
-        setAnnonces(annoncesData);
+        setAnnonces(list);
       } catch (err) {
         console.error('Erreur chargement profil:', err);
       } finally {
         setLoading(false);
       }
     }
+
     fetchUser();
   }, [uid]);
 
+  /* ==========================
+     Reviews + Travaux effectués
+  =========================== */
+  const [reviewsCount, setReviewsCount] = useState(0);
+  const [reviewsList, setReviewsList] = useState<Review[]>([]);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [jobsDone, setJobsDone] = useState(0);
+
+  /* Reviews */
+  useEffect(() => {
+    async function loadReviews() {
+      if (!uid) return;
+
+      try {
+        // ⚠️ IMPORTANT : champ aligné avec les règles => reviewedId
+        const qReviews = query(
+          collection(db, 'reviews'),
+          where('reviewedId', '==', uid)
+        );
+
+        const snap = await getDocs(qReviews);
+
+        const list: Review[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as any),
+        }));
+
+        setReviewsList(list);
+
+        if (list.length === 0) {
+          setReviewsCount(0);
+          setAvgRating(null);
+          return;
+        }
+
+        const avg =
+          list.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
+          list.length;
+
+        setReviewsCount(list.length);
+        setAvgRating(Number(avg.toFixed(1)));
+      } catch (err) {
+        console.error('Erreur reviews:', err);
+      }
+    }
+
+    loadReviews();
+  }, [uid]);
+
+  /* Travaux effectués */
+  useEffect(() => {
+    async function loadJobsDone() {
+      if (!uid) return;
+
+      try {
+        const qJobs = query(
+          collection(db, 'annonces'),
+          where('acceptedUserId', '==', uid),
+          where('statut', '==', 'fini')
+        );
+
+        const snap = await getDocs(qJobs);
+        setJobsDone(snap.docs.length);
+      } catch (err) {
+        console.error('Erreur travaux:', err);
+      }
+    }
+
+    loadJobsDone();
+  }, [uid]);
+
+  /* ==========================
+     Messagerie
+  =========================== */
   async function handleMessage() {
     if (!currentUser || !uid) return;
+
     try {
       const snap = await getDocs(
-        query(collection(db, 'chats'), where('participants', 'array-contains', currentUser.uid))
+        query(
+          collection(db, 'chats'),
+          where('participants', 'array-contains', currentUser.uid)
+        )
       );
+
       let chatId: string | null = null;
+
       snap.forEach((docSnap) => {
         const data = docSnap.data() as { participants: string[] };
         if (data.participants.includes(uid)) chatId = docSnap.id;
@@ -168,6 +277,9 @@ export default function UserProfilePage() {
     }
   }
 
+  /* ==========================
+     Loading
+  =========================== */
   if (loading)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-gray-600 bg-gradient-to-br from-[#f5e5ff] to-[#ddc2ff]">
@@ -178,9 +290,9 @@ export default function UserProfilePage() {
 
   if (!userProfile)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-gray-700 text-center bg-[#f5e5ff]">
-        <p className="text-lg font-semibold">Profil introuvable</p>
-        <Link href="/jobs" className="mt-4 text-[#8a6bfe] hover:underline">
+      <div className="min-h-screen flex flex-col items-center justify-center text-gray-700">
+        <p>Profil introuvable.</p>
+        <Link href="/students" className="text-[#8a6bfe] mt-4 hover:underline">
           Retour
         </Link>
       </div>
@@ -188,6 +300,9 @@ export default function UserProfilePage() {
 
   const { studentProfile, experiences } = userProfile;
 
+  /* ==========================
+     Disponibilités (Calendrier)
+  =========================== */
   const events =
     userProfile?.availabilitySchedule &&
     Object.entries(userProfile.availabilitySchedule)
@@ -203,14 +318,17 @@ export default function UserProfilePage() {
           Samedi: 6,
           Dimanche: 0,
         };
+
         const diff = (dayMap[day] - today.getDay() + 7) % 7;
         const startDate = new Date(today);
         startDate.setDate(today.getDate() + diff);
 
         const [sh, sm] = data.start!.split(':').map(Number);
         const [eh, em] = data.end!.split(':').map(Number);
+
         const start = new Date(startDate);
         start.setHours(sh, sm);
+
         const end = new Date(startDate);
         end.setHours(eh, em);
 
@@ -222,23 +340,31 @@ export default function UserProfilePage() {
         };
       });
 
+  /* ==========================
+     UI MAIN
+  =========================== */
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f9f5ff] via-[#f5eaff] to-[#faf5ff] text-gray-900">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        {/* ⬅️ Retour */}
         <Link
           href="/students"
-          className="inline-flex items-center gap-2 text-gray-700 hover:text-[#8a6bfe] transition mb-8 font-medium"
+          className="inline-flex items-center gap-2 text-gray-700 hover:text-[#8a6bfe] mb-8"
         >
           <ArrowLeft size={18} /> Retour
         </Link>
 
-        {/* 👤 Profil principal */}
+        {/* ==========================
+            🧑 Profil Étudiant
+        =========================== */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col md:flex-row items-center md:items-start gap-8 bg-white/70 backdrop-blur-md rounded-3xl p-8 border border-[#ddc2ff] shadow-lg hover:shadow-xl transition"
+          transition={{ duration: 0.4 }}
+          className="flex flex-col md:flex-row gap-8 bg-white/70 p-8 rounded-3xl border border-[#ddc2ff] shadow-lg"
         >
+          {/* Photo */}
           <div className="relative">
             <div className="absolute inset-0 blur-2xl bg-[#ddc2ff]/50 rounded-full"></div>
             <Image
@@ -248,34 +374,46 @@ export default function UserProfilePage() {
                   `${userProfile.firstName} ${userProfile.lastName}`
                 )}&background=8a6bfe&color=fff&size=128`
               }
-              alt={userProfile.firstName}
+              alt="photo"
               width={150}
               height={150}
               className="relative rounded-full border-4 border-[#8a6bfe]/80 object-cover shadow-xl"
             />
           </div>
 
-          <div className="flex-1 w-full space-y-3 text-center md:text-left">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#8a6bfe]">
+          {/* Infos */}
+          <div className="flex-1 space-y-3">
+            <h1 className="text-3xl font-extrabold text-[#8a6bfe]">
               {userProfile.firstName} {userProfile.lastName}
             </h1>
-            <p className="text-gray-500 text-sm">
-              <a href={`mailto:${userProfile.email}`} className="hover:underline">
-                {userProfile.email}
-              </a>
-            </p>
 
-            <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
+            {/* Badges */}
+            <div className="flex flex-wrap gap-3 mt-3">
+              {avgRating !== null && (
+                <span className="px-4 py-1.5 bg-yellow-100 text-yellow-700 rounded-full font-medium text-sm border border-yellow-300 flex items-center gap-1">
+                  <Star size={14} className="text-yellow-600" />
+                  {avgRating} / 5
+                </span>
+              )}
+
+              <span className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full font-medium text-sm border border-green-300 flex items-center gap-1">
+                <Briefcase size={14} />
+                {jobsDone} travail{jobsDone > 1 ? 's' : ''} effectué
+                {jobsDone > 1 ? 's' : ''}
+              </span>
+
               {studentProfile?.hourlyRate && (
-                <span className="px-4 py-1.5 bg-[#8a6bfe]/10 text-[#8a6bfe] rounded-full font-medium text-sm border border-[#8a6bfe]/30">
+                <span className="px-4 py-1.5 bg-[#8a6bfe]/10 text-[#8a6bfe] rounded-full text-sm border border-[#8a6bfe]/30">
                   {studentProfile.hourlyRate} €/h
                 </span>
               )}
+
               {studentProfile?.age && (
                 <span className="px-4 py-1.5 bg-[#ddc2ff]/30 text-gray-700 rounded-full text-sm border border-[#ddc2ff]/60">
                   {studentProfile.age} ans
                 </span>
               )}
+
               {userProfile.city && (
                 <span className="flex items-center gap-1 text-sm text-gray-700">
                   <MapPin size={14} className="text-[#8a6bfe]" />
@@ -290,29 +428,85 @@ export default function UserProfilePage() {
               )}
             </div>
 
+            {/* ⭐ Bloc Avis reçus */}
+            {reviewsList.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.6 }}
+                className="mt-6"
+              >
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-[#8a6bfe]">
+                  <Star /> Avis reçus ({reviewsList.length})
+                </h2>
+
+                <div className="space-y-4">
+                  {reviewsList.map((review) => (
+                    <div
+                      key={review.id}
+                      className="bg-white border border-[#ddc2ff]/70 rounded-2xl p-4 shadow-sm"
+                    >
+                      {/* ⭐ note */}
+                      <div className="flex items-center gap-1 mb-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            size={16}
+                            className={
+                              n <= (review.rating || 0)
+                                ? 'text-yellow-500 fill-yellow-500'
+                                : 'text-gray-300'
+                            }
+                          />
+                        ))}
+                      </div>
+
+                      {/* 💬 commentaire */}
+                      {review.comment && (
+                        <p className="text-gray-700 text-sm mb-2">
+                          {review.comment}
+                        </p>
+                      )}
+
+                      {/* 🕒 date */}
+                      <p className="text-xs text-gray-500">
+                        Posté le{' '}
+                        {review.createdAt?.seconds
+                          ? new Date(
+                              review.createdAt.seconds * 1000
+                            ).toLocaleDateString('fr-BE')
+                          : 'date inconnue'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {studentProfile?.description && (
-              <p className="mt-3 text-gray-700 leading-relaxed bg-[#f5e5ff]/40 p-4 rounded-xl border border-[#ddc2ff]/60">
+              <p className="mt-3 text-gray-700 bg-[#f5e5ff]/40 p-4 rounded-xl border border-[#ddc2ff]/60">
                 {studentProfile.description}
               </p>
             )}
 
             {userProfile.bio && (
-              <p className="italic text-gray-600 leading-relaxed">{userProfile.bio}</p>
+              <p className="italic text-gray-600">{userProfile.bio}</p>
             )}
 
             <p className="text-xs text-gray-500">
               Membre depuis{' '}
               {userProfile.createdAt?.seconds
-                ? new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('fr-BE')
+                ? new Date(
+                    userProfile.createdAt.seconds * 1000
+                  ).toLocaleDateString('fr-BE')
                 : 'date inconnue'}
             </p>
 
             {currentUser && currentUser.uid !== uid && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={handleMessage}
-                className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition"
+                className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl shadow-md"
               >
                 <MessageSquare size={18} /> Envoyer un message
               </motion.button>
@@ -320,111 +514,93 @@ export default function UserProfilePage() {
           </div>
         </motion.div>
 
-        {/* 📅 Calendrier ou Liste de disponibilités */}
+        {/* ==========================
+            Disponibilités
+        =========================== */}
         {events && events.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
             className="mt-14"
           >
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-[#8a6bfe]">
+            <h2 className="text-2xl font-bold mb-6 text-[#8a6bfe] flex items-center gap-2">
               <CalendarIcon /> Disponibilités
             </h2>
 
-            <div className="bg-white border border-[#ddc2ff]/70 rounded-2xl p-4 shadow-md">
+            <div className="bg-white border border-[#ddc2ff] rounded-2xl p-4 shadow-md">
               {isMobile ? (
                 <div className="space-y-3">
                   {events.map((ev, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-3 bg-[#f8f2ff]/60 border border-[#ddc2ff]/50 rounded-xl text-sm"
+                      className="p-3 bg-[#f8f2ff] border border-[#ddc2ff] rounded-xl"
                     >
                       <span className="font-medium text-[#8a6bfe]">
-                        {ev.title.split(' ')[0]}
-                      </span>
-                      <span className="text-gray-700">
-                        {ev.start.toLocaleTimeString('fr-FR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                        -{' '}
-                        {ev.end.toLocaleTimeString('fr-FR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {ev.title}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="relative w-full overflow-x-auto rounded-xl border border-[#ddc2ff]/50">
-                  <div className="min-w-[600px]">
-                    <BigCalendar
-                      localizer={localizer}
-                      events={events}
-                      startAccessor="start"
-                      endAccessor="end"
-                      style={{ height: 500 }}
-                      views={['week']}
-                      defaultView="week"
-                      messages={{
-                        week: 'Semaine',
-                        today: "Aujourd'hui",
-                        previous: '←',
-                        next: '→',
-                      }}
-                      eventPropGetter={() => ({
-                        style: {
-                          backgroundColor: '#8a6bfe',
-                          color: 'white',
-                          borderRadius: '10px',
-                          border: 'none',
-                        },
-                      })}
-                    />
-                  </div>
-                </div>
+                <BigCalendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: 500 }}
+                  views={['week']}
+                  defaultView="week"
+                  eventPropGetter={() => ({
+                    style: {
+                      backgroundColor: '#8a6bfe',
+                      color: 'white',
+                      borderRadius: '8px',
+                    },
+                  })}
+                />
               )}
             </div>
           </motion.div>
         )}
 
-        {/* 💼 Expériences */}
+        {/* ==========================
+            Expériences
+        =========================== */}
         {experiences && experiences.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
             className="mt-14"
           >
-            <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-[#8a6bfe]">
+            <h2 className="text-2xl font-bold mb-8 text-[#8a6bfe] flex items-center gap-2">
               <Star /> Expériences professionnelles
             </h2>
+
             <div className="space-y-6">
               {experiences.map((exp, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white border border-[#ddc2ff]/70 rounded-2xl p-6 shadow-sm hover:shadow-md hover:bg-[#f8f2ff]/70 transition"
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-white border border-[#ddc2ff] p-6 rounded-2xl shadow"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900">{exp.title}</h3>
+                  <h3 className="text-lg font-semibold">{exp.title}</h3>
+
                   {exp.company && (
                     <p className="flex items-center gap-2 text-sm text-gray-700 mt-1">
-                      <Building2 size={14} className="text-[#8a6bfe]" /> {exp.company}
+                      <Building2 size={14} /> {exp.company}
                     </p>
                   )}
+
                   {(exp.startDate || exp.endDate) && (
                     <p className="text-xs text-gray-500 mt-1">
                       {exp.startDate || '—'} → {exp.endDate || 'Présent'}
                     </p>
                   )}
+
                   {exp.description && (
-                    <p className="mt-3 text-gray-700 leading-relaxed">{exp.description}</p>
+                    <p className="mt-3 text-gray-700">{exp.description}</p>
                   )}
                 </motion.div>
               ))}
@@ -432,41 +608,43 @@ export default function UserProfilePage() {
           </motion.div>
         )}
 
-        {/* 📋 Annonces publiées */}
+        {/* ==========================
+            Annonces publiées
+        =========================== */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
           className="mt-14"
         >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-[#8a6bfe]">
+          <h2 className="text-2xl font-bold mb-6 text-[#8a6bfe] flex items-center gap-2">
             <Briefcase /> Annonces publiées
           </h2>
 
           {annonces.length === 0 ? (
-            <p className="text-gray-600">Aucune annonce publiée pour le moment.</p>
+            <p className="text-gray-600">Aucune annonce publiée.</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {annonces.map((a) => (
                 <motion.div
                   key={a.id}
                   whileHover={{ scale: 1.03 }}
-                  className="bg-white border border-[#ddc2ff]/70 rounded-2xl p-5 hover:bg-[#f5e5ff]/50 hover:border-[#8a6bfe] shadow-sm hover:shadow-md transition"
+                  className="bg-white border border-[#ddc2ff] p-5 rounded-2xl shadow"
                 >
                   <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
                     {a.description}
                   </h3>
+
                   <div className="text-sm text-gray-600 space-y-1">
                     <p className="flex items-center gap-2">
                       <CalendarIcon size={14} className="text-[#8a6bfe]" />{' '}
-                      {a.date || 'Date non spécifiée'}
+                      {a.date}
                     </p>
                     <p className="flex items-center gap-2">
-                      <MapPin size={14} className="text-[#8a6bfe]" /> {a.lieu || 'Lieu inconnu'}
+                      <MapPin size={14} className="text-[#8a6bfe]" /> {a.lieu}
                     </p>
                     <p className="flex items-center gap-2">
-                      <Euro size={14} className="text-[#8a6bfe]" /> {a.remuneration} €/h
+                      <Euro size={14} className="text-[#8a6bfe]" />{' '}
+                      {a.remuneration} €/h
                     </p>
                   </div>
                 </motion.div>

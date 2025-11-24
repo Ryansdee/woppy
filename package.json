@@ -23,6 +23,7 @@
     "react": "19.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "19.2.0",
+    "react-easy-crop": "^5.5.5",
     "react-firebase-hooks": "^5.1.1",
     "react-leaflet": "^5.0.0",
     "stripe": "^19.1.0"

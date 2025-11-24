@@ -12,9 +12,20 @@ interface Annonce {
   description: string;
   lieu: string;
   remuneration: number;
+  radius?: number;
+}
+interface AnnoncesMapProps {
+  annonces?: Annonce[];
+  radius?: number;
+  center?: { lat: number; lon: number } | null;
+  id: string;
+  titre: string;
+  description: string;
+  lieu: string;
+  remuneration: number;
 }
 
-export default function AnnoncesMap({ annonces }: { annonces?: Annonce[] }) {
+export default function AnnoncesMap({ annonces }: { annonces?: AnnoncesMapProps[] }) {
   const mapRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mounted = useRef(false);

@@ -26,10 +26,9 @@ export default function Navbar() {
 
   // 🔗 Liens principaux
   const links = [
-	{ name: 'Emplois', href: '/jobs' },
+	{ name: 'Annnoces', href: '/jobs' },
 	{ name: 'Étudiants', href: '/students' },
-	{ name: 'Profil', href: '/dashboard/profile' },
-	{ name: 'Références', href: '/references' },
+	{ name: 'Mon Profil', href: '/dashboard/profile' },
   ];
 
   // 🔐 Gestion utilisateur

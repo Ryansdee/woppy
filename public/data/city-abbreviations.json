@@ -1,0 +1,58 @@
+{
+  "bxl": "Bruxelles",
+  "bx": "Bruxelles",
+  "brux": "Bruxelles",
+  "bruxelles": "Bruxelles",
+  "bru": "Bruxelles",
+
+  "lln": "Louvain-la-Neuve",
+  "louvainlaneuve": "Louvain-la-Neuve",
+  "louvain la neuve": "Louvain-la-Neuve",
+  "louvain-la-neuve": "Louvain-la-Neuve",
+
+  "nam": "Namur",
+  "nmr": "Namur",
+  "namur": "Namur",
+
+  "lg": "Liège",
+  "liege": "Liège",
+  "liège": "Liège",
+
+  "mons": "Mons",
+  "mns": "Mons",
+
+  "bxl-nord": "Bruxelles",
+  "bxl-sud": "Bruxelles",
+
+  "ouv": "Ottignies",
+  "ottignies": "Ottignies",
+
+  "wavre": "Wavre",
+  "wvr": "Wavre",
+
+  "gent": "Gand",
+  "ghent": "Gand",
+  "gand": "Gand",
+
+  "anvers": "Anvers",
+  "antwerp": "Anvers",
+  "antwerpen": "Anvers",
+  "anw": "Anvers",
+
+  "charleroi": "Charleroi",
+  "charl": "Charleroi",
+
+  "tournai": "Tournai",
+  "trn": "Tournai",
+
+  "leuven": "Louvain",
+  "louvain": "Louvain",
+
+  "spa": "Spa",
+  "din": "Dinant",
+  "dinant": "Dinant",
+
+  "nadrin": "Nadrin",
+  "arln": "Arlon",
+  "arlon": "Arlon"
+}

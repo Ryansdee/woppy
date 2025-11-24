@@ -1,50 +1,53 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+
 import {
   doc,
   getDoc,
-  addDoc,
   collection,
-  serverTimestamp,
   query,
   where,
   getDocs,
+  addDoc,
+  serverTimestamp,
   updateDoc,
-  deleteDoc,
-} from 'firebase/firestore';
+} from "firebase/firestore";
+
 import {
+  ChevronLeft,
+  Sparkles,
   MapPin,
-  Euro,
-  Clock,
   Calendar,
-  ArrowLeft,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Bell,
-  MessageSquare,
+  Clock,
+  Euro,
   User,
-} from 'lucide-react';
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+
+/* -------------------------------------------------------
+   INTERFACES
+-------------------------------------------------------- */
 
 interface Annonce {
   id: string;
   titre: string;
   description: string;
   date: string;
-  duree: string;
+  duree: number;
   lieu: string;
   remuneration: number;
-  statut: string;
+  statut: "ouverte" | "en cours" | "fini";
   userId: string;
   createdAt?: any;
-  userName?: string;
-  userPhotoURL?: string;
+  photos: string[];
   acceptedUserId?: string;
   acceptedUserName?: string;
   taskCompletion?: { author?: boolean; student?: boolean };
@@ -59,472 +62,625 @@ interface Candidature {
   photoURL?: string;
 }
 
-interface Chat {
-  id: string;
-  participants: string[];
-  annonceId?: string;
-  createdAt?: any;
+interface AuteurUser {
+  firstName?: string;
+  lastName?: string;
+  photoURL?: string;
 }
 
-export default function AnnonceDetailPage() {
+/* -------------------------------------------------------
+   PAGE
+-------------------------------------------------------- */
+
+export default function JobDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [annonce, setAnnonce] = useState<Annonce | null>(null);
+
   const [user, setUser] = useState<any>(null);
+  const [annonce, setAnnonce] = useState<Annonce | null>(null);
+  const [auteur, setAuteur] = useState<AuteurUser | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
   const [position, setPosition] = useState<[number, number] | null>(null);
 
-  const formatLieu = annonce?.lieu.replaceAll(' ', '+');
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${formatLieu}`;
-
-  // Auth
+  /* -------------------------------------------------------
+     AUTH
+  -------------------------------------------------------- */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.push('/auth/login');
+      if (!u) router.push("/auth/login");
       else setUser(u);
     });
     return () => unsub();
   }, [router]);
 
-  // Charger annonce
+  /* -------------------------------------------------------
+     CHARGER ANNONCE
+  -------------------------------------------------------- */
   useEffect(() => {
     async function fetchAnnonce() {
       if (!id) return;
-      try {
-        const ref = doc(db, 'annonces', id as string);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const annonceData = { id: snap.id, ...snap.data() } as Annonce;
 
-          const userRef = doc(db, 'users', annonceData.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const u = userSnap.data();
-            annonceData.userName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur';
-            annonceData.userPhotoURL =
-              u.photoURL ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                annonceData.userName
-              )}&background=8a6bfe&color=fff&size=64`;
-          }
-          setAnnonce(annonceData);
-        } else setAnnonce(null);
+      try {
+        const ref = doc(db, "annonces", String(id));
+        const snap = await getDoc(ref);
+
+        if (!snap.exists()) {
+          setAnnonce(null);
+          return;
+        }
+
+        const data = snap.data() as any;
+
+        // normalisation
+        const photos = Array.isArray(data.photos) ? data.photos : [];
+
+        setAnnonce({
+          id: snap.id,
+          ...data,
+          photos,
+        });
       } catch (err) {
-        console.error('Erreur Firestore :', err);
+        console.error("Erreur annonce :", err);
       } finally {
         setLoading(false);
       }
     }
+
     fetchAnnonce();
   }, [id]);
 
-  // Charger candidatures
+  /* -------------------------------------------------------
+     CHARGER AUTEUR
+  -------------------------------------------------------- */
   useEffect(() => {
-    async function fetchCandidatures() {
-      if (!annonce || !user || user.uid !== annonce.userId) return;
+    async function fetchAuteur() {
+      if (!annonce?.userId) return;
+
       try {
-        const q = query(collection(db, 'candidatures'), where('annonceId', '==', annonce.id));
-        const snap = await getDocs(q);
-        const data = await Promise.all(
-          snap.docs.map(async (docSnap) => {
-            const c = { id: docSnap.id, ...docSnap.data() } as Candidature;
-            const userRef = doc(db, 'users', c.userId);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-              const u = userSnap.data();
-              return {
-                ...c,
-                userName: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-                photoURL:
-                  u.photoURL ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    u.firstName || 'Utilisateur'
-                  )}&background=8a6bfe&color=fff&size=64`,
-              };
-            } else {
-              return {
-                ...c,
-                userName: 'Utilisateur inconnu',
-                photoURL: `https://ui-avatars.com/api/?name=Utilisateur&background=8a6bfe&color=fff&size=64`,
-              };
-            }
-          })
-        );
-        setCandidatures(data);
+        const ref = doc(db, "users", annonce.userId);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const u = snap.data();
+          setAuteur({
+            firstName: u.firstName,
+            lastName: u.lastName,
+            photoURL:
+              u.photoURL ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                `${u.firstName} ${u.lastName}`
+              )}&background=8a6bfe&color=fff`,
+          });
+        }
       } catch (err) {
-        console.error('Erreur candidatures:', err);
+        console.error("Erreur auteur :", err);
       }
     }
-    fetchCandidatures();
-  }, [annonce, user]);
 
-  // Géocodage
+    fetchAuteur();
+  }, [annonce]);
+
+  /* -------------------------------------------------------
+     GÉOCODAGE ADRESSE
+  -------------------------------------------------------- */
   useEffect(() => {
     async function geocodeAdresse() {
       if (!annonce?.lieu) return;
+
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             annonce.lieu
           )}`
         );
+
         const data = await res.json();
-        if (data.length > 0) setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+
+        if (data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+
+          setPosition([lat, lon]);
+        }
       } catch (err) {
-        console.error('Erreur géocodage :', err);
+        console.error("Erreur géocodage :", err);
       }
     }
+
     geocodeAdresse();
   }, [annonce]);
 
-    async function handleMessage(candidatId: string) {
-    if (!user || !annonce) return;
-    try {
-      const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
-      const snap = await getDocs(q);
-      let existingChat: Chat | null = null;
-      for (const docSnap of snap.docs) {
-        const data = docSnap.data();
-        if (Array.isArray(data.participants) && data.participants.includes(candidatId)) {
-          existingChat = { ...(data as Chat), id: docSnap.id };
-          break;
-        }
-      }
-      if (!existingChat) {
-        const newChatRef = await addDoc(collection(db, 'chats'), {
-          participants: [user.uid, candidatId],
-          annonceId: annonce.id,
-          createdAt: serverTimestamp(),
-          lastMessage: 'Conversation initiée',
-          lastMessageTime: serverTimestamp(),
-          unreadCount: { [user.uid]: 0, [candidatId]: 1 },
-        });
-        router.push(`/messages?chatId=${newChatRef.id}`);
-      } else router.push(`/messages?chatId=${existingChat.id}`);
-    } catch (err) {
-      console.error('Erreur chat :', err);
-    }
-  }
-
-
-
-  // 🔥 Auto-suppression 2h après statut fini
+  /* -------------------------------------------------------
+      CHARGER CANDIDATURES (si auteur)
+  -------------------------------------------------------- */
   useEffect(() => {
-    if (!annonce?.statut || annonce.statut !== 'fini') return;
-    if (!annonce.createdAt?.seconds) return;
+  async function fetchCandidatures() {
+    if (!annonce || !user || annonce.userId !== user.uid) return;
 
-    const creationTime = annonce.createdAt.seconds * 1000;
-    const twoHoursLater = creationTime + 2 * 60 * 60 * 1000;
-    const now = Date.now();
-    const delay = twoHoursLater - now;
-
-    if (delay <= 0) deleteDoc(doc(db, 'annonces', annonce.id)).catch(console.error);
-    else
-      setTimeout(async () => {
-        try {
-          await deleteDoc(doc(db, 'annonces', annonce.id));
-        } catch (err) {
-          console.error('Erreur suppression auto :', err);
-        }
-      }, delay);
-  }, [annonce]);
-
-  // 📩 Postuler
-  async function handlePostuler() {
-    if (!user || !annonce) return;
-    setSubmitting(true);
-    setMessage(null);
     try {
-      await addDoc(collection(db, 'candidatures'), {
-        userId: user.uid,
-        annonceId: annonce.id,
-        statut: 'en attente',
-        date: serverTimestamp(),
-      });
-      await addDoc(collection(db, 'notifications'), {
-        toUser: annonce.userId,
-        fromUser: user.uid,
-        type: 'nouvelle_candidature',
-        annonceId: annonce.id,
-        message: 'Un étudiant est intéressé par votre annonce.',
-        createdAt: serverTimestamp(),
-        read: false,
-      });
-      setMessage('Votre candidature a été envoyée avec succès 🎉');
-    } catch (err) {
-      setMessage('Erreur : impossible de postuler.');
-    } finally {
-      setSubmitting(false);
+      const qSnap = await getDocs(
+        query(collection(db, "candidatures"), where("annonceId", "==", annonce.id))
+      );
+
+      const list = await Promise.all(
+        qSnap.docs.map(async (d) => {
+          const c = d.data() as any;
+
+          const userRef = doc(db, "users", c.userId);
+          const userSnap = await getDoc(userRef);
+
+          let name = "Utilisateur";
+          let photo = "";
+
+          if (userSnap.exists()) {
+            const u = userSnap.data();
+            name = `${u.firstName} ${u.lastName}`.trim();
+            photo =
+              u.photoURL ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8a6bfe&color=fff`;
+          }
+
+          return {
+            id: d.id,
+            ...c,
+            userName: name,
+            photoURL: photo,
+          };
+        })
+      );
+
+      setCandidatures(list);
+    } catch (e) {
+      console.error("Erreur candidatures:", e);
     }
   }
 
-  // ✅ Accepter un candidat
-  async function handleAccepterCandidat(c: Candidature) {
-    if (!annonce) return;
-    try {
-      await updateDoc(doc(db, 'annonces', annonce.id), {
-        statut: 'en cours',
-        acceptedUserId: c.userId,
-        acceptedUserName: c.userName,
-        taskCompletion: { author: false, student: false },
-      });
-      await updateDoc(doc(db, 'candidatures', c.id), { statut: 'acceptée' });
-      await addDoc(collection(db, 'notifications'), {
-        toUser: c.userId,
-        fromUser: user.uid,
-        type: 'acceptation',
-        annonceId: annonce.id,
-        message: 'Votre candidature a été acceptée ! 🎉',
-        createdAt: serverTimestamp(),
-        read: false,
-      });
-      setAnnonce({
-        ...annonce,
-        statut: 'en cours',
-        acceptedUserId: c.userId,
-        acceptedUserName: c.userName,
-        taskCompletion: { author: false, student: false },
-      });
-      setMessage('Candidat accepté avec succès ✅');
-    } catch (err) {
-      console.error(err);
-      setMessage('Erreur : impossible d’accepter ce candidat.');
-    }
-  }
+  fetchCandidatures();
+}, [annonce, user]);
 
-  // ✅ Tâche effectuée
-async function handleTaskDone() {
-  if (!annonce || !user) return;
 
-  const isAuthor = user.uid === annonce.userId;
-  const isStudent = user.uid === annonce.acceptedUserId;
-  if (!isAuthor && !isStudent) return;
-
-  try {
-    const completion = annonce.taskCompletion || { author: false, student: false };
-    const updated = {
-      author: completion.author || isAuthor,
-      student: completion.student || isStudent,
-    };
-
-    // 🔥 Mise à jour Firestore
-    await updateDoc(doc(db, 'annonces', annonce.id), { taskCompletion: updated });
-
-    // 🔄 Met à jour le state local immédiatement
-    const updatedAnnonce = { ...annonce, taskCompletion: updated };
-    setAnnonce(updatedAnnonce);
-
-    // ✅ Si les deux ont confirmé la tâche :
-    if (updated.author && updated.student) {
-      await updateDoc(doc(db, 'annonces', annonce.id), { statut: 'fini' });
-
-      // Important : redirection immédiate pour l'auteur
-      if (isAuthor) {
-        router.push(`/review/${annonce.acceptedUserId}?annonceId=${annonce.id}`);
-        return;
-      }
-
-      setAnnonce({ ...updatedAnnonce, statut: 'fini' });
-    }
-  } catch (err) {
-    console.error('Erreur handleTaskDone:', err);
-  }
-}
-  const isAuteur = user?.uid === annonce?.userId;
-  const isAcceptedStudent = user?.uid === annonce?.acceptedUserId;
+  /* -------------------------------------------------------
+     LOADER
+  -------------------------------------------------------- */
 
   if (loading)
     return (
-      <div className="min-h-screen flex justify-center items-center text-gray-600">
-        <Loader2 className="animate-spin w-8 h-8 mr-2 text-[#8a6bfe]" /> Chargement...
+      <div className="min-h-screen flex justify-center items-center bg-white">
+        <Loader2 className="animate-spin text-[#8a6bfe]" size={40} />
       </div>
     );
 
   if (!annonce)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <AlertCircle className="text-red-500 w-8 h-8 mb-3" />
-        <p className="text-gray-700">Annonce introuvable.</p>
+        <AlertCircle className="text-red-500 w-10 h-10 mb-4" />
+        <p className="text-gray-600">Annonce introuvable.</p>
       </div>
     );
 
+  const photos = annonce.photos || [];
+  const auteurNom =
+    auteur?.firstName || auteur?.lastName
+      ? `${auteur?.firstName || ""} ${auteur?.lastName || ""}`
+      : "Utilisateur";
+
+  /* -------------------------------------------------------
+     UI – HEADER WOPPY VIOLET
+  -------------------------------------------------------- */
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff] text-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-        <Link
-          href="/jobs"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition mb-6"
-        >
-          <ArrowLeft size={18} /> Retour aux annonces
-        </Link>
+    <div className="min-h-screen bg-gradient-to-b from-[#f5e5ff] via-white to-gray-50 text-gray-900 pb-20">
+      {/* Header */}
+      <header className="relative px-6 py-10 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white mb-10 shadow-lg rounded-b-3xl">
+        <div className="max-w-4xl mx-auto relative z-10">
+          <Link
+            href="/jobs"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white transition mb-6"
+          >
+            <ChevronLeft size={20} /> Retour aux annonces
+          </Link>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <div className="flex justify-between flex-wrap items-start mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">{annonce.titre}</h1>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                annonce.statut === 'ouverte'
-                  ? 'bg-green-100 text-green-700'
-                  : annonce.statut === 'en cours'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {annonce.statut}
-            </span>
+          <h1 className="text-4xl font-extrabold mb-4 drop-shadow-sm flex items-center gap-3">
+            {annonce.titre}
+            <Sparkles className="text-yellow-300 animate-pulse" size={26} />
+          </h1>
+
+          {/* Statut */}
+          <div className="mt-2">
+            {annonce.statut === "ouverte" && (
+              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-green-400/30 text-white border border-green-300/40 backdrop-blur">
+                🟢 Ouverte
+              </span>
+            )}
+
+            {annonce.statut === "en cours" && (
+              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-yellow-400/30 text-white border border-yellow-300/40 backdrop-blur">
+                🟡 En cours
+              </span>
+            )}
+
+            {annonce.statut === "fini" && (
+              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-red-400/30 text-white border border-red-300/40 backdrop-blur">
+                🔴 Terminée
+              </span>
+            )}
           </div>
-
-          <p className="text-gray-700 mb-8 leading-relaxed">{annonce.description}</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <DetailItem
-              icon={<User size={18} className="text-[#8a6bfe]" />}
-              label="Auteur"
-              value={isAuteur ? 'Vous-même' : annonce.userName}
-            />
-            <DetailItem
-              icon={<MapPin size={18} className="text-[#8a6bfe]" />}
-              label="Lieu"
-              value={
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#8a6bfe] hover:underline"
-                >
-                  {annonce.lieu}
-                </a>
-              }
-            />
-            <DetailItem
-              icon={<Calendar size={18} className="text-[#8a6bfe]" />}
-              label="Date"
-              value={annonce.date}
-            />
-            <DetailItem
-              icon={<Clock size={18} className="text-[#8a6bfe]" />}
-              label="Durée"
-              value={`${annonce.duree} h`}
-            />
-            <DetailItem
-              icon={<Euro size={18} className="text-[#8a6bfe]" />}
-              label="Rémunération"
-              value={`${annonce.remuneration} €/h`}
-            />
-          </div>
-
-          {isAuteur && (
-            <>
-              <div className="mt-10 border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <User className="text-[#8a6bfe]" /> Candidats intéressés
-                </h3>
-                {candidatures.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Aucune candidature reçue.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {candidatures.map((c) => (
-                      <div
-                        key={c.id}
-                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 border border-gray-200 rounded-xl p-4"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Image
-                            src={c.photoURL || ''}
-                            alt={c.userName || ''}
-                            width={48}
-                            height={48}
-                            className="rounded-full border object-cover"
-                          />
-                          <div>
-                            <p className="font-semibold">{c.userName}</p>
-                            <p className="text-xs text-gray-500">{c.statut}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-3 sm:mt-0">
-                          <button
-                            onClick={() => handleAccepterCandidat(c)}
-                            disabled={annonce.acceptedUserId === c.userId}
-                            className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#7a5bfe]"
-                          >
-                            {annonce.acceptedUserId === c.userId ? 'Accepté' : 'Accepter'}
-                          </button>
-                        <button
-                          onClick={() => handleMessage(c.userId)}
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg font-medium hover:shadow-md transition text-sm sm:text-base"
-                        >
-                          <MessageSquare size={16} />
-                        </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {(isAuteur || isAcceptedStudent) && annonce.acceptedUserId && (
-            <div className="mt-8 border-t pt-6 text-center">
-              <button
-                onClick={handleTaskDone}
-                disabled={
-                  (isAuteur && annonce.taskCompletion?.author) ||
-                  (isAcceptedStudent && annonce.taskCompletion?.student)
-                }
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
-              >
-                <CheckCircle size={18} /> Tâche effectuée
-              </button>
-
-              {annonce.taskCompletion?.author && annonce.taskCompletion?.student && (
-                <p className="text-green-600 mt-3 font-medium">
-                  ✅ Tâche confirmée par les deux parties.
-                </p>
-              )}
-            </div>
-          )}
-
-          {!isAuteur && !isAcceptedStudent && annonce.statut === 'ouverte' && (
-            <div className="mt-8 text-center">
-              <button
-                onClick={handlePostuler}
-                disabled={submitting}
-                className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
-              >
-                {submitting ? 'Envoi...' : 'Postuler à cette annonce'}
-              </button>
-            </div>
-          )}
-
-          {message && (
-            <p className="mt-4 text-center text-sm text-[#8a6bfe] font-medium">{message}</p>
-          )}
         </div>
+
+        {/* Halo */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 w-[900px] h-[900px] bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+      </header>
+
+      {/* CONTENU */}
+      <div className="max-w-4xl mx-auto px-6">
+
+        {/* Galerie photos */}
+        {photos.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            {photos.map((p, i) => (
+              <div
+                key={i}
+                className="relative w-full h-40 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition group"
+              >
+                <Image
+                  src={p}
+                  alt="photo"
+                  fill
+                  className="object-cover group-hover:scale-105 transition duration-300"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        {/* INFORMATIONS DE L’ANNONCE */}
+        <div className="grid sm:grid-cols-2 gap-4 text-black mb-10">
+          <InfoCard icon={<MapPin />} label={annonce.lieu} />
+          <InfoCard icon={<Calendar />} label={annonce.date} />
+          <InfoCard icon={<Clock />} label={`${annonce.duree}h`} />
+          <InfoCard icon={<Euro />} label={`${annonce.remuneration} €/h`} />
+        </div>
+
+        {/* DESCRIPTION */}
+        <div className="bg-white rounded-2xl shadow p-6 mb-10 border border-gray-200">
+          <h3 className="text-xl font-bold mb-3 text-[#8a6bfe]">
+            Description du job
+          </h3>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+            {annonce.description}
+          </p>
+        </div>
+
+        {/* INFORMATIONS AUTEUR */}
+        {auteur && (
+          <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-2xl p-5 shadow mb-10">
+            <Image
+              src={auteur.photoURL || ""}
+              alt={auteurNom}
+              width={70}
+              height={70}
+              className="rounded-full border object-cover"
+            />
+            <div>
+              <p className="font-semibold text-gray-900">{auteurNom}</p>
+              <p className="text-sm text-gray-500">
+                Auteur de l’annonce
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------
+            CANDIDATURES (si auteur)
+        ------------------------------------------------------------ */}
+        {user?.uid === annonce.userId && (
+          <AuteurCandidatures
+            annonce={annonce}
+            candidatures={candidatures}
+            setAnnonce={setAnnonce}
+            setCandidatures={setCandidatures}
+          />
+        )}
+
+        {/* ------------------------------------------------------------
+            ÉTAT TÂCHE TERMINÉE
+        ------------------------------------------------------------ */}
+        {(user?.uid === annonce.userId ||
+          user?.uid === annonce.acceptedUserId) &&
+          annonce.acceptedUserId && (
+            <TaskCompletion annonce={annonce} user={user} setAnnonce={setAnnonce} />
+          )}
+
+        {/* ------------------------------------------------------------
+            BOUTON POSTULER (si étudiant non auteur)
+        ------------------------------------------------------------ */}
+        {user?.uid !== annonce.userId &&
+          user?.uid !== annonce.acceptedUserId &&
+          annonce.statut === "ouverte" && (
+            <PostulerAnnonce
+              annonce={annonce}
+              user={user}
+              setMessage={() => {}}
+            />
+          )}
       </div>
     </div>
   );
 }
 
-function DetailItem({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
+/* ===============================================================
+   COMPONENT : InfoCard Woppy
+=============================================================== */
+function InfoCard({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-1 shrink-0">{icon}</div>
-      <div>
-        <div className="text-gray-500 text-xs uppercase font-semibold">{label}</div>
-        <div className="text-gray-800 font-medium break-words">{value}</div>
+    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 hover:shadow-lg transition-all">
+      <div className="p-2 bg-[#8a6bfe]/10 text-[#8a6bfe] rounded-lg">
+        {icon}
       </div>
+      <span className="font-medium">{label}</span>
+    </div>
+  );
+}
+
+/* ===============================================================
+   COMPONENT : PostulerAnnonce
+=============================================================== */
+function PostulerAnnonce({
+  annonce,
+  user,
+}: {
+  annonce: Annonce;
+  user: any;
+  setMessage?: any;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function postuler() {
+    if (!user) return alert("Connexion obligatoire.");
+    setLoading(true);
+
+    try {
+      // Création candidature
+      await addDoc(collection(db, "candidatures"), {
+        annonceId: annonce.id,
+        userId: user.uid,
+        date: serverTimestamp(),
+        statut: "en attente",
+      });
+
+      // Notification vers auteur
+      await addDoc(collection(db, "notifications"), {
+        toUser: annonce.userId,
+        fromUser: user.uid,
+        type: "nouvelle_candidature",
+        annonceId: annonce.id,
+        message: "Un étudiant a postulé à votre annonce.",
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+
+      alert("Votre candidature a été envoyée 🎉");
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la candidature.");
+    }
+
+    setLoading(false);
+  }
+
+  return (
+    <div className="mt-8 text-center">
+      <button
+        onClick={postuler}
+        disabled={loading}
+        className="px-8 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-xl shadow-lg hover:shadow-xl transition font-semibold"
+      >
+        {loading ? "Envoi..." : "Postuler à cette annonce"}
+      </button>
+    </div>
+  );
+}
+
+/* ===============================================================
+   COMPONENT : Liste des candidatures (pour l'auteur)
+=============================================================== */
+function AuteurCandidatures({
+  annonce,
+  candidatures,
+  setAnnonce,
+  setCandidatures,
+}: any) {
+  const router = useRouter();
+
+  async function accepter(c: Candidature) {
+    try {
+      // Acceptation candidature
+      await updateDoc(doc(db, "annonces", annonce.id), {
+        statut: "en cours",
+        acceptedUserId: c.userId,
+        acceptedUserName: c.userName,
+        taskCompletion: { author: false, student: false },
+      });
+
+      await updateDoc(doc(db, "candidatures", c.id), {
+        statut: "acceptée",
+      });
+
+      await addDoc(collection(db, "notifications"), {
+        toUser: c.userId,
+        fromUser: annonce.userId,
+        type: "acceptation",
+        annonceId: annonce.id,
+        message: "Votre candidature a été acceptée 🎉",
+        createdAt: serverTimestamp(),
+        read: false,
+      });
+
+      setAnnonce({
+        ...annonce,
+        statut: "en cours",
+        acceptedUserId: c.userId,
+        acceptedUserName: c.userName,
+        taskCompletion: { author: false, student: false },
+      });
+
+      alert("Candidat accepté !");
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'accepter ce candidat");
+    }
+  }
+
+  async function openChat(targetId: string) {
+    try {
+      const q = query(
+        collection(db, "chats"),
+        where("participants", "array-contains", annonce.userId)
+      );
+
+      const snap = await getDocs(q);
+      let chatFound = null;
+
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        if (data.participants.includes(targetId)) {
+          chatFound = { id: docSnap.id };
+          break;
+        }
+      }
+
+      if (!chatFound) {
+        const newChat = await addDoc(collection(db, "chats"), {
+          participants: [annonce.userId, targetId],
+          annonceId: annonce.id,
+          createdAt: serverTimestamp(),
+          lastMessage: "",
+          lastMessageTime: serverTimestamp(),
+          unreadCount: {
+            [annonce.userId]: 0,
+            [targetId]: 1,
+          },
+        });
+        router.push(`/messages?chatId=${newChat.id}`);
+      } else {
+        router.push(`/messages?chatId=${chatFound.id}`);
+      }
+    } catch (err) {
+      console.error("Erreur chat :", err);
+    }
+  }
+
+  return (
+    <div className="mt-10 border-t pt-6">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[#8a6bfe]">
+        <User size={20} /> Candidatures reçues
+      </h3>
+
+      {candidatures.length === 0 ? (
+        <p className="text-gray-500 text-sm">Aucune candidature reçue.</p>
+      ) : (
+        <div className="space-y-4">
+          {candidatures.map((c: Candidature) => (
+            <div
+              key={c.id}
+              className="flex justify-between items-center bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <Image
+                  src={c.photoURL || ""}
+                  alt={c.userName || ""}
+                  width={48}
+                  height={48}
+                  className="rounded-full border object-cover"
+                />
+                <div>
+                  <p className="font-semibold">{c.userName}</p>
+                  <p className="text-xs text-gray-500">{c.statut}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => accepter(c)}
+                  disabled={annonce.acceptedUserId === c.userId}
+                  className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#7a5bee]"
+                >
+                  {annonce.acceptedUserId === c.userId
+                    ? "Accepté"
+                    : "Accepter"}
+                </button>
+
+                <button
+                  onClick={() => openChat(c.userId)}
+                  className="px-4 py-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg text-sm"
+                >
+                  Message
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===============================================================
+   COMPONENT : TaskCompletion (tâche effectuée)
+=============================================================== */
+function TaskCompletion({ annonce, user, setAnnonce }: any) {
+  const router = useRouter();
+
+  const isAuthor = user.uid === annonce.userId;
+  const isStudent = user.uid === annonce.acceptedUserId;
+
+  async function confirm() {
+    try {
+      const update = {
+        author: annonce.taskCompletion?.author || isAuthor,
+        student: annonce.taskCompletion?.student || isStudent,
+      };
+
+      await updateDoc(doc(db, "annonces", annonce.id), {
+        taskCompletion: update,
+      });
+
+      setAnnonce({
+        ...annonce,
+        taskCompletion: update,
+      });
+
+      if (update.author && update.student) {
+        await updateDoc(doc(db, "annonces", annonce.id), {
+          statut: "fini",
+        });
+
+        if (isAuthor) {
+          router.push(
+            `/review/${annonce.acceptedUserId}?annonceId=${annonce.id}`
+          );
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  return (
+    <div className="mt-10 text-center border-t pt-6">
+      <button
+        onClick={confirm}
+        disabled={
+          (isAuthor && annonce.taskCompletion?.author) ||
+          (isStudent && annonce.taskCompletion?.student)
+        }
+        className="px-6 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
+      >
+        Confirmer que la tâche est effectuée
+      </button>
     </div>
   );
 }

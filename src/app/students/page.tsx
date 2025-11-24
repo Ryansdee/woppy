@@ -164,7 +164,7 @@ export default function StudentsPage() {
                   placeholder="Rechercher par nom, ville ou compétence..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none shadow-sm hover:shadow-md transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-white text-[#8a6bfe] border border-[#8a6bfe] rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none shadow-sm hover:shadow-md transition-all"
                 />
                 {search && (
                   <button
@@ -195,14 +195,6 @@ export default function StudentsPage() {
                 <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
                   🔍 {search}
                   <button onClick={() => setSearch('')}>
-                    <X className="w-3 h-3 text-gray-500" />
-                  </button>
-                </span>
-              )}
-              {filterAvailable !== null && (
-                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
-                  {filterAvailable ? '🟢 Disponibles' : '🔴 Indisponibles'}
-                  <button onClick={() => setFilterAvailable(null)}>
                     <X className="w-3 h-3 text-gray-500" />
                   </button>
                 </span>
@@ -332,13 +324,6 @@ export default function StudentsPage() {
               >
                 <div className="h-20 bg-gradient-to-br from-[#8a6bfe] via-[#9b7dff] to-[#b19cff] relative">
                   <div className="absolute top-3 right-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        student.isAvailable ? 'bg-green-500' : 'bg-red-500'
-                      } text-white`}
-                    >
-                      {student.isAvailable ? 'Disponible' : 'Indisponible'}
-                    </span>
                   </div>
                 </div>
 
