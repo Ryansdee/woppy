@@ -16,6 +16,7 @@ import {
   ArrowRight,
   BarChart3,
   UserCheck,
+  Clock,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -54,32 +55,41 @@ export default function DashboardPage() {
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const studentsQuery = query(
-          collection(db, 'users'),
-          where('hasStudentProfile', '==', true)
-        );
-        const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
-          await Promise.all([
-            getCountFromServer(studentsQuery),
-            getCountFromServer(collection(db, 'users')),
-            getCountFromServer(collection(db, 'annonces')),
-            getCountFromServer(collection(db, 'jobs')),
-          ]);
-        setStats({
-          students: studentsSnap.data().count,
-          users: usersSnap.data().count,
-          annonces: annoncesSnap.data().count,
-          jobs: jobsSnap.data().count,
-        });
-      } catch (err) {
-        console.error('Erreur chargement stats :', err);
+    useEffect(() => {
+      async function fetchStats() {
+        try {
+          const studentsQuery = query(
+            collection(db, "users"),
+            where("hasStudentProfile", "==", true)
+          );
+
+          // 🔥 annonces terminées
+          const jobsQuery = query(
+            collection(db, "annonces"),
+            where("statut", "==", "fini")
+          );
+
+          const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
+            await Promise.all([
+              getCountFromServer(studentsQuery),
+              getCountFromServer(collection(db, "users")),
+              getCountFromServer(collection(db, "annonces")),
+              getCountFromServer(jobsQuery), // ✔️ annonce terminée = travail réalisé
+            ]);
+
+          setStats({
+            students: studentsSnap.data().count,
+            users: usersSnap.data().count,
+            annonces: annoncesSnap.data().count,
+            jobs: jobsSnap.data().count,  // ✔️ devient nombre de jobs finis
+          });
+        } catch (err) {
+          console.error("Erreur chargement stats :", err);
+        }
       }
-    }
-    fetchStats();
-  }, []);
+      fetchStats();
+    }, []);
+
 
   if (!user) return null;
 
@@ -129,6 +139,11 @@ export default function DashboardPage() {
               icon={<UserCog className="w-8 h-8" />}
               label="Mon profil"
             />
+            <QuickAction
+              href="/dashboard/activity"
+              icon={<Clock className="w-8 h-8" />}
+              label="Mon activité"
+            />
             {role === 'collaborator' && (
               <>
                 <QuickAction
@@ -169,7 +184,7 @@ export default function DashboardPage() {
             className="bg-white/80 backdrop-blur-lg border border-[#d8c8ff] rounded-3xl p-8 sm:p-12 shadow-xl max-w-6xl mx-auto"
           >
             <h2 className="text-2xl sm:text-3xl font-bold text-[#7b5bff] mb-10 flex items-center justify-center gap-3">
-              <Trophy className="w-7 h-7 text-[#7b5bff]" /> Tes statistiques en direct
+              <Trophy className="w-7 h-7 text-[#7b5bff]" /> Woppy c'est : 
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <Stat label="Étudiants inscrits" value={stats.students} />

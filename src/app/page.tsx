@@ -9,15 +9,18 @@ import {
   Shield, Lock, Zap,
   CheckCircle,
   Quote,
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  Trophy
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, getCountFromServer, where } from 'firebase/firestore';
 
 import './globals.css';
+import { motion } from 'framer-motion';
 // Define features array for the features section
 const features = [
   {
@@ -84,7 +87,12 @@ export default function HomePage() {
 
   // 🔐 Sync cookies <-> Firebase
   useAuthPersistence();
-
+  const [stats, setStats] = useState({
+    students: 0,
+    users: 0,
+    annonces: 0,
+    jobs: 0,
+  });
   // Auth cookie
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -95,6 +103,41 @@ export default function HomePage() {
     const cookie = Cookies.get('woppy_user');
     if (cookie) setIsLoggedIn(true);
   }, []);
+
+      useEffect(() => {
+        async function fetchStats() {
+          try {
+            const studentsQuery = query(
+              collection(db, "users"),
+              where("hasStudentProfile", "==", true)
+            );
+  
+            // 🔥 annonces terminées
+            const jobsQuery = query(
+              collection(db, "annonces"),
+              where("statut", "==", "fini")
+            );
+  
+            const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
+              await Promise.all([
+                getCountFromServer(studentsQuery),
+                getCountFromServer(collection(db, "users")),
+                getCountFromServer(collection(db, "annonces")),
+                getCountFromServer(jobsQuery), // ✔️ annonce terminée = travail réalisé
+              ]);
+  
+            setStats({
+              students: studentsSnap.data().count,
+              users: usersSnap.data().count,
+              annonces: annoncesSnap.data().count,
+              jobs: jobsSnap.data().count,  // ✔️ devient nombre de jobs finis
+            });
+          } catch (err) {
+            console.error("Erreur chargement stats :", err);
+          }
+        }
+        fetchStats();
+      }, []);
 
   /* ================================
         🔥 CHARGER LES REVIEWS
@@ -141,6 +184,17 @@ export default function HomePage() {
 
     loadReviews();
   }, []);
+
+  function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-center justify-center bg-[#f8f5ff] border border-[#e5d9ff] rounded-2xl p-8 sm:p-10 hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
+      <div className="text-gray-600 text-base sm:text-lg mb-2">{label}</div>
+      <div className="text-4xl sm:text-5xl font-extrabold text-[#7b5bff]">
+        {value.toLocaleString('fr-BE')}
+      </div>
+    </div>
+  );
+}
 
   return (
     <main className="min-h-screen w-full bg-white text-gray-900">
@@ -495,6 +549,22 @@ export default function HomePage() {
         </div>
       </div>
     </section>
+
+    <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.2 }} className="bg-white/80 backdrop-blur-lg border border-[#d8c8ff] rounded-3xl p-8 sm:p-12 shadow-xl max-w-6xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#7b5bff] mb-10 flex items-center justify-center gap-3">
+          <Trophy className="w-7 h-7 text-[#7b5bff]" /> Woppy c'est : 
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <Stat label="Étudiants inscrits" value={stats.students} />
+          <Stat label="Annonces publiées" value={stats.annonces} />
+          <Stat label="Travaux réalisés" value={stats.jobs} />
+          <Stat label="Utilisateurs totaux" value={stats.users} />
+        </div>
+        <div className="mt-8 text-sm text-gray-500 flex items-center justify-center gap-2">
+          <BarChart3 className="w-5 h-5 text-[#7b5bff]" />
+          Données synchronisées avec Firestore
+        </div>
+      </motion.div>
 
       {/* ===============================
             ⭐ AVIS RÉELS FIRESTORE

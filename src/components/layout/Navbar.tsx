@@ -29,6 +29,7 @@ export default function Navbar() {
 	{ name: 'Annnoces', href: '/jobs' },
 	{ name: 'Étudiants', href: '/students' },
 	{ name: 'Mon Profil', href: '/dashboard/profile' },
+	{ name: 'Mon activité', href: '/dashboard/activity' },
   ];
 
   // 🔐 Gestion utilisateur

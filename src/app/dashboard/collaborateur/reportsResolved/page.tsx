@@ -40,6 +40,9 @@ interface UserData {
   displayName?: string;
 }
 
+/* =======================================================================================
+    PAGE : Historique des signalements (WOPPY STYLE PRO)
+======================================================================================= */
 export default function ReportsResolvedPage() {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<ReportResolved[]>([]);
@@ -47,7 +50,9 @@ export default function ReportsResolvedPage() {
   const [authorized, setAuthorized] = useState(false);
   const router = useRouter();
 
-  // ✅ Étape 1 — Vérifier le rôle utilisateur
+  /* -------------------------------------------------------------------------- */
+  /*                           AUTH + ROLE CHECK                                 */
+  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -55,76 +60,80 @@ export default function ReportsResolvedPage() {
         return;
       }
 
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const role = snap.exists() ? snap.data()?.role : null;
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const role = snap.exists() ? snap.data()?.role : null;
 
-        if (role === 'collaborator' || role === 'admin') {
-          setAuthorized(true);
-        } else {
-          router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Erreur vérification rôle:', err);
-      } finally {
-        setLoading(false);
+      if (role === 'collaborator' || role === 'admin') {
+        setAuthorized(true);
+      } else {
+        router.push('/dashboard');
       }
+      setLoading(false);
     });
 
     return () => unsub();
   }, [router]);
 
-  // ✅ Étape 2 — Charger les reports après autorisation
+  /* -------------------------------------------------------------------------- */
+  /*                           FETCH REPORTS & USERS                             */
+  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     if (!authorized) return;
 
     const q = query(collection(db, 'reportsResolved'), orderBy('resolvedAt', 'desc'));
+
     const unsub = onSnapshot(q, async (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ReportResolved));
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as ReportResolved[];
       setReports(list);
 
-      // Récupérer tous les UID uniques mentionnés dans ces reports
+      // Charger tous les utilisateurs mentionnés (reporter / sender / resolvedBy)
       const uids = new Set<string>();
+
       list.forEach((r) => {
         if (r.reporterId) uids.add(r.reporterId);
         if (r.senderId) uids.add(r.senderId);
         if (r.resolvedBy) uids.add(r.resolvedBy);
       });
 
-      // Charger les noms si non déjà présents dans le cache
-      const newCache: { [uid: string]: UserData } = { ...userCache };
+      const updatedCache = { ...userCache };
+
       await Promise.all(
         Array.from(uids).map(async (uid) => {
-          if (!newCache[uid]) {
-            try {
-              const snap = await getDoc(doc(db, 'users', uid));
-              if (snap.exists()) {
-                const data = snap.data();
-                newCache[uid] = {
-                  firstName: data.firstName || '',
-                  lastName: data.lastName || '',
-                  displayName:
-                    data.displayName ||
-                    `${data.firstName || ''} ${data.lastName || ''}`.trim(),
-                };
-              } else {
-                newCache[uid] = { displayName: 'Utilisateur inconnu' };
-              }
-            } catch {
-              newCache[uid] = { displayName: 'Utilisateur inconnu' };
+          if (!uid) return; // 🔥 ignore undefined/null
+
+          if (!updatedCache[uid]) {
+            const snap = await getDoc(doc(db, 'users', uid));
+
+            if (snap.exists()) {
+              const d = snap.data();
+              updatedCache[uid] = {
+                displayName:
+                  d.displayName ||
+                  `${d.firstName || ''} ${d.lastName || ''}`.trim() ||
+                  'Utilisateur',
+                firstName: d.firstName,
+                lastName: d.lastName,
+              };
+            } else {
+              updatedCache[uid] = { displayName: 'Utilisateur inconnu' };
             }
           }
         })
       );
 
-      setUserCache(newCache);
+      setUserCache(updatedCache);
       setLoading(false);
     });
 
     return () => unsub();
   }, [authorized]);
 
-  // === Étape 3 — UI ===
+  const nameOf = (uid: string): string =>
+    userCache[uid]?.displayName || 'Utilisateur inconnu';
+
+  /* -------------------------------------------------------------------------- */
+  /*                                 UI LOADING                                  */
+  /* -------------------------------------------------------------------------- */
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5e5ff]/60">
@@ -139,19 +148,18 @@ export default function ReportsResolvedPage() {
       </div>
     );
 
-  // Utilitaire pour afficher un nom lisible
-  const nameOf = (uid: string) => {
-    const u = userCache[uid];
-    return u?.displayName || 'Utilisateur inconnu';
-  };
-
+  /* -------------------------------------------------------------------------- */
+  /*                                    UI                                       */
+  /* -------------------------------------------------------------------------- */
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
       <div className="max-w-5xl mx-auto p-6">
+        {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-[#8a6bfe] flex items-center gap-2">
             <Flag className="w-7 h-7" /> Historique des signalements
           </h1>
+
           <Link
             href="/dashboard/collaborateur"
             className="flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition"
@@ -161,6 +169,7 @@ export default function ReportsResolvedPage() {
           </Link>
         </div>
 
+        {/* LISTE DES SIGNALEMENTS RÉSOLUS */}
         {reports.length === 0 ? (
           <p className="text-gray-500 text-center mt-20">
             Aucun signalement résolu pour l’instant.
@@ -170,26 +179,31 @@ export default function ReportsResolvedPage() {
             {reports.map((r) => (
               <div
                 key={r.id}
-                className="p-4 bg-white border border-[#ddc2ff] rounded-xl shadow-sm hover:shadow-md transition"
+                className="p-5 bg-white border border-[#ddc2ff] rounded-xl shadow-sm hover:shadow-md transition"
               >
+                {/* Header */}
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-gray-900 flex items-center gap-2">
                     <Flag className="w-4 h-4 text-[#8a6bfe]" />
                     Signalé par{' '}
                     <span className="text-[#8a6bfe]">{nameOf(r.reporterId)}</span>
                   </p>
+
+                  {/* Badge décision */}
                   <span
-                    className={`flex items-center gap-1 text-sm font-semibold ${
-                      r.decision === 'not_offensive'
-                        ? 'text-green-600'
-                        : r.decision === 'blocked'
-                        ? 'text-red-600'
-                        : 'text-[#8a6bfe]'
-                    }`}
+                    className={`flex items-center gap-1 text-sm font-semibold px-3 py-1 rounded-lg shadow-sm
+                      ${
+                        r.decision === 'not_offensive'
+                          ? 'bg-green-100 text-green-700'
+                          : r.decision === 'blocked'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-[#f5e5ff] text-[#8a6bfe]'
+                      }`}
                   >
                     {r.decision === 'not_offensive' && <ThumbsUp className="w-4 h-4" />}
                     {r.decision === 'blocked' && <Ban className="w-4 h-4" />}
                     {r.decision === 'deleted' && <CheckCircle className="w-4 h-4" />}
+
                     {r.decision === 'not_offensive'
                       ? 'Pas offensif'
                       : r.decision === 'blocked'
@@ -198,18 +212,25 @@ export default function ReportsResolvedPage() {
                   </span>
                 </div>
 
-                <p className="text-gray-700 mt-2">
-                  Contenu : <span className="font-medium">{r.text}</span>
+                {/* Contenu */}
+                <p className="text-gray-700 mt-3">
+                  Contenu signalé :{' '}
+                  <span className="font-medium">{r.text}</span>
                 </p>
-                <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+
+                {/* Infos */}
+                <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
                   <User className="w-4 h-4 text-[#8a6bfe]" />
-                  Chat : {r.chatId} • Expéditeur :{' '}
+                  Conversation : {r.chatId} • Expéditeur :{' '}
                   <span className="text-[#8a6bfe]">{nameOf(r.senderId)}</span>
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Décision prise par :{' '}
-                  <span className="text-[#8a6bfe] font-medium">{nameOf(r.resolvedBy)}</span>{' '}
-                  —{' '}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  Traité par :{' '}
+                  <span className="font-semibold text-[#8a6bfe]">
+                    {nameOf(r.resolvedBy)}
+                  </span>
+                  {' — '}
                   {r.resolvedAt?.toDate &&
                     new Date(r.resolvedAt.toDate()).toLocaleString('fr-BE', {
                       day: '2-digit',

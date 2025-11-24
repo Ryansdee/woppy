@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, ChangeEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,6 +30,7 @@ import {
   MoreVertical,
   Paperclip,
   Flag,
+  TriangleAlert,
 } from 'lucide-react';
 import {
   getStorage,
@@ -47,13 +48,14 @@ interface Chat {
   lastMessage?: string;
   lastMessageTime?: any;
   typing?: { [userId: string]: boolean };
+  jobId?: string; // 🔥 AJOUT : pour détecter le job lié
 }
 
 interface Message {
   id: string;
   senderId: string;
   text?: string;
-  type?: 'text' | 'file';
+  type?: 'text' | 'file' | 'system'; // 🔥 AJOUT : message système
   fileName?: string;
   fileUrl?: string;
   createdAt?: any;
@@ -66,6 +68,15 @@ interface UserProfile {
   photoURL?: string;
   isOnline?: boolean;
   lastSeen?: any;
+}
+
+interface Job {
+  id: string;
+  title?: string;
+  participants?: string[];
+  status?: string;
+  completedBy?: string[];
+  reviewMessageSentForChat?: any;
 }
 
 // ---------------- Utils ----------------
@@ -100,6 +111,9 @@ export default function MessagesPage() {
   const [otherTyping, setOtherTyping] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  const [commonJobs, setCommonJobs] = useState<Job[]>([]);        // 🔥 AJOUT
+  const [showCommonJobs, setShowCommonJobs] = useState(false);    // 🔥 AJOUT
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,7 +122,7 @@ export default function MessagesPage() {
   const chatId = params.get('chatId');
   const storage = getStorage();
 
-  // ---------- Handle viewport ----------
+  // ---------- Fix: always visible input zone ----------
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -136,10 +150,12 @@ export default function MessagesPage() {
       where('participants', 'array-contains', user.uid),
       orderBy('lastMessageTime', 'desc')
     );
+
     const unsub = onSnapshot(qChats, async (snap) => {
       const list = await Promise.all(
         snap.docs.map(async (d) => {
           const data = d.data() as Chat;
+
           const participantsData = await Promise.all(
             data.participants.map(async (pid) => {
               const usnap = await getDoc(doc(db, 'users', pid));
@@ -160,16 +176,20 @@ export default function MessagesPage() {
               } as UserProfile;
             })
           );
+
           return { ...data, id: d.id, participantsData };
         })
       );
+
       setChats(list);
       setLoading(false);
+
       if (chatId) {
         const current = list.find((c) => c.id === chatId) || null;
         setActiveChat(current);
       }
     });
+
     return () => unsub();
   }, [user, chatId]);
 
@@ -206,79 +226,33 @@ export default function MessagesPage() {
     }, 3000);
   };
 
-  // ---------- Send message ----------
-  const sendMessage = useCallback(
-    async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      if (!newMessage.trim() || !chatId || !user) return;
-      setSending(true);
-      const msgText = newMessage.trim();
-      setNewMessage('');
-      inputRef.current?.focus();
+  // ---------- Fetch common jobs ----------
+  useEffect(() => {
+    if (!user || !activeChat) return;
 
-      const chatRef = doc(db, 'chats', chatId);
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
-        senderId: user.uid,
-        type: 'text',
-        text: msgText,
-        createdAt: serverTimestamp(),
-        readBy: [user.uid],
-      });
-      await updateDoc(chatRef, {
-        lastMessage: msgText,
-        lastMessageTime: serverTimestamp(),
-        [`typing.${user.uid}`]: false,
-      });
-      setSending(false);
-    },
-    [newMessage, chatId, user]
-  );
+    const otherId = activeChat.participants.find((p) => p !== user.uid);
+    if (!otherId) return;
 
-  // ---------- File upload ----------
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !chatId || !user) return;
-    const ref = storageRef(storage, `attachments/${chatId}/${Date.now()}_${file.name}`);
-    await uploadBytes(ref, file);
-    const url = await getDownloadURL(ref);
-    const chatRef = doc(db, 'chats', chatId);
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      senderId: user.uid,
-      type: 'file',
-      fileName: file.name,
-      fileUrl: url,
-      createdAt: serverTimestamp(),
-      readBy: [user.uid],
-    });
-    await updateDoc(chatRef, {
-      lastMessage: `📎 ${file.name}`,
-      lastMessageTime: serverTimestamp(),
-    });
-  };
-
-  // ---------- Report message ----------
-  const reportMessage = async (msg: Message) => {
-    if (!user || !chatId) return;
-    if (!confirm('Signaler ce message ?')) return;
-    await addDoc(collection(db, 'reports'), {
-      reporterId: user.uid,
-      senderId: msg.senderId,
-      chatId,
-      messageId: msg.id,
-      text: msg.text || msg.fileName || '(fichier)',
-      createdAt: serverTimestamp(),
-    });
-    alert('✅ Message signalé. Notre équipe vérifiera ce contenu.');
-  };
-
-  // ---------- Render ----------
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5e5ff] to-[#ddc2ff]">
-        <Loader2 className="animate-spin w-8 h-8 text-[#8a6bfe]" />
-      </div>
+    const qJobs = query(
+      collection(db, 'annonces'),
+      where('participants', 'array-contains', user.uid)
     );
 
+    const unsub = onSnapshot(qJobs, (snap) => {
+      const list: Job[] = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .filter(
+          (job) =>
+            Array.isArray(job.participants) &&
+            job.participants.includes(otherId)
+        );
+      setCommonJobs(list);
+    });
+
+    return () => unsub();
+  }, [user, activeChat]);
+
+  // ---------------- Sidebar ----------------
   const other =
     activeChat?.participantsData?.find((p) => p.uid !== user?.uid) || null;
 
@@ -291,8 +265,76 @@ export default function MessagesPage() {
     );
   });
 
+  function handleFileUpload(event: ChangeEvent<HTMLInputElement>): void {
+    throw new Error('Function not implemented.');
+  }
+
+    // ---------- Send message ----------
+  const sendMessage = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!newMessage.trim() || !chatId || !user) return;
+      setSending(true);
+
+      const msgText = newMessage.trim();
+      setNewMessage('');
+      inputRef.current?.focus();
+
+      const chatRef = doc(db, 'chats', chatId);
+
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        senderId: user.uid,
+        type: 'text',
+        text: msgText,
+        createdAt: serverTimestamp(),
+        readBy: [user.uid],
+      });
+
+      await updateDoc(chatRef, {
+        lastMessage: msgText,
+        lastMessageTime: serverTimestamp(),
+        [`typing.${user.uid}`]: false,
+      });
+
+      setSending(false);
+    },
+    [newMessage, chatId, user]
+  );
+
+  // ---------- Report message ----------
+  const reportMessage = async (msg: Message) => {
+    if (!user || !chatId) return;
+    if (!confirm('Signaler ce message ?')) return;
+
+    await addDoc(collection(db, 'reports'), {
+      reporterId: user.uid,
+      senderId: msg.senderId,
+      chatId,
+      messageId: msg.id,
+      text: msg.text || msg.fileName || '(fichier)',
+      createdAt: serverTimestamp(),
+    });
+
+    alert('Message signalé. Notre équipe vérifiera ce contenu.');
+  };
+
+
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/80 text-gray-900">
+      <div
+    className="
+      h-[calc(100vh-80px)]
+      max-h-[calc(100vh-80px)]
+      max-w-6xl
+      mx-auto
+      mt-4
+      flex
+      bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/80
+      text-gray-900
+      rounded-2xl
+      shadow-lg
+      overflow-hidden
+    "
+  >
       {/* Sidebar */}
       <aside
         className={`${
@@ -356,7 +398,6 @@ export default function MessagesPage() {
           )}
         </div>
       </aside>
-
       {/* Chat */}
       <AnimatePresence mode="wait">
         <motion.main
@@ -375,7 +416,8 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
-              <header className="sticky top-0 z-10 bg-white/90 border-b border-[#ddc2ff] p-3 sm:p-4 flex items-center justify-between">
+              {/* -------------------------------- HEADER -------------------------------- */}
+              <header className="sticky top-0 z-10 bg-white/90 border-b border-[#ddc2ff] p-3 sm:p-4 flex items-center justify-between relative">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => router.push('/messages')}
@@ -383,6 +425,7 @@ export default function MessagesPage() {
                   >
                     <ArrowLeft size={20} />
                   </button>
+
                   {other && (
                     <Link href={`/profile/${other.uid}`} className="flex items-center gap-3">
                       <img
@@ -394,28 +437,161 @@ export default function MessagesPage() {
                         <p className="font-semibold text-gray-900 text-sm sm:text-base">
                           {other.displayName}
                         </p>
+
                         {otherTyping ? (
                           <span className="text-xs text-[#8a6bfe]/80">...écrit</span>
                         ) : other.isOnline ? (
-                          <span className="text-xs text-green-500">En ligne</span>
+                          <span className="text-xs text-green-600">En ligne</span>
                         ) : (
                           <span className="text-xs text-gray-500">
-                            vu {timeAgoFrom(new Date(other.lastSeen?.toDate?.() || other.lastSeen))}
+                            vu{' '}
+                            {timeAgoFrom(
+                              new Date(
+                                other.lastSeen?.toDate?.() || other.lastSeen
+                              )
+                            )}
                           </span>
                         )}
                       </div>
                     </Link>
                   )}
                 </div>
-                <label className="p-2 rounded-lg hover:bg-[#f5e5ff] text-gray-600 hover:text-[#8a6bfe] cursor-pointer">
-                  <Paperclip size={20} />
-                  <input type="file" className="hidden" onChange={handleFileUpload} />
-                </label>
+
+                {/* -------- BUTTONS: Jobs en commun + Signaler un problème + Fichier -------- */}
+                <div className="flex items-center gap-2">
+
+                  {/* 🔥 BOUTON JOBS EN COMMUN */}
+                  {activeChat && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCommonJobs((v) => !v)}
+                      className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 text-[#8a6bfe] border border-[#ddc2ff]"
+                    >
+                      {commonJobs.length} job{commonJobs.length > 1 ? 's' : ''} en commun
+                    </button>
+                  )}
+
+                  {/* 🔥 BOUTON SIGNALER UN PROBLÈME */}
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/support?chatId=${chatId}`)}
+                    className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-[#ffe9e9] text-[#b3261e] border border-[#ffb3b3]"
+                  >
+                    <TriangleAlert size={14} className="mr-1" />
+                    Problème
+                  </button>
+
+                  {/* UPLOAD */}
+                  <label className="p-2 rounded-lg hover:bg-[#f5e5ff] text-gray-600 hover:text-[#8a6bfe] cursor-pointer">
+                    <Paperclip size={20} />
+                    <input type="file" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                </div>
               </header>
 
+              {/* ---------------------------- PANEL JOBS EN COMMUN ---------------------------- */}
+              {showCommonJobs && (
+                <div className="px-4 sm:px-6 py-3 bg-[#f5e5ff]/40 border-b border-[#ddc2ff]/70 text-sm">
+                  {commonJobs.length === 0 ? (
+                    <p className="text-gray-700">Pas encore de job en commun.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {commonJobs.map((job) => (
+                        <li
+                          key={job.id}
+                          className="flex items-center justify-between bg-white/70 border border-[#e5d5ff] rounded-xl px-3 py-2"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-gray-800">
+                              {job.title || 'Job sans titre'}
+                            </span>
+                          </div>
+
+                          {job.status && (
+                            <span className="ml-3 px-2 py-1 text-xs rounded-full bg-white border border-[#ddc2ff] text-gray-600">
+                              {job.status}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* ------------------------- DETECT JOB COMPLETION ------------------------- */}
+              {activeChat?.jobId &&
+                (() => {
+                  const jobRef = doc(db, 'jobs', activeChat.jobId);
+
+                  useEffect(() => {
+                    if (!activeChat?.jobId || !chatId || !user) return;
+
+                    const unsub = onSnapshot(jobRef, async (snap) => {
+                      const data = snap.data() as Job;
+                      if (!data) return;
+
+                      const completedBy = data.completedBy || [];
+                      const otherId = activeChat.participants.find(
+                        (p) => p !== user.uid
+                      );
+                      if (!otherId) return;
+
+                      const bothDone =
+                        completedBy.includes(user.uid) &&
+                        completedBy.includes(otherId);
+
+                      const alreadySent =
+                        data.reviewMessageSentForChat &&
+                        data.reviewMessageSentForChat[chatId];
+
+                      if (bothDone && !alreadySent) {
+                        // 🔥 MESSAGE AUTOMATIQUE
+                        await addDoc(
+                          collection(db, 'chats', chatId, 'messages'),
+                          {
+                            senderId: 'system',
+                            type: 'system',
+                            text:
+                              'Le job est terminé. Vous pouvez laisser une note.',
+                            createdAt: serverTimestamp(),
+                            readBy: [],
+                          }
+                        );
+
+                        // éviter répétition
+                        await updateDoc(jobRef, {
+                          [`reviewMessageSentForChat.${chatId}`]: true,
+                        });
+                      }
+                    });
+
+                    return () => unsub();
+                  }, [activeChat, chatId, user]);
+
+                  return null;
+                })()}
+
+              {/* -------------------------------- MESSAGES -------------------------------- */}
               <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+
                 {messages.map((msg) => {
                   const isOwn = msg.senderId === user?.uid;
+
+                  // 🔥 MESSAGE SYSTEME
+                  if (msg.type === 'system') {
+                    return (
+                      <div
+                        key={msg.id}
+                        className="flex justify-center text-center text-gray-600 text-sm"
+                      >
+                        <div className="bg-[#f5e5ff]/60 px-4 py-2 rounded-xl border border-[#ddc2ff]">
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <motion.div
                       key={msg.id}
@@ -434,7 +610,9 @@ export default function MessagesPage() {
                           <a
                             href={msg.fileUrl}
                             target="_blank"
-                            className={`${isOwn ? 'text-white underline' : 'text-[#8a6bfe] underline'}`}
+                            className={`${
+                              isOwn ? 'text-white underline' : 'text-[#8a6bfe] underline'
+                            }`}
                           >
                             📎 {msg.fileName}
                           </a>
@@ -442,6 +620,7 @@ export default function MessagesPage() {
                           <p>{msg.text}</p>
                         )}
 
+                        {/* MENU OPTION SUR CHAQUE MESSAGE */}
                         <Menu as="div" className="absolute right-1 top-1 text-right">
                           <MenuButton className="p-1 text-gray-400 hover:text-[#8a6bfe]">
                             <MoreVertical className="w-4 h-4" />
@@ -452,7 +631,9 @@ export default function MessagesPage() {
                                 <button
                                   onClick={() => reportMessage(msg)}
                                   className={`${
-                                    active ? 'bg-[#f5e5ff]/50 text-[#8a6bfe]' : 'text-gray-700'
+                                    active
+                                      ? 'bg-[#f5e5ff]/50 text-[#8a6bfe]'
+                                      : 'text-gray-700'
                                   } flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md`}
                                 >
                                   <Flag className="w-4 h-4" /> Signaler
@@ -462,6 +643,7 @@ export default function MessagesPage() {
                           </Menu.Items>
                         </Menu>
 
+                        {/* TIME + READ STATUS */}
                         <div
                           className={`flex items-center justify-end gap-1 mt-1 text-xs ${
                             isOwn ? 'text-white/70' : 'text-gray-500'
@@ -469,19 +651,23 @@ export default function MessagesPage() {
                         >
                           <Clock className="w-3 h-3" />
                           {msg.createdAt &&
-                            new Date(msg.createdAt.toDate()).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            new Date(msg.createdAt.toDate()).toLocaleTimeString(
+                              'fr-FR',
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
                           <MessageStatus message={msg} userId={user?.uid || ''} />
                         </div>
                       </div>
                     </motion.div>
                   );
                 })}
+
                 <div ref={messagesEndRef} />
               </div>
-
+              {/* -------------------------------- INPUT ZONE -------------------------------- */}
               <form
                 onSubmit={(e) => sendMessage(e)}
                 className="p-3 sm:p-4 border-t border-[#ddc2ff]/70 flex items-center gap-3 bg-white/90"
@@ -509,3 +695,4 @@ export default function MessagesPage() {
     </div>
   );
 }
+
