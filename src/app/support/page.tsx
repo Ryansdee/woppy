@@ -1,15 +1,14 @@
 'use client';
 
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, AlertTriangle, Send } from 'lucide-react';
 
-export default function SupportPage() {
+function SupportContent() {
   const router = useRouter();
   const params = useSearchParams();
   const chatId = params.get('chatId');
@@ -69,11 +68,9 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/70 py-10 px-4 sm:px-6 text-gray-900">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl shadow-xl border border-[#e5d5ff] rounded-3xl p-6 sm:p-8"
-      >
+
+      <div className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl shadow-xl border border-[#e5d5ff] rounded-3xl p-6 sm:p-8">
+
         <button
           onClick={() => router.push(`/messages?chatId=${chatId}`)}
           className="flex items-center gap-2 text-[#8a6bfe] hover:text-[#6f52d9] mb-4"
@@ -148,7 +145,15 @@ export default function SupportPage() {
         <p className="mt-5 text-center text-sm text-gray-600">
           Notre équipe examine chaque signalement dans les plus brefs délais.
         </p>
-      </motion.div>
+      </div>
     </div>
+  );
+}
+
+export default function SupportPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Chargement…</div>}>
+      <SupportContent />
+    </Suspense>
   );
 }

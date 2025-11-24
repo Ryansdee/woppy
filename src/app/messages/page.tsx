@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, db } from '@/lib/firebase';
+
 import {
   collection,
   query,
@@ -17,7 +18,9 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
+
 import { onAuthStateChanged, User } from 'firebase/auth';
+
 import {
   Loader2,
   Send,
@@ -32,37 +35,42 @@ import {
   Flag,
   TriangleAlert,
 } from 'lucide-react';
+
 import {
   getStorage,
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
+
 import { Menu, MenuItem, MenuButton } from '@headlessui/react';
 
-// ---------------- Types ----------------
-interface Chat {
+// -----------------------------------------------------------------------------
+// TYPES
+// -----------------------------------------------------------------------------
+
+export interface Chat {
   id: string;
   participants: string[];
   participantsData?: UserProfile[];
   lastMessage?: string;
   lastMessageTime?: any;
   typing?: { [userId: string]: boolean };
-  jobId?: string; // 🔥 AJOUT : pour détecter le job lié
+  jobId?: string;
 }
 
-interface Message {
+export interface Message {
   id: string;
   senderId: string;
   text?: string;
-  type?: 'text' | 'file' | 'system'; // 🔥 AJOUT : message système
+  type?: 'text' | 'file' | 'system';
   fileName?: string;
   fileUrl?: string;
   createdAt?: any;
   readBy?: string[];
 }
 
-interface UserProfile {
+export interface UserProfile {
   uid: string;
   displayName?: string;
   photoURL?: string;
@@ -70,7 +78,7 @@ interface UserProfile {
   lastSeen?: any;
 }
 
-interface Job {
+export interface Job {
   id: string;
   title?: string;
   participants?: string[];
@@ -79,50 +87,73 @@ interface Job {
   reviewMessageSentForChat?: any;
 }
 
-// ---------------- Utils ----------------
-const timeAgoFrom = (date: Date): string => {
+// -----------------------------------------------------------------------------
+// UTILS
+// -----------------------------------------------------------------------------
+
+export const timeAgoFrom = (date: Date): string => {
   const now = new Date();
   const diffSec = (now.getTime() - date.getTime()) / 1000;
+
   const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+
   if (diffSec < 60) return rtf.format(-Math.round(diffSec), 'second');
   if (diffSec < 3600) return rtf.format(-Math.round(diffSec / 60), 'minute');
   if (diffSec < 86400) return rtf.format(-Math.round(diffSec / 3600), 'hour');
   if (diffSec < 604800) return rtf.format(-Math.round(diffSec / 86400), 'day');
-  return new Date(date).toLocaleDateString('fr-BE');
+
+  return date.toLocaleDateString('fr-BE');
 };
 
-const MessageStatus = ({ message, userId }: { message: Message; userId: string }) =>
-  message.senderId !== userId ? null : message.readBy?.length && message.readBy.length > 1 ? (
+export const MessageStatus = ({
+  message,
+  userId,
+}: {
+  message: Message;
+  userId: string;
+}) =>
+  message.senderId !== userId ? null : message.readBy?.length &&
+    message.readBy.length > 1 ? (
     <CheckCheck className="w-3 h-3 text-blue-500" />
   ) : (
     <Check className="w-3 h-3 text-gray-400" />
   );
-
-// ---------------- Component ----------------
 export default function MessagesPage() {
+  // ---------------------------------------------------------------------------
+  // STATE
+  // ---------------------------------------------------------------------------
   const [user, setUser] = useState<User | null>(null);
+
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
+
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [otherTyping, setOtherTyping] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const [commonJobs, setCommonJobs] = useState<Job[]>([]);        // 🔥 AJOUT
-  const [showCommonJobs, setShowCommonJobs] = useState(false);    // 🔥 AJOUT
+  const [commonJobs, setCommonJobs] = useState<Job[]>([]);
+  const [showCommonJobs, setShowCommonJobs] = useState(false);
 
+  // ---------------------------------------------------------------------------
+  // REFS
+  // ---------------------------------------------------------------------------
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const storage = getStorage();
   const router = useRouter();
   const params = useSearchParams();
   const chatId = params.get('chatId');
-  const storage = getStorage();
 
-  // ---------- Fix: always visible input zone ----------
+  // ---------------------------------------------------------------------------
+  // WINDOW SIZE (Mobile detection)
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -130,7 +161,9 @@ export default function MessagesPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ---------- Auth ----------
+  // ---------------------------------------------------------------------------
+  // AUTH — detect logged user
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
@@ -142,9 +175,12 @@ export default function MessagesPage() {
     return () => unsub();
   }, [router]);
 
-  // ---------- Fetch chats ----------
+  // ---------------------------------------------------------------------------
+  // FETCH CHATS
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!user) return;
+
     const qChats = query(
       collection(db, 'chats'),
       where('participants', 'array-contains', user.uid),
@@ -160,6 +196,7 @@ export default function MessagesPage() {
             data.participants.map(async (pid) => {
               const usnap = await getDoc(doc(db, 'users', pid));
               const udata: any = usnap.exists() ? usnap.data() : {};
+
               return {
                 uid: pid,
                 displayName:
@@ -193,40 +230,66 @@ export default function MessagesPage() {
     return () => unsub();
   }, [user, chatId]);
 
-  // ---------- Fetch messages ----------
+  // ---------------------------------------------------------------------------
+  // FETCH MESSAGES
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!chatId || !user) return;
+
     const unsub = onSnapshot(
-      query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt', 'asc')),
+      query(
+        collection(db, 'chats', chatId, 'messages'),
+        orderBy('createdAt', 'asc')
+      ),
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Message));
+        const list = snap.docs.map(
+          (d) => ({ id: d.id, ...d.data() } as Message)
+        );
+
         setMessages(list);
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
       }
     );
+
     return () => unsub();
   }, [chatId, user]);
 
-  // ---------- Typing indicator ----------
+  // ---------------------------------------------------------------------------
+  // TYPING INDICATOR (detect the other user typing)
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!activeChat || !user) return;
+
     const typing = activeChat.typing || {};
     const otherId = activeChat.participants.find((p) => p !== user.uid);
+
     setOtherTyping(!!typing?.[otherId || '']);
   }, [activeChat, user]);
 
-  const handleTyping = (val: string) => {
-    setNewMessage(val);
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+
     if (!chatId || !user) return;
 
-    updateDoc(doc(db, 'chats', chatId), { [`typing.${user.uid}`]: true });
+    updateDoc(doc(db, 'chats', chatId), {
+      [`typing.${user.uid}`]: true,
+    });
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
     typingTimeoutRef.current = setTimeout(() => {
-      updateDoc(doc(db, 'chats', chatId), { [`typing.${user.uid}`]: false });
-    }, 3000);
+      updateDoc(doc(db, 'chats', chatId), {
+        [`typing.${user.uid}`]: false,
+      });
+    }, 2800);
   };
 
-  // ---------- Fetch common jobs ----------
+  // ---------------------------------------------------------------------------
+  // FETCH COMMON JOBS
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!user || !activeChat) return;
 
@@ -246,36 +309,53 @@ export default function MessagesPage() {
             Array.isArray(job.participants) &&
             job.participants.includes(otherId)
         );
+
       setCommonJobs(list);
     });
 
     return () => unsub();
   }, [user, activeChat]);
 
-  // ---------------- Sidebar ----------------
-  const other =
-    activeChat?.participantsData?.find((p) => p.uid !== user?.uid) || null;
+  // ---------------------------------------------------------------------------
+  // FILE UPLOAD
+  // ---------------------------------------------------------------------------
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || !chatId || !user) return;
 
-  const filteredChats = chats.filter((c) => {
-    const other = c.participantsData?.find((p) => p.uid !== user?.uid);
-    return (
-      !searchQuery ||
-      other?.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
+    const file = event.target.files[0];
+    if (!file) return;
 
-  function handleFileUpload(event: ChangeEvent<HTMLInputElement>): void {
-    throw new Error('Function not implemented.');
-  }
+    const fileRef = storageRef(storage, `messages/${chatId}/${Date.now()}-${file.name}`);
 
-    // ---------- Send message ----------
+    await uploadBytes(fileRef, file);
+    const url = await getDownloadURL(fileRef);
+
+    await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      senderId: user.uid,
+      type: 'file',
+      fileName: file.name,
+      fileUrl: url,
+      createdAt: serverTimestamp(),
+      readBy: [user.uid],
+    });
+
+    await updateDoc(doc(db, 'chats', chatId), {
+      lastMessage: `📎 ${file.name}`,
+      lastMessageTime: serverTimestamp(),
+      [`typing.${user.uid}`]: false,
+    });
+  };
+
+  // ---------------------------------------------------------------------------
+  // SEND MESSAGE
+  // ---------------------------------------------------------------------------
   const sendMessage = useCallback(
     async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
-      if (!newMessage.trim() || !chatId || !user) return;
-      setSending(true);
 
+      if (!newMessage.trim() || !chatId || !user) return;
+
+      setSending(true);
       const msgText = newMessage.trim();
       setNewMessage('');
       inputRef.current?.focus();
@@ -301,9 +381,12 @@ export default function MessagesPage() {
     [newMessage, chatId, user]
   );
 
-  // ---------- Report message ----------
+  // ---------------------------------------------------------------------------
+  // REPORT MESSAGE
+  // ---------------------------------------------------------------------------
   const reportMessage = async (msg: Message) => {
     if (!user || !chatId) return;
+
     if (!confirm('Signaler ce message ?')) return;
 
     await addDoc(collection(db, 'reports'), {
@@ -315,36 +398,54 @@ export default function MessagesPage() {
       createdAt: serverTimestamp(),
     });
 
-    alert('Message signalé. Notre équipe vérifiera ce contenu.');
+    alert('Message signalé.');
   };
 
+  // ---------------------------------------------------------------------------
+  // Computed: other user (active chat)
+  // ---------------------------------------------------------------------------
+  const other =
+    activeChat?.participantsData?.find((p) => p.uid !== user?.uid) || null;
 
+  const filteredChats = chats.filter((c) => {
+    const o = c.participantsData?.find((p) => p.uid !== user?.uid);
+    return (
+      !searchQuery ||
+      o?.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
   return (
-      <div
-    className="
-      h-[calc(100vh-80px)]
-      max-h-[calc(100vh-80px)]
-      max-w-6xl
-      mx-auto
-      mt-4
-      flex
-      bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/80
-      text-gray-900
-      rounded-2xl
-      shadow-lg
-      overflow-hidden
-    "
-  >
-      {/* Sidebar */}
+    <div
+      className="
+        h-[calc(100vh-80px)]
+        max-h-[calc(100vh-80px)]
+        max-w-6xl
+        mx-auto
+        mt-4
+        flex
+        bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/80
+        text-gray-900
+        rounded-2xl
+        shadow-lg
+        overflow-hidden
+      "
+    >
+      {/* ---------------------------------------------------------------------- */}
+      {/* SIDEBAR — Liste des conversations */}
+      {/* ---------------------------------------------------------------------- */}
       <aside
         className={`${
-          isMobile && chatId ? 'hidden' : 'block'
+          isMobile && chatId ? "hidden" : "block"
         } md:w-1/3 lg:w-1/4 bg-white/80 backdrop-blur-md border-r border-[#ddc2ff] transition-all`}
       >
+        {/* --------- HEADER --------- */}
         <div className="p-4 border-b border-[#ddc2ff]/70 sticky top-0 bg-white/70 backdrop-blur-sm z-10">
           <h2 className="text-lg font-bold flex items-center gap-2 text-[#8a6bfe]">
             <MessageSquare /> Conversations
           </h2>
+
+          {/* —— SEARCH BAR —— */}
           <div className="relative mt-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -357,12 +458,18 @@ export default function MessagesPage() {
           </div>
         </div>
 
+        {/* --------- LISTE DES CHATS --------- */}
         <div className="overflow-y-auto h-[calc(100vh-100px)] p-3 sm:p-4">
           {filteredChats.length === 0 ? (
-            <p className="text-center text-gray-500 mt-10">Aucune conversation</p>
+            <p className="text-center text-gray-500 mt-10">
+              Aucune conversation
+            </p>
           ) : (
             filteredChats.map((c) => {
-              const other = c.participantsData?.find((p) => p.uid !== user?.uid);
+              const otherUser = c.participantsData?.find(
+                (p) => p.uid !== user?.uid
+              );
+
               return (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -370,26 +477,29 @@ export default function MessagesPage() {
                   onClick={() => router.push(`/messages?chatId=${c.id}`)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all ${
                     c.id === chatId
-                      ? 'bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 border-l-4 border-[#8a6bfe]'
-                      : 'hover:bg-[#f5e5ff]/60 border-l-4 border-transparent'
+                      ? "bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 border-l-4 border-[#8a6bfe]"
+                      : "hover:bg-[#f5e5ff]/60 border-l-4 border-transparent"
                   }`}
                 >
+                  {/* Avatar */}
                   <div className="relative">
                     <img
-                      src={other?.photoURL}
-                      alt={other?.displayName}
+                      src={otherUser?.photoURL}
+                      alt={otherUser?.displayName}
                       className="w-10 h-10 rounded-full border border-[#ddc2ff]"
                     />
-                    {other?.isOnline && (
+                    {otherUser?.isOnline && (
                       <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
                     )}
                   </div>
+
+                  {/* Nom + preview */}
                   <div className="flex-1 min-w-0 text-left">
                     <p className="font-semibold text-gray-900 truncate">
-                      {other?.displayName}
+                      {otherUser?.displayName}
                     </p>
                     <p className="text-sm text-gray-600 truncate">
-                      {c.lastMessage || 'Aucun message'}
+                      {c.lastMessage || "Aucun message"}
                     </p>
                   </div>
                 </motion.button>
@@ -398,36 +508,46 @@ export default function MessagesPage() {
           )}
         </div>
       </aside>
-      {/* Chat */}
+      {/* ---------------------------------------------------------------------- */}
+      {/* CHAT AREA */}
+      {/* ---------------------------------------------------------------------- */}
       <AnimatePresence mode="wait">
         <motion.main
-          key={chatId || 'empty'}
+          key={chatId || "empty"}
           initial={{ opacity: 0, x: isMobile ? 100 : 0 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: isMobile ? -100 : 0 }}
           transition={{ duration: 0.25 }}
           className="flex-1 flex flex-col bg-white/90 backdrop-blur-sm"
         >
+          {/* ------------------------------ Pas de chat sélectionné ------------------------------ */}
           {!chatId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-500 px-6">
               <MessageSquare className="w-16 h-16 mb-4 text-[#ddc2ff]" />
-              <p className="text-lg font-semibold">Bienvenue dans vos messages 💬</p>
-              <p className="text-sm text-gray-600">Sélectionnez une conversation.</p>
+              <p className="text-lg font-semibold">
+                Bienvenue dans vos messages 💬
+              </p>
+              <p className="text-sm text-gray-600">
+                Sélectionnez une conversation.
+              </p>
             </div>
           ) : (
             <>
-              {/* -------------------------------- HEADER -------------------------------- */}
-              <header className="sticky top-0 z-10 bg-white/90 border-b border-[#ddc2ff] p-3 sm:p-4 flex items-center justify-between relative">
+              {/* ------------------------------ HEADER CHAT ------------------------------ */}
+              <header className="sticky top-0 z-10 bg-white/90 border-b border-[#ddc2ff] p-3 sm:p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => router.push('/messages')}
+                    onClick={() => router.push("/messages")}
                     className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-[#f5e5ff] hover:text-[#8a6bfe]"
                   >
                     <ArrowLeft size={20} />
                   </button>
 
                   {other && (
-                    <Link href={`/profile/${other.uid}`} className="flex items-center gap-3">
+                    <Link
+                      href={`/profile/${other.uid}`}
+                      className="flex items-center gap-3"
+                    >
                       <img
                         src={other.photoURL}
                         alt={other.displayName}
@@ -439,12 +559,16 @@ export default function MessagesPage() {
                         </p>
 
                         {otherTyping ? (
-                          <span className="text-xs text-[#8a6bfe]/80">...écrit</span>
+                          <span className="text-xs text-[#8a6bfe]/80">
+                            ...écrit
+                          </span>
                         ) : other.isOnline ? (
-                          <span className="text-xs text-green-600">En ligne</span>
+                          <span className="text-xs text-green-600">
+                            En ligne
+                          </span>
                         ) : (
                           <span className="text-xs text-gray-500">
-                            vu{' '}
+                            vu{" "}
                             {timeAgoFrom(
                               new Date(
                                 other.lastSeen?.toDate?.() || other.lastSeen
@@ -457,21 +581,21 @@ export default function MessagesPage() {
                   )}
                 </div>
 
-                {/* -------- BUTTONS: Jobs en commun + Signaler un problème + Fichier -------- */}
+                {/* ------ Buttons Header ------ */}
                 <div className="flex items-center gap-2">
-
-                  {/* 🔥 BOUTON JOBS EN COMMUN */}
+                  {/* 🔥 JOBS EN COMMUN */}
                   {activeChat && (
                     <button
                       type="button"
                       onClick={() => setShowCommonJobs((v) => !v)}
                       className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 text-[#8a6bfe] border border-[#ddc2ff]"
                     >
-                      {commonJobs.length} job{commonJobs.length > 1 ? 's' : ''} en commun
+                      {commonJobs.length} job
+                      {commonJobs.length > 1 ? "s" : ""} en commun
                     </button>
                   )}
 
-                  {/* 🔥 BOUTON SIGNALER UN PROBLÈME */}
+                  {/* 🔥 SIGNALER */}
                   <button
                     type="button"
                     onClick={() => router.push(`/support?chatId=${chatId}`)}
@@ -481,15 +605,19 @@ export default function MessagesPage() {
                     Problème
                   </button>
 
-                  {/* UPLOAD */}
+                  {/* Upload */}
                   <label className="p-2 rounded-lg hover:bg-[#f5e5ff] text-gray-600 hover:text-[#8a6bfe] cursor-pointer">
                     <Paperclip size={20} />
-                    <input type="file" className="hidden" onChange={handleFileUpload} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
                   </label>
                 </div>
               </header>
 
-              {/* ---------------------------- PANEL JOBS EN COMMUN ---------------------------- */}
+              {/* ------------------------------ JOBS EN COMMUN PANEL ------------------------------ */}
               {showCommonJobs && (
                 <div className="px-4 sm:px-6 py-3 bg-[#f5e5ff]/40 border-b border-[#ddc2ff]/70 text-sm">
                   {commonJobs.length === 0 ? (
@@ -503,7 +631,7 @@ export default function MessagesPage() {
                         >
                           <div className="flex flex-col">
                             <span className="font-semibold text-gray-800">
-                              {job.title || 'Job sans titre'}
+                              {job.title || "Job sans titre"}
                             </span>
                           </div>
 
@@ -519,10 +647,10 @@ export default function MessagesPage() {
                 </div>
               )}
 
-              {/* ------------------------- DETECT JOB COMPLETION ------------------------- */}
+              {/* ------------------------------ DETECT SYSTEM MESSAGE ------------------------------ */}
               {activeChat?.jobId &&
                 (() => {
-                  const jobRef = doc(db, 'jobs', activeChat.jobId);
+                  const jobRef = doc(db, "jobs", activeChat.jobId);
 
                   useEffect(() => {
                     if (!activeChat?.jobId || !chatId || !user) return;
@@ -546,20 +674,19 @@ export default function MessagesPage() {
                         data.reviewMessageSentForChat[chatId];
 
                       if (bothDone && !alreadySent) {
-                        // 🔥 MESSAGE AUTOMATIQUE
+                        // Message système automatique
                         await addDoc(
-                          collection(db, 'chats', chatId, 'messages'),
+                          collection(db, "chats", chatId, "messages"),
                           {
-                            senderId: 'system',
-                            type: 'system',
+                            senderId: "system",
+                            type: "system",
                             text:
-                              'Le job est terminé. Vous pouvez laisser une note.',
+                              "Le job est terminé. Vous pouvez laisser une note.",
                             createdAt: serverTimestamp(),
                             readBy: [],
                           }
                         );
 
-                        // éviter répétition
                         await updateDoc(jobRef, {
                           [`reviewMessageSentForChat.${chatId}`]: true,
                         });
@@ -572,14 +699,12 @@ export default function MessagesPage() {
                   return null;
                 })()}
 
-              {/* -------------------------------- MESSAGES -------------------------------- */}
+              {/* ------------------------------ MESSAGE LIST ------------------------------ */}
               <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
-
                 {messages.map((msg) => {
                   const isOwn = msg.senderId === user?.uid;
 
-                  // 🔥 MESSAGE SYSTEME
-                  if (msg.type === 'system') {
+                  if (msg.type === "system") {
                     return (
                       <div
                         key={msg.id}
@@ -597,21 +722,24 @@ export default function MessagesPage() {
                       key={msg.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
                     >
                       <div
                         className={`relative px-4 py-2 rounded-2xl max-w-[80%] sm:max-w-[70%] shadow-sm ${
                           isOwn
-                            ? 'bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white'
-                            : 'bg-[#f5e5ff]/80 text-gray-800'
+                            ? "bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white"
+                            : "bg-[#f5e5ff]/80 text-gray-800"
                         }`}
                       >
-                        {msg.type === 'file' ? (
+                        {/* FILE */}
+                        {msg.type === "file" ? (
                           <a
                             href={msg.fileUrl}
                             target="_blank"
                             className={`${
-                              isOwn ? 'text-white underline' : 'text-[#8a6bfe] underline'
+                              isOwn
+                                ? "text-white underline"
+                                : "text-[#8a6bfe] underline"
                             }`}
                           >
                             📎 {msg.fileName}
@@ -620,8 +748,11 @@ export default function MessagesPage() {
                           <p>{msg.text}</p>
                         )}
 
-                        {/* MENU OPTION SUR CHAQUE MESSAGE */}
-                        <Menu as="div" className="absolute right-1 top-1 text-right">
+                        {/* OPTIONS MENU */}
+                        <Menu
+                          as="div"
+                          className="absolute right-1 top-1 text-right"
+                        >
                           <MenuButton className="p-1 text-gray-400 hover:text-[#8a6bfe]">
                             <MoreVertical className="w-4 h-4" />
                           </MenuButton>
@@ -632,8 +763,8 @@ export default function MessagesPage() {
                                   onClick={() => reportMessage(msg)}
                                   className={`${
                                     active
-                                      ? 'bg-[#f5e5ff]/50 text-[#8a6bfe]'
-                                      : 'text-gray-700'
+                                      ? "bg-[#f5e5ff]/50 text-[#8a6bfe]"
+                                      : "text-gray-700"
                                   } flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md`}
                                 >
                                   <Flag className="w-4 h-4" /> Signaler
@@ -643,22 +774,25 @@ export default function MessagesPage() {
                           </Menu.Items>
                         </Menu>
 
-                        {/* TIME + READ STATUS */}
+                        {/* TIME + READED */}
                         <div
                           className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                            isOwn ? 'text-white/70' : 'text-gray-500'
+                            isOwn ? "text-white/70" : "text-gray-500"
                           }`}
                         >
                           <Clock className="w-3 h-3" />
                           {msg.createdAt &&
-                            new Date(msg.createdAt.toDate()).toLocaleTimeString(
-                              'fr-FR',
-                              {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              }
-                            )}
-                          <MessageStatus message={msg} userId={user?.uid || ''} />
+                            new Date(
+                              msg.createdAt.toDate()
+                            ).toLocaleTimeString("fr-FR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+
+                          <MessageStatus
+                            message={msg}
+                            userId={user?.uid || ""}
+                          />
                         </div>
                       </div>
                     </motion.div>
@@ -667,7 +801,8 @@ export default function MessagesPage() {
 
                 <div ref={messagesEndRef} />
               </div>
-              {/* -------------------------------- INPUT ZONE -------------------------------- */}
+
+              {/* ------------------------------ INPUT ZONE ------------------------------ */}
               <form
                 onSubmit={(e) => sendMessage(e)}
                 className="p-3 sm:p-4 border-t border-[#ddc2ff]/70 flex items-center gap-3 bg-white/90"
@@ -680,12 +815,17 @@ export default function MessagesPage() {
                   onChange={(e) => handleTyping(e.target.value)}
                   className="flex-1 border border-[#ddc2ff] rounded-2xl px-4 py-2 sm:py-3 focus:ring-2 focus:ring-[#8a6bfe] outline-none bg-[#f5e5ff]/40"
                 />
+
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
                   className="p-3 sm:px-6 rounded-2xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white hover:shadow-md active:scale-95 transition disabled:opacity-50"
                 >
-                  {sending ? <Loader2 className="animate-spin w-5 h-5" /> : <Send size={18} />}
+                  {sending ? (
+                    <Loader2 className="animate-spin w-5 h-5" />
+                  ) : (
+                    <Send size={18} />
+                  )}
                 </button>
               </form>
             </>
@@ -695,4 +835,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
