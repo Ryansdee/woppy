@@ -6,18 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, db } from '@/lib/firebase';
 
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  doc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from 'firebase/firestore';
+import {collection, query, where, orderBy, onSnapshot, addDoc, doc, getDoc, serverTimestamp, updateDoc, } from 'firebase/firestore';
 
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -91,7 +80,7 @@ export interface Job {
 // UTILS
 // -----------------------------------------------------------------------------
 
-export const timeAgoFrom = (date: Date): string => {
+ const timeAgoFrom = (date: Date): string => {
   const now = new Date();
   const diffSec = (now.getTime() - date.getTime()) / 1000;
 
@@ -105,7 +94,7 @@ export const timeAgoFrom = (date: Date): string => {
   return date.toLocaleDateString('fr-BE');
 };
 
-export const MessageStatus = ({
+const MessageStatus = ({
   message,
   userId,
 }: {
