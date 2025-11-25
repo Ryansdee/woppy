@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Megaphone,
   ListChecks,
@@ -17,6 +17,12 @@ import {
   BarChart3,
   UserCheck,
   Clock,
+  TrendingUp,
+  Zap,
+  Star,
+  Gift,
+  Bell,
+  Settings,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -38,6 +44,7 @@ export default function DashboardPage() {
   });
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -55,214 +62,419 @@ export default function DashboardPage() {
     return () => unsub();
   }, []);
 
-    useEffect(() => {
-      async function fetchStats() {
-        try {
-          const studentsQuery = query(
-            collection(db, "users"),
-            where("hasStudentProfile", "==", true)
-          );
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Bonjour');
+    else if (hour < 18) setGreeting('Bon après-midi');
+    else setGreeting('Bonsoir');
+  }, []);
 
-          // 🔥 annonces terminées
-          const jobsQuery = query(
-            collection(db, "annonces"),
-            where("statut", "==", "fini")
-          );
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const studentsQuery = query(
+          collection(db, "users"),
+          where("hasStudentProfile", "==", true)
+        );
 
-          const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
-            await Promise.all([
-              getCountFromServer(studentsQuery),
-              getCountFromServer(collection(db, "users")),
-              getCountFromServer(collection(db, "annonces")),
-              getCountFromServer(jobsQuery), // ✔️ annonce terminée = travail réalisé
-            ]);
+        const jobsQuery = query(
+          collection(db, "annonces"),
+          where("statut", "==", "fini")
+        );
 
-          setStats({
-            students: studentsSnap.data().count,
-            users: usersSnap.data().count,
-            annonces: annoncesSnap.data().count,
-            jobs: jobsSnap.data().count,  // ✔️ devient nombre de jobs finis
-          });
-        } catch (err) {
-          console.error("Erreur chargement stats :", err);
-        }
+        const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
+          await Promise.all([
+            getCountFromServer(studentsQuery),
+            getCountFromServer(collection(db, "users")),
+            getCountFromServer(collection(db, "annonces")),
+            getCountFromServer(jobsQuery),
+          ]);
+
+        setStats({
+          students: studentsSnap.data().count,
+          users: usersSnap.data().count,
+          annonces: annoncesSnap.data().count,
+          jobs: jobsSnap.data().count,
+        });
+      } catch (err) {
+        console.error("Erreur chargement stats :", err);
       }
-      fetchStats();
-    }, []);
-
+    }
+    fetchStats();
+  }, []);
 
   if (!user) return null;
 
+  const mainActions = [
+    {
+      href: '/jobs/create',
+      icon: <Megaphone className="w-6 h-6" />,
+      label: 'Publier',
+      description: 'Créer une annonce',
+      color: 'from-[#8a6bfe] to-[#6b4fd9]',
+      primary: true,
+    },
+    {
+      href: '/jobs',
+      icon: <ListChecks className="w-6 h-6" />,
+      label: 'Annonces',
+      description: 'Parcourir les offres',
+      color: 'from-[#6b4fd9] to-[#8a6bfe]',
+    },
+    {
+      href: '/students',
+      icon: <Users className="w-6 h-6" />,
+      label: 'Étudiants',
+      description: 'Trouver des talents',
+      color: 'from-[#7b5bef] to-[#9d7fff]',
+    },
+    {
+      href: '/messages',
+      icon: <MessageSquare className="w-6 h-6" />,
+      label: 'Messages',
+      description: 'Conversations',
+      color: 'from-[#5b4bc9] to-[#7b5bef]',
+    },
+  ];
+
+  const secondaryActions = [
+    {
+      href: '/dashboard/profile',
+      icon: <UserCog className="w-5 h-5" />,
+      label: 'Mon profil',
+    },
+    {
+      href: '/dashboard/activity',
+      icon: <Clock className="w-5 h-5" />,
+      label: 'Mon activité',
+    },
+  ];
+
+  if (role === 'collaborator' || role === 'admin') {
+    secondaryActions.push({
+      href: '/dashboard/collaborateur',
+      icon: <UserCheck className="w-5 h-5" />,
+      label: 'Espace collaborateur',
+    });
+  }
+
+  if (role === 'admin') {
+    secondaryActions.push(
+      {
+        href: '/dashboard/jobs-career',
+        icon: <Briefcase className="w-5 h-5" />,
+        label: 'Créer des postes',
+      },
+      {
+        href: '/dashboard/applications',
+        icon: <ListChecks className="w-5 h-5" />,
+        label: 'Candidatures',
+      }
+    );
+  }
+
+  const statsData = [
+    {
+      label: 'Étudiants',
+      value: stats.students,
+      icon: <Users className="w-6 h-6" />,
+      color: 'from-[#8a6bfe] to-[#6b4fd9]',
+      change: '+12%',
+    },
+    {
+      label: 'Annonces',
+      value: stats.annonces,
+      icon: <Megaphone className="w-6 h-6" />,
+      color: 'from-[#7b5bef] to-[#5b4bc9]',
+      change: '+8%',
+    },
+    {
+      label: 'Travaux réalisés',
+      value: stats.jobs,
+      icon: <Trophy className="w-6 h-6" />,
+      color: 'from-[#9d7fff] to-[#8a6bfe]',
+      change: '+15%',
+    },
+    {
+      label: 'Utilisateurs',
+      value: stats.users,
+      icon: <Star className="w-6 h-6" />,
+      color: 'from-[#6b4fd9] to-[#7b5bef]',
+      change: '+10%',
+    },
+  ];
+
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#ede6ff] via-white to-[#e0d0ff] text-gray-900 flex flex-col">
-      <section className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 md:px-16 py-16 sm:py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="text-center max-w-5xl"
-        >
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#7b5bff] mb-6 leading-tight">
-            Bienvenue {user.displayName || user.email.split('@')[0]} 👋
-          </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
+      {/* Header avec gradient Woppy */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-12 sm:py-16">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <p className="text-purple-100 text-sm font-medium mb-2">
+                  {greeting} 👋
+                </p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+                  {user.displayName || user.email.split('@')[0]}
+                </h1>
+                <p className="text-purple-100 text-base sm:text-lg max-w-2xl">
+                  Bienvenue sur ton tableau de bord Woppy
+                </p>
+              </motion.div>
 
-          <p className="text-lg sm:text-xl text-gray-700 leading-relaxed max-w-3xl mx-auto mb-14">
-            Ton espace Woppy t’attend ! Gère tes annonces, explore les étudiants,
-            connecte-toi avec la communauté et découvre de nouvelles opportunités.
-          </p>
+              {/* Badge rôle */}
+              {role && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium"
+                >
+                  <Zap className="w-4 h-4" />
+                  {role === 'admin' ? 'Administrateur' : role === 'collaborator' ? 'Collaborateur' : 'Membre'}
+                </motion.div>
+              )}
+            </div>
 
-          {/* 🚀 Actions rapides */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 mb-20">
-            <QuickAction
-              href="/jobs/create"
-              icon={<Megaphone className="w-8 h-8" />}
-              label="Publier une annonce"
-              primary
-            />
-            <QuickAction
-              href="/jobs"
-              icon={<ListChecks className="w-8 h-8" />}
-              label="Voir les annonces"
-            />
-            <QuickAction
-              href="/students"
-              icon={<Users className="w-8 h-8" />}
-              label="Étudiants disponibles"
-            />
-            <QuickAction
-              href="/messages"
-              icon={<MessageSquare className="w-8 h-8" />}
-              label="Messagerie"
-            />
-            <QuickAction
-              href="/dashboard/profile"
-              icon={<UserCog className="w-8 h-8" />}
-              label="Mon profil"
-            />
-            <QuickAction
-              href="/dashboard/activity"
-              icon={<Clock className="w-8 h-8" />}
-              label="Mon activité"
-            />
-            {role === 'collaborator' && (
-              <>
-                <QuickAction
-                  href="/dashboard/collaborateur"
-                  icon={<UserCheck className="w-8 h-8" />}
-                  label="Espace collaborateur"
-                  primary />
-              </>
-            )}
-            { role === 'admin' && (
-              <>
-                <QuickAction
-                  href="/dashboard/collaborateur"
-                  icon={<UserCheck className="w-8 h-8" />}
-                  label="Espace collaborateur"
-                  primary />
-              <QuickAction
-                href="/dashboard/jobs-career"
-                icon={<UserCog className="w-8 h-8" />}
-                label="Espace création de postes"
-                primary
-              />
-              <QuickAction 
-              href="/dashboard/applications"
-              icon={<ListChecks className="w-8 h-8" />}
-              label="Gérer les candidatures"
-              primary
-              />
-              </>
-            )}
+            {/* Actions rapides header */}
+            <div className="hidden lg:flex items-center gap-2">
+              <Link
+                href="/notifications"
+                className="p-3 hover:bg-white/20 rounded-xl transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-400 rounded-full animate-pulse" />
+              </Link>
+              <Link
+                href="/dashboard/profile"
+                className="p-3 hover:bg-white/20 rounded-xl transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
+        </div>
+      </motion.div>
 
-          {/* 📊 Statistiques */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/80 backdrop-blur-lg border border-[#d8c8ff] rounded-3xl p-8 sm:p-12 shadow-xl max-w-6xl mx-auto"
-          >
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#7b5bff] mb-10 flex items-center justify-center gap-3">
-              <Trophy className="w-7 h-7 text-[#7b5bff]" /> Woppy c'est : 
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <Stat label="Étudiants inscrits" value={stats.students} />
-              <Stat label="Annonces publiées" value={stats.annonces} />
-              <Stat label="Travaux réalisés" value={stats.jobs} />
-              <Stat label="Utilisateurs totaux" value={stats.users} />
-            </div>
-            <div className="mt-8 text-sm text-gray-500 flex items-center justify-center gap-2">
-              <BarChart3 className="w-5 h-5 text-[#7b5bff]" />
-              Données synchronisées avec Firestore
-            </div>
-          </motion.div>
-
-          {/* 🛡️ Bandeau infos */}
-          <div className="mt-20 flex flex-wrap justify-center gap-6 sm:gap-10 text-base sm:text-lg text-gray-600">
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#7b5bff]" /> Paiements sécurisés
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#7b5bff]" /> Outils anti-spam
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Handshake className="w-5 h-5 text-[#7b5bff]" /> Confiance & entraide
-            </span>
+      {/* Contenu principal */}
+      <div className="max-w-7xl mx-auto px-6 py-8 sm:py-12">
+        {/* Actions principales - Cards grandes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#8a6bfe]" />
+            Actions rapides
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {mainActions.map((action, index) => (
+              <motion.div
+                key={action.href}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index }}
+                whileHover={{ y: -4 }}
+              >
+                <Link
+                  href={action.href}
+                  className="group block h-full"
+                >
+                  <div className={`
+                    relative h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300
+                    bg-gradient-to-br ${action.color} p-6 border border-white/10
+                  `}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+                    
+                    <div className="relative z-10">
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                        {action.icon}
+                      </div>
+                      
+                      <h3 className="text-white font-bold text-xl mb-1">
+                        {action.label}
+                      </h3>
+                      <p className="text-white/80 text-sm mb-4">
+                        {action.description}
+                      </p>
+                      
+                      <div className="flex items-center text-white/90 text-sm font-medium">
+                        <span className="group-hover:mr-2 transition-all">Accéder</span>
+                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
-      </section>
-    </div>
-  );
-}
 
-// 🔢 Statistique animée et mobile-friendly
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col items-center justify-center bg-[#f8f5ff] border border-[#e5d9ff] rounded-2xl p-8 sm:p-10 hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
-      <div className="text-gray-600 text-base sm:text-lg mb-2">{label}</div>
-      <div className="text-4xl sm:text-5xl font-extrabold text-[#7b5bff]">
-        {value.toLocaleString('fr-BE')}
+        {/* Statistiques - Design moderne */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-[#8a6bfe]" />
+              Statistiques Woppy
+            </h2>
+            <span className="text-sm text-gray-500 flex items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
+              Données en temps réel
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {statsData.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 * index }}
+                whileHover={{ scale: 1.03, y: -4 }}
+                className="bg-white rounded-2xl p-6 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#8a6bfe]/5 to-transparent rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                      {stat.icon}
+                    </div>
+                    <span className="text-green-600 text-xs font-semibold bg-green-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      {stat.change}
+                    </span>
+                  </div>
+                  
+                  <p className="text-gray-600 text-sm mb-1 font-medium">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] bg-clip-text text-transparent">
+                    {stat.value.toLocaleString('fr-BE')}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Actions secondaires - Liste compacte */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Gift className="w-5 h-5 text-[#8a6bfe]" />
+            Plus d'options
+          </h2>
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 divide-y divide-gray-100">
+            {secondaryActions.map((action, index) => (
+              <motion.div
+                key={action.href}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * index }}
+              >
+                <Link
+                  href={action.href}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white shadow-sm">
+                      {action.icon}
+                    </div>
+                    <span className="font-medium text-gray-900">
+                      {action.label}
+                    </span>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-[#8a6bfe] group-hover:translate-x-1 transition-all" />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Footer info - Design moderne */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-gradient-to-r from-[#7b5bef] to-[#8a6bfe] rounded-2xl p-8 text-white shadow-xl"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">
+                  Plateforme sécurisée & fiable
+                </h3>
+                <p className="text-purple-100 text-sm">
+                  Paiements protégés, système anti-spam et support 24/7
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                <span>Anti-spam actif</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Handshake className="w-5 h-5" />
+                <span>Communauté bienveillante</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tips section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8"
+        >
+          <div className="bg-white rounded-2xl p-6 shadow-md border border-[#8a6bfe]/20 max-w-2xl mx-auto">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <p className="text-gray-900 font-semibold mb-1">
+                  Astuce du jour
+                </p>
+                <p className="text-gray-600 text-sm">
+                  Complète ton profil pour recevoir plus d'opportunités et être mieux visible auprès des recruteurs
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-// ⚡ QuickAction version plus douce et accessible
-function QuickAction({
-  href,
-  icon,
-  label,
-  primary,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  primary?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={[
-        'group flex flex-col items-center justify-center gap-4 rounded-2xl border p-8 sm:p-10 transition-all text-center hover:scale-[1.03] hover:shadow-lg duration-300',
-        primary
-          ? 'bg-gradient-to-br from-[#7b5bff] to-[#b89fff] text-white shadow-md'
-          : 'bg-white/70 border-[#e5d9ff] text-gray-800 hover:border-[#7b5bff]',
-      ].join(' ')}
-    >
-      <div
-        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center ${
-          primary ? 'bg-white/20' : 'bg-[#f3e7ff]'
-        }`}
-      >
-        {icon}
-      </div>
-      <span className="text-lg sm:text-xl font-semibold">{label}</span>
-      <ArrowRight
-        className={`w-5 h-5 sm:w-6 sm:h-6 mt-1 ${
-          primary ? 'text-white/70 group-hover:text-white' : 'text-[#7b5bff]'
-        } transition`}
-      />
-    </Link>
-  );
-}
+// Import manquant pour Briefcase
+import { Briefcase } from 'lucide-react';

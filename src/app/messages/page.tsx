@@ -6,7 +6,18 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, db } from '@/lib/firebase';
 
-import {collection, query, where, orderBy, onSnapshot, addDoc, doc, getDoc, serverTimestamp, updateDoc, } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from 'firebase/firestore';
 
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -15,7 +26,6 @@ import {
   Send,
   MessageSquare,
   ArrowLeft,
-  Clock,
   Check,
   CheckCheck,
   Search,
@@ -23,6 +33,10 @@ import {
   Paperclip,
   Flag,
   TriangleAlert,
+  Briefcase,
+  X,
+  Smile,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 import {
@@ -46,6 +60,7 @@ export interface Chat {
   lastMessageTime?: any;
   typing?: { [userId: string]: boolean };
   jobId?: string;
+  unreadCount?: number;
 }
 
 export interface Message {
@@ -80,18 +95,24 @@ export interface Job {
 // UTILS
 // -----------------------------------------------------------------------------
 
- const timeAgoFrom = (date: Date): string => {
+const timeAgoFrom = (date: Date): string => {
   const now = new Date();
   const diffSec = (now.getTime() - date.getTime()) / 1000;
 
-  const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+  if (diffSec < 60) return 'à l\'instant';
+  if (diffSec < 3600) return `il y a ${Math.floor(diffSec / 60)}m`;
+  if (diffSec < 86400) return `il y a ${Math.floor(diffSec / 3600)}h`;
+  return `il y a ${Math.floor(diffSec / 86400)}j`;
+};
 
-  if (diffSec < 60) return rtf.format(-Math.round(diffSec), 'second');
-  if (diffSec < 3600) return rtf.format(-Math.round(diffSec / 60), 'minute');
-  if (diffSec < 86400) return rtf.format(-Math.round(diffSec / 3600), 'hour');
-  if (diffSec < 604800) return rtf.format(-Math.round(diffSec / 86400), 'day');
+const formatMessageDate = (date: Date): string => {
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
 
-  return date.toLocaleDateString('fr-BE');
+  if (diffDays === 0) return 'Aujourd\'hui';
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return date.toLocaleDateString('fr-FR', { weekday: 'long' });
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 };
 
 const MessageStatus = ({
@@ -102,31 +123,33 @@ const MessageStatus = ({
   userId: string;
 }) =>
   message.senderId !== userId ? null : message.readBy?.length &&
-    message.readBy.length > 1 ? (
-    <CheckCheck className="w-3 h-3 text-blue-500" />
+  message.readBy.length > 1 ? (
+    <CheckCheck className="w-4 h-4 text-blue-400" />
   ) : (
-    <Check className="w-3 h-3 text-gray-400" />
+    <Check className="w-4 h-4 text-gray-400" />
   );
+
+// -----------------------------------------------------------------------------
+// MAIN COMPONENT
+// -----------------------------------------------------------------------------
+
 export default function MessagesPage() {
   // ---------------------------------------------------------------------------
   // STATE
   // ---------------------------------------------------------------------------
   const [user, setUser] = useState<User | null>(null);
-
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
-
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [otherTyping, setOtherTyping] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
   const [commonJobs, setCommonJobs] = useState<Job[]>([]);
   const [showCommonJobs, setShowCommonJobs] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
 
   // ---------------------------------------------------------------------------
   // REFS
@@ -134,6 +157,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const storage = getStorage();
   const router = useRouter();
@@ -196,7 +220,7 @@ export default function MessagesPage() {
                   udata.photoURL ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     udata.firstName || 'U'
-                  )}&background=8a6bfe&color=fff`,
+                  )}&background=3b82f6&color=fff`,
                 isOnline: !!udata.isOnline,
                 lastSeen: udata.lastSeen,
               } as UserProfile;
@@ -236,10 +260,6 @@ export default function MessagesPage() {
         );
 
         setMessages(list);
-
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 50);
       }
     );
 
@@ -247,7 +267,7 @@ export default function MessagesPage() {
   }, [chatId, user]);
 
   // ---------------------------------------------------------------------------
-  // TYPING INDICATOR (detect the other user typing)
+  // TYPING INDICATOR
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!activeChat || !user) return;
@@ -314,7 +334,10 @@ export default function MessagesPage() {
     const file = event.target.files[0];
     if (!file) return;
 
-    const fileRef = storageRef(storage, `messages/${chatId}/${Date.now()}-${file.name}`);
+    const fileRef = storageRef(
+      storage,
+      `messages/${chatId}/${Date.now()}-${file.name}`
+    );
 
     await uploadBytes(fileRef, file);
     const url = await getDownloadURL(fileRef);
@@ -391,7 +414,24 @@ export default function MessagesPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Computed: other user (active chat)
+  // Group messages by date
+  // ---------------------------------------------------------------------------
+  const groupedMessages = messages.reduce((acc, msg) => {
+    if (!msg.createdAt) return acc;
+    
+    const date = new Date(msg.createdAt.toDate());
+    const dateKey = date.toDateString();
+    
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(msg);
+    
+    return acc;
+  }, {} as Record<string, Message[]>);
+
+  // ---------------------------------------------------------------------------
+  // Computed
   // ---------------------------------------------------------------------------
   const other =
     activeChat?.participantsData?.find((p) => p.uid !== user?.uid) || null;
@@ -404,423 +444,552 @@ export default function MessagesPage() {
       c.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="
-        h-[calc(100vh-80px)]
-        max-h-[calc(100vh-80px)]
-        max-w-6xl
-        mx-auto
-        mt-4
-        flex
-        bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/80
-        text-gray-900
-        rounded-2xl
-        shadow-lg
-        overflow-hidden
-      "
-    >
-      {/* ---------------------------------------------------------------------- */}
-      {/* SIDEBAR — Liste des conversations */}
-      {/* ---------------------------------------------------------------------- */}
+    <div className="h-[calc(100vh-64px)] flex bg-gradient-to-br from-gray-50 to-blue-50/30 overflow-hidden">
+      {/* SIDEBAR - Style WhatsApp */}
       <aside
         className={`${
-          isMobile && chatId ? "hidden" : "block"
-        } md:w-1/3 lg:w-1/4 bg-white/80 backdrop-blur-md border-r border-[#ddc2ff] transition-all`}
+          isMobile && chatId ? 'hidden' : 'flex'
+        } w-full md:w-[380px] bg-white flex-col shadow-xl border-r border-gray-100`}
       >
-        {/* --------- HEADER --------- */}
-        <div className="p-4 border-b border-[#ddc2ff]/70 sticky top-0 bg-white/70 backdrop-blur-sm z-10">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-[#8a6bfe]">
-            <MessageSquare /> Conversations
-          </h2>
-
-          {/* —— SEARCH BAR —— */}
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-[#ddc2ff] rounded-xl focus:ring-2 focus:ring-[#8a6bfe] outline-none bg-[#f5e5ff]/40"
-            />
-          </div>
-        </div>
-
-        {/* --------- LISTE DES CHATS --------- */}
-        <div className="overflow-y-auto h-[calc(100vh-100px)] p-3 sm:p-4">
-          {filteredChats.length === 0 ? (
-            <p className="text-center text-gray-500 mt-10">
-              Aucune conversation
-            </p>
-          ) : (
-            filteredChats.map((c) => {
-              const otherUser = c.participantsData?.find(
-                (p) => p.uid !== user?.uid
-              );
-
-              return (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  key={c.id}
-                  onClick={() => router.push(`/messages?chatId=${c.id}`)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all ${
-                    c.id === chatId
-                      ? "bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 border-l-4 border-[#8a6bfe]"
-                      : "hover:bg-[#f5e5ff]/60 border-l-4 border-transparent"
-                  }`}
-                >
-                  {/* Avatar */}
-                  <div className="relative">
-                    <img
-                      src={otherUser?.photoURL}
-                      alt={otherUser?.displayName}
-                      className="w-10 h-10 rounded-full border border-[#ddc2ff]"
-                    />
-                    {otherUser?.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+        {/* Header avec gradient Woppy */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-white">Messages</h1>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSearchBar(!showSearchBar)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <Search className="w-5 h-5 text-white" />
+              </button>
+              <Menu as="div" className="relative">
+                <MenuButton className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                  <MoreVertical className="w-5 h-5 text-white" />
+                </MenuButton>
+                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 z-10 border border-gray-100">
+                  <MenuItem>
+                    {({ active }: { active: boolean }) => (
+                      <button
+                        className={`${
+                          active ? 'bg-blue-50' : ''
+                        } flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700`}
+                      >
+                        <MessageSquare size={16} />
+                        Nouvelle conversation
+                      </button>
                     )}
-                  </div>
+                  </MenuItem>
+                </Menu.Items>
+              </Menu>
+            </div>
+          </div>
 
-                  {/* Nom + preview */}
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="font-semibold text-gray-900 truncate">
-                      {otherUser?.displayName}
-                    </p>
-                    <p className="text-sm text-gray-600 truncate">
-                      {c.lastMessage || "Aucun message"}
-                    </p>
-                  </div>
-                </motion.button>
-              );
-            })
-          )}
+          <AnimatePresence>
+            {showSearchBar && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="relative"
+              >
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Rechercher une conversation..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 rounded-full focus:ring-2 focus:ring-white/50 focus:bg-white/30 outline-none transition-all"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </aside>
-      {/* ---------------------------------------------------------------------- */}
-      {/* CHAT AREA */}
-      {/* ---------------------------------------------------------------------- */}
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={chatId || "empty"}
-          initial={{ opacity: 0, x: isMobile ? 100 : 0 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: isMobile ? -100 : 0 }}
-          transition={{ duration: 0.25 }}
-          className="flex-1 flex flex-col bg-white/90 backdrop-blur-sm"
-        >
-          {/* ------------------------------ Pas de chat sélectionné ------------------------------ */}
-          {!chatId ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 px-6">
-              <MessageSquare className="w-16 h-16 mb-4 text-[#ddc2ff]" />
-              <p className="text-lg font-semibold">
-                Bienvenue dans vos messages 💬
+
+        {/* Liste des conversations */}
+        <div className="flex-1 overflow-y-auto">
+          {filteredChats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 px-6 py-12">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
+                <MessageSquare className="w-12 h-12 text-blue-600" />
+              </div>
+              <p className="text-base font-medium text-gray-700 mb-1">
+                Aucune conversation
               </p>
-              <p className="text-sm text-gray-600">
-                Sélectionnez une conversation.
+              <p className="text-sm text-gray-500 text-center">
+                Vos messages apparaîtront ici
               </p>
             </div>
           ) : (
-            <>
-              {/* ------------------------------ HEADER CHAT ------------------------------ */}
-              <header className="sticky top-0 z-10 bg-white/90 border-b border-[#ddc2ff] p-3 sm:p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => router.push("/messages")}
-                    className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-[#f5e5ff] hover:text-[#8a6bfe]"
+            <div className="divide-y divide-gray-100">
+              {filteredChats.map((c) => {
+                const otherUser = c.participantsData?.find(
+                  (p) => p.uid !== user?.uid
+                );
+                const isActive = c.id === chatId;
+                
+                return (
+                  <motion.button
+                    key={c.id}
+                    onClick={() => router.push(`/messages?chatId=${c.id}`)}
+                    className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all ${
+                      isActive ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                    }`}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <ArrowLeft size={20} />
-                  </button>
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={otherUser?.photoURL}
+                        alt={otherUser?.displayName}
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
+                      />
+                      {otherUser?.isOnline && (
+                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-3 border-white rounded-full shadow-sm" />
+                      )}
+                    </div>
 
-                  {other && (
-                    <Link
-                      href={`/profile/${other.uid}`}
-                      className="flex items-center gap-3"
-                    >
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <p className="font-semibold text-gray-900 truncate text-base">
+                          {otherUser?.displayName}
+                        </p>
+                        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                          {c.lastMessageTime &&
+                            new Date(
+                              c.lastMessageTime.toDate()
+                            ).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600 truncate flex-1">
+                          {c.lastMessage}
+                        </p>
+                        {c.unreadCount && c.unreadCount > 0 && (
+                          <span className="flex-shrink-0 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                            {c.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ZONE DE CHAT - Style Messenger */}
+      <main className="flex-1 flex flex-col min-w-0 bg-white">
+        {!chatId ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50">
+            <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mb-6 shadow-2xl">
+              <MessageSquare className="w-16 h-16 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Messagerie Woppy
+            </h2>
+            <p className="text-gray-600">
+              Sélectionnez une conversation pour commencer
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Header - Style moderne avec gradient */}
+            <header className="h-[72px] px-5 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                {isMobile && (
+                  <button
+                    onClick={() => router.push('/messages')}
+                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  >
+                    <ArrowLeft size={20} className="text-white" />
+                  </button>
+                )}
+
+                {other && (
+                  <Link
+                    href={`/profile/${other.uid}`}
+                    className="flex items-center gap-3 min-w-0 flex-1"
+                  >
+                    <div className="relative flex-shrink-0">
                       <img
                         src={other.photoURL}
                         alt={other.displayName}
-                        className="w-9 h-9 rounded-full border border-[#ddc2ff]"
+                        className="w-11 h-11 rounded-full object-cover ring-2 ring-white/50"
                       />
-                      <div className="hidden sm:flex flex-col">
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                          {other.displayName}
-                        </p>
+                      {other.isOnline && (
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-white truncate text-base">
+                        {other.displayName}
+                      </p>
+                    </div>
+                  </Link>
+                )}
+              </div>
 
-                        {otherTyping ? (
-                          <span className="text-xs text-[#8a6bfe]/80">
-                            ...écrit
-                          </span>
-                        ) : other.isOnline ? (
-                          <span className="text-xs text-green-600">
-                            En ligne
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-500">
-                            vu{" "}
-                            {timeAgoFrom(
-                              new Date(
-                                other.lastSeen?.toDate?.() || other.lastSeen
-                              )
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  )}
-                </div>
-
-                {/* ------ Buttons Header ------ */}
-                <div className="flex items-center gap-2">
-                  {/* 🔥 JOBS EN COMMUN */}
-                  {activeChat && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCommonJobs((v) => !v)}
-                      className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-gradient-to-r from-[#8a6bfe]/10 to-[#b89fff]/10 text-[#8a6bfe] border border-[#ddc2ff]"
-                    >
-                      {commonJobs.length} job
-                      {commonJobs.length > 1 ? "s" : ""} en commun
-                    </button>
-                  )}
-
-                  {/* 🔥 SIGNALER */}
+              <div className="flex items-center gap-1">
+                {commonJobs.length > 0 && (
                   <button
-                    type="button"
-                    onClick={() => router.push(`/support?chatId=${chatId}`)}
-                    className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-[#ffe9e9] text-[#b3261e] border border-[#ffb3b3]"
+                    onClick={() => setShowCommonJobs(!showCommonJobs)}
+                    className="p-2.5 hover:bg-white/20 rounded-full transition-colors relative"
+                    title={`${commonJobs.length} projet(s) en commun`}
                   >
-                    <TriangleAlert size={14} className="mr-1" />
-                    Problème
+                    <Briefcase size={20} className="text-white" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                      {commonJobs.length}
+                    </span>
                   </button>
-
-                  {/* Upload */}
-                  <label className="p-2 rounded-lg hover:bg-[#f5e5ff] text-gray-600 hover:text-[#8a6bfe] cursor-pointer">
-                    <Paperclip size={20} />
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                  </label>
-                </div>
-              </header>
-
-              {/* ------------------------------ JOBS EN COMMUN PANEL ------------------------------ */}
-              {showCommonJobs && (
-                <div className="px-4 sm:px-6 py-3 bg-[#f5e5ff]/40 border-b border-[#ddc2ff]/70 text-sm">
-                  {commonJobs.length === 0 ? (
-                    <p className="text-gray-700">Pas encore de job en commun.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {commonJobs.map((job) => (
-                        <li
-                          key={job.id}
-                          className="flex items-center justify-between bg-white/70 border border-[#e5d5ff] rounded-xl px-3 py-2"
+                )}
+                <Menu as="div" className="relative">
+                  <MenuButton className="p-2.5 hover:bg-white/20 rounded-full transition-colors">
+                    <MoreVertical size={20} className="text-white" />
+                  </MenuButton>
+                  <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl py-2 z-10 border border-gray-100">
+                    <MenuItem>
+                      {({ active }: { active: boolean }) => (
+                        <button
+                          onClick={() => router.push(`/support?chatId=${chatId}`)}
+                          className={`${
+                            active ? 'bg-red-50' : ''
+                          } flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600`}
                         >
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-gray-800">
-                              {job.title || "Job sans titre"}
-                            </span>
-                          </div>
+                          <TriangleAlert size={18} />
+                          Signaler la conversation
+                        </button>
+                      )}
+                    </MenuItem>
+                  </Menu.Items>
+                </Menu>
+              </div>
+            </header>
 
-                          {job.status && (
-                            <span className="ml-3 px-2 py-1 text-xs rounded-full bg-white border border-[#ddc2ff] text-gray-600">
-                              {job.status}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {/* ------------------------------ DETECT SYSTEM MESSAGE ------------------------------ */}
-              {activeChat?.jobId &&
-                (() => {
-                  const jobRef = doc(db, "jobs", activeChat.jobId);
-
-                  useEffect(() => {
-                    if (!activeChat?.jobId || !chatId || !user) return;
-
-                    const unsub = onSnapshot(jobRef, async (snap) => {
-                      const data = snap.data() as Job;
-                      if (!data) return;
-
-                      const completedBy = data.completedBy || [];
-                      const otherId = activeChat.participants.find(
-                        (p) => p !== user.uid
-                      );
-                      if (!otherId) return;
-
-                      const bothDone =
-                        completedBy.includes(user.uid) &&
-                        completedBy.includes(otherId);
-
-                      const alreadySent =
-                        data.reviewMessageSentForChat &&
-                        data.reviewMessageSentForChat[chatId];
-
-                      if (bothDone && !alreadySent) {
-                        // Message système automatique
-                        await addDoc(
-                          collection(db, "chats", chatId, "messages"),
-                          {
-                            senderId: "system",
-                            type: "system",
-                            text:
-                              "Le job est terminé. Vous pouvez laisser une note.",
-                            createdAt: serverTimestamp(),
-                            readBy: [],
-                          }
-                        );
-
-                        await updateDoc(jobRef, {
-                          [`reviewMessageSentForChat.${chatId}`]: true,
-                        });
-                      }
-                    });
-
-                    return () => unsub();
-                  }, [activeChat, chatId, user]);
-
-                  return null;
-                })()}
-
-              {/* ------------------------------ MESSAGE LIST ------------------------------ */}
-              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
-                {messages.map((msg) => {
-                  const isOwn = msg.senderId === user?.uid;
-
-                  if (msg.type === "system") {
-                    return (
-                      <div
-                        key={msg.id}
-                        className="flex justify-center text-center text-gray-600 text-sm"
+            {/* Panel projets - Design amélioré */}
+            <AnimatePresence>
+              {showCommonJobs && commonJobs.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100"
+                >
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Briefcase size={18} className="text-blue-600" />
+                        {commonJobs.length} projet{commonJobs.length > 1 ? 's' : ''} en commun
+                      </p>
+                      <button
+                        onClick={() => setShowCommonJobs(false)}
+                        className="p-1 hover:bg-white/50 rounded-full transition-colors"
                       >
-                        <div className="bg-[#f5e5ff]/60 px-4 py-2 rounded-xl border border-[#ddc2ff]">
-                          {msg.text}
+                        <X size={16} className="text-gray-600" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {commonJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900">
+                              {job.title || 'Sans titre'}
+                            </p>
+                            {job.status && (
+                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                                {job.status}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                  return (
+            {/* Messages - Style WhatsApp avec fond personnalisé */}
+            <div
+              className="flex-1 overflow-y-auto px-5 py-4"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              <div className="max-w-4xl mx-auto space-y-6">
+                {Object.entries(groupedMessages).map(([dateKey, msgs]) => (
+                  <div key={dateKey}>
+                    {/* Date separator */}
+                    <div className="flex justify-center mb-4">
+                      <div className="bg-white/80 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-medium text-gray-600 shadow-sm border border-gray-100">
+                        {formatMessageDate(new Date(dateKey))}
+                      </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="space-y-2">
+                      {msgs.map((msg, idx) => {
+                        const isOwn = msg.senderId === user?.uid;
+                        const prevMsg = idx > 0 ? msgs[idx - 1] : null;
+                        const nextMsg = idx < msgs.length - 1 ? msgs[idx + 1] : null;
+                        
+                        const showAvatar = !nextMsg || nextMsg.senderId !== msg.senderId;
+                        const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
+                        const isLastInGroup = showAvatar;
+
+                        if (msg.type === 'system') {
+                          return (
+                            <div key={msg.id} className="flex justify-center my-4">
+                              <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs text-gray-600 shadow-sm border border-gray-100 max-w-md text-center">
+                                {msg.text}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <motion.div
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`flex ${
+                              isOwn ? 'justify-end' : 'justify-start'
+                            } ${isFirstInGroup ? 'mt-2' : 'mt-0.5'}`}
+                          >
+                            <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                              {/* Avatar (seulement sur dernier message du groupe) */}
+                              {!isOwn && (
+                                <div className="w-8 h-8 flex-shrink-0">
+                                  {showAvatar && (
+                                    <img
+                                      src={other?.photoURL}
+                                      alt={other?.displayName}
+                                      className="w-8 h-8 rounded-full object-cover"
+                                    />
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex flex-col">
+                                <div className="group relative">
+                                  <div
+                                    className={`px-4 py-2 ${
+                                      isOwn
+                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md'
+                                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'
+                                    }`}
+                                    style={{
+                                      borderTopRightRadius: isOwn && isFirstInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                      borderTopLeftRadius: !isOwn && isFirstInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                      borderBottomRightRadius: isOwn && isLastInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                      borderBottomLeftRadius: !isOwn && isLastInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                    }}
+                                  >
+                                    {msg.type === 'file' ? (
+                                      <a
+                                        href={msg.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 text-sm hover:underline ${
+                                          isOwn ? 'text-white' : 'text-blue-600'
+                                        }`}
+                                      >
+                                        <Paperclip size={16} />
+                                        <span className="font-medium">{msg.fileName}</span>
+                                      </a>
+                                    ) : (
+                                      <p className="text-[15px] leading-relaxed break-words">
+                                        {msg.text}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Menu contextuel */}
+                                  <Menu
+                                    as="div"
+                                    className={`absolute ${isOwn ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-0 opacity-0 group-hover:opacity-100 transition-opacity`}
+                                  >
+                                    <MenuButton className="p-1.5 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50 mx-2">
+                                      <MoreVertical className="w-4 h-4 text-gray-600" />
+                                    </MenuButton>
+                                    <Menu.Items className={`absolute ${isOwn ? 'right-0' : 'left-0'} mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-10`}>
+                                      <MenuItem>
+                                        {({ active }: { active: boolean }) => (
+                                          <button
+                                            onClick={() => reportMessage(msg)}
+                                            className={`${
+                                              active ? 'bg-red-50' : ''
+                                            } flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600`}
+                                          >
+                                            <Flag size={14} />
+                                            Signaler
+                                          </button>
+                                        )}
+                                      </MenuItem>
+                                    </Menu.Items>
+                                  </Menu>
+                                </div>
+
+                                {/* Heure et statut */}
+                                {showAvatar && (
+                                  <div
+                                    className={`flex items-center gap-1 mt-1 px-1 text-xs text-gray-500 ${
+                                      isOwn ? 'justify-end' : 'justify-start'
+                                    }`}
+                                  >
+                                    <span>
+                                      {msg.createdAt &&
+                                        new Date(
+                                          msg.createdAt.toDate()
+                                        ).toLocaleTimeString('fr-FR', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                    </span>
+                                    {isOwn && (
+                                      <MessageStatus
+                                        message={msg}
+                                        userId={user?.uid || ''}
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Indicateur de saisie */}
+                <AnimatePresence>
+                  {otherTyping && (
                     <motion.div
-                      key={msg.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="flex justify-start"
                     >
-                      <div
-                        className={`relative px-4 py-2 rounded-2xl max-w-[80%] sm:max-w-[70%] shadow-sm ${
-                          isOwn
-                            ? "bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white"
-                            : "bg-[#f5e5ff]/80 text-gray-800"
-                        }`}
-                      >
-                        {/* FILE */}
-                        {msg.type === "file" ? (
-                          <a
-                            href={msg.fileUrl}
-                            target="_blank"
-                            className={`${
-                              isOwn
-                                ? "text-white underline"
-                                : "text-[#8a6bfe] underline"
-                            }`}
-                          >
-                            📎 {msg.fileName}
-                          </a>
-                        ) : (
-                          <p>{msg.text}</p>
-                        )}
-
-                        {/* OPTIONS MENU */}
-                        <Menu
-                          as="div"
-                          className="absolute right-1 top-1 text-right"
-                        >
-                          <MenuButton className="p-1 text-gray-400 hover:text-[#8a6bfe]">
-                            <MoreVertical className="w-4 h-4" />
-                          </MenuButton>
-                          <Menu.Items className="absolute right-0 mt-1 w-36 rounded-lg bg-white border border-[#ddc2ff]/50 shadow-lg">
-                            <MenuItem>
-                              {({ active }) => (
-                                <button
-                                  onClick={() => reportMessage(msg)}
-                                  className={`${
-                                    active
-                                      ? "bg-[#f5e5ff]/50 text-[#8a6bfe]"
-                                      : "text-gray-700"
-                                  } flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md`}
-                                >
-                                  <Flag className="w-4 h-4" /> Signaler
-                                </button>
-                              )}
-                            </MenuItem>
-                          </Menu.Items>
-                        </Menu>
-
-                        {/* TIME + READED */}
-                        <div
-                          className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                            isOwn ? "text-white/70" : "text-gray-500"
-                          }`}
-                        >
-                          <Clock className="w-3 h-3" />
-                          {msg.createdAt &&
-                            new Date(
-                              msg.createdAt.toDate()
-                            ).toLocaleTimeString("fr-FR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-
-                          <MessageStatus
-                            message={msg}
-                            userId={user?.uid || ""}
-                          />
+                      <div className="flex gap-2">
+                        <img
+                          src={other?.photoURL}
+                          alt={other?.displayName}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <div className="bg-white rounded-2xl rounded-tl-sm px-5 py-3 shadow-sm border border-gray-100">
+                          <div className="flex gap-1.5">
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                            <span
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: '0.2s' }}
+                            />
+                            <span
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: '0.4s' }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </motion.div>
-                  );
-                })}
+                  )}
+                </AnimatePresence>
 
                 <div ref={messagesEndRef} />
               </div>
+            </div>
 
-              {/* ------------------------------ INPUT ZONE ------------------------------ */}
-              <form
-                onSubmit={(e) => sendMessage(e)}
-                className="p-3 sm:p-4 border-t border-[#ddc2ff]/70 flex items-center gap-3 bg-white/90"
-              >
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Écrire un message…"
-                  value={newMessage}
-                  onChange={(e) => handleTyping(e.target.value)}
-                  className="flex-1 border border-[#ddc2ff] rounded-2xl px-4 py-2 sm:py-3 focus:ring-2 focus:ring-[#8a6bfe] outline-none bg-[#f5e5ff]/40"
-                />
+            {/* Zone de saisie - Style Messenger moderne */}
+            <div className="px-5 py-4 bg-white border-t border-gray-100">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-end gap-2">
+                  <div className="flex gap-1">
+                    <label className="p-2.5 hover:bg-gray-100 rounded-full cursor-pointer transition-colors">
+                      <Paperclip size={22} className="text-blue-600" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                    </label>
+                    <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors">
+                      <ImageIcon size={22} className="text-blue-600" />
+                    </button>
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim() || sending}
-                  className="p-3 sm:px-6 rounded-2xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white hover:shadow-md active:scale-95 transition disabled:opacity-50"
-                >
-                  {sending ? (
-                    <Loader2 className="animate-spin w-5 h-5" />
-                  ) : (
-                    <Send size={18} />
-                  )}
-                </button>
-              </form>
-            </>
-          )}
-        </motion.main>
-      </AnimatePresence>
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Écrivez un message..."
+                      value={newMessage}
+                      onChange={(e) => handleTyping(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      className="w-full px-5 py-3 text-[15px] bg-gray-100 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white outline-none transition-all"
+                    />
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-200 rounded-full transition-colors">
+                      <Smile size={20} className="text-gray-600" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => sendMessage()}
+                    disabled={sending || !newMessage.trim()}
+                    className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none"
+                  >
+                    {sending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </main>
     </div>
   );
 }
