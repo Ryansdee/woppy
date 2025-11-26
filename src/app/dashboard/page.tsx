@@ -45,6 +45,32 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
   const [greeting, setGreeting] = useState('');
+  const [hasStudentProfile, setHasStudentProfile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        window.location.href = '/auth/login';
+        return;
+      }
+
+      setUser(u);
+
+      try {
+        const snap = await getDoc(doc(db, 'users', u.uid));
+
+        if (snap.exists()) {
+          const data = snap.data();
+          setRole(data.role || null);
+          setHasStudentProfile(data.hasStudentProfile === true);
+        }
+      } catch (err) {
+        console.error('Erreur récupération rôle/profil étudiant :', err);
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -171,6 +197,14 @@ export default function DashboardPage() {
         label: 'Candidatures',
       }
     );
+  }
+
+  if (hasStudentProfile === true) {
+    secondaryActions.push({
+      href: '/dashboard/finance',
+      icon: <Star className="w-5 h-5" />,
+      label: 'Mes finances',
+    });
   }
 
   const statsData = [
@@ -478,3 +512,7 @@ export default function DashboardPage() {
 
 // Import manquant pour Briefcase
 import { Briefcase } from 'lucide-react';
+
+function hasStudentProfile(user: any) {
+  throw new Error('Function not implemented.');
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db, storage } from "@/lib/firebase";
+import { db, storage, auth } from "@/lib/firebase";
 import {
   collection,
   addDoc,
@@ -114,31 +114,36 @@ export default function CreateAnnoncePage() {
         const url = await getDownloadURL(storageRef);
         uploaded.push(url);
       }
+        const u = auth.currentUser;
+        if (!u) {
+          alert("Vous devez être connecté.");
+          setLoading(false);
+          return;
+        }
 
-      await addDoc(collection(db, "annonces"), {
-        titre: form.titre,
-        description: form.description,
-        date: form.date,
-        duree: Number(form.duree),
-        lieu: form.lieu,
-        coords: coords ? coords : null,
-        remuneration: Number(form.remuneration),
+        await addDoc(collection(db, "annonces"), {
+          titre: form.titre,
+          description: form.description,
+          date: form.date,
+          duree: Number(form.duree),
+          lieu: form.lieu,
+          coords: coords ? coords : null,
+          remuneration: Number(form.remuneration),
 
-        statut: "ouverte",
+          statut: "ouverte",
 
-        photos: uploaded,
+          photos: uploaded,
 
-        maxApplicants: Number(form.maxApplicants),
-        currentApplicants: 0,
-        applicants: [],
+          maxApplicants: Number(form.maxApplicants),
+          currentApplicants: 0,
+          applicants: [],
 
-        userId: "TO_REPLACE_WITH_UID", // tu mettras l'UID ici
-
-        createdAt: serverTimestamp(),
-      });
+          userId: u.uid,        // <= ICI !!!
+          createdAt: serverTimestamp(),
+        });
 
       alert("Annonce créée !");
-      window.location.href = "/annonces";
+      window.location.href = "/jobs";
     } catch (e) {
       console.error(e);
       alert("Erreur lors de la création.");
