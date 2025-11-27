@@ -328,35 +328,33 @@ export default function MessagesPage() {
   // ---------------------------------------------------------------------------
   // FILE UPLOAD
   // ---------------------------------------------------------------------------
-  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !chatId || !user) return;
+const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  if (!event.target.files || !chatId || !user) return;
 
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const fileRef = storageRef(
-      storage,
-      `messages/${chatId}/${Date.now()}-${file.name}`
-    );
+  const fileRef = storageRef(storage, `messages/${chatId}/${Date.now()}-${file.name}`);
 
-    await uploadBytes(fileRef, file);
-    const url = await getDownloadURL(fileRef);
+  await uploadBytes(fileRef, file);
+  const url = await getDownloadURL(fileRef);
 
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      senderId: user.uid,
-      type: 'file',
-      fileName: file.name,
-      fileUrl: url,
-      createdAt: serverTimestamp(),
-      readBy: [user.uid],
-    });
+  await addDoc(collection(db, 'chats', chatId, 'messages'), {
+    senderId: user.uid,
+    type: 'file',
+    fileName: file.name,
+    fileUrl: url,
+    createdAt: serverTimestamp(),
+    readBy: [user.uid],
+  });
 
-    await updateDoc(doc(db, 'chats', chatId), {
-      lastMessage: `📎 ${file.name}`,
-      lastMessageTime: serverTimestamp(),
-      [`typing.${user.uid}`]: false,
-    });
-  };
+  await updateDoc(doc(db, 'chats', chatId), {
+    lastMessage: `📎 ${file.name}`,
+    lastMessageTime: serverTimestamp(),
+    [`typing.${user.uid}`]: false,
+  });
+};
+
 
   // ---------------------------------------------------------------------------
   // SEND MESSAGE
@@ -372,17 +370,17 @@ export default function MessagesPage() {
       setNewMessage('');
       inputRef.current?.focus();
 
-      const chatRef = doc(db, 'chats', chatId);
-
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      // --- Envoi du message ---
+      await addDoc(collection(db, `chats/${chatId}/messages`), {
         senderId: user.uid,
-        type: 'text',
         text: msgText,
+        type: "text",
         createdAt: serverTimestamp(),
         readBy: [user.uid],
       });
 
-      await updateDoc(chatRef, {
+      // --- Mise à jour du chat ---
+      await updateDoc(doc(db, "chats", chatId), {
         lastMessage: msgText,
         lastMessageTime: serverTimestamp(),
         [`typing.${user.uid}`]: false,

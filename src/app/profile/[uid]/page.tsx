@@ -245,37 +245,19 @@ export default function UserProfilePage() {
   /* ==========================
      Messagerie
   =========================== */
-  async function handleMessage() {
-    if (!currentUser || !uid) return;
+async function handleMessage() {
+  if (!currentUser || !uid) return;
 
-    try {
-      const snap = await getDocs(
-        query(
-          collection(db, 'chats'),
-          where('participants', 'array-contains', currentUser.uid)
-        )
-      );
+  const newChat = await addDoc(collection(db, "chats"), {
+    participants: [currentUser.uid, uid],
+    createdAt: serverTimestamp(),
+    lastMessage: "",
+    lastMessageTime: serverTimestamp(),
+    typing: {}
+  });
 
-      let chatId: string | null = null;
-
-      snap.forEach((docSnap) => {
-        const data = docSnap.data() as { participants: string[] };
-        if (data.participants.includes(uid)) chatId = docSnap.id;
-      });
-
-      if (!chatId) {
-        const newChat = await addDoc(collection(db, 'chats'), {
-          participants: [currentUser.uid, uid],
-          createdAt: serverTimestamp(),
-        });
-        router.push(`/messages?chatId=${newChat.id}`);
-      } else {
-        router.push(`/messages?chatId=${chatId}`);
-      }
-    } catch (err) {
-      console.error('Erreur chat:', err);
-    }
-  }
+  router.push(`/messages?chatId=${newChat.id}`);
+}
 
   /* ==========================
      Loading
@@ -625,29 +607,34 @@ export default function UserProfilePage() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {annonces.map((a) => (
-                <motion.div
+                <Link
                   key={a.id}
-                  whileHover={{ scale: 1.03 }}
-                  className="bg-white border border-[#ddc2ff] p-5 rounded-2xl shadow"
+                  href={`/jobs/${a.id}`}
+                  className="block"
                 >
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {a.description}
-                  </h3>
+                  <motion.div
+                    whileHover={{ scale: 1.03 }}
+                    className="bg-white border border-[#ddc2ff] p-5 rounded-2xl shadow h-full"
+                  >
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {a.description}
+                    </h3>
 
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p className="flex items-center gap-2">
-                      <CalendarIcon size={14} className="text-[#8a6bfe]" />{' '}
-                      {a.date}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <MapPin size={14} className="text-[#8a6bfe]" /> {a.lieu}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <Euro size={14} className="text-[#8a6bfe]" />{' '}
-                      {a.remuneration} €/h
-                    </p>
-                  </div>
-                </motion.div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p className="flex items-center gap-2">
+                        <CalendarIcon size={14} className="text-[#8a6bfe]" /> {a.date}
+                      </p>
+
+                      <p className="flex items-center gap-2">
+                        <MapPin size={14} className="text-[#8a6bfe]" /> {a.lieu}
+                      </p>
+
+                      <p className="flex items-center gap-2">
+                        <Euro size={14} className="text-[#8a6bfe]" /> {a.remuneration} €/h
+                      </p>
+                    </div>
+                  </motion.div>
+                </Link>
               ))}
             </div>
           )}
