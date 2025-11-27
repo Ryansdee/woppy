@@ -1,67 +1,46 @@
-import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
-import { onObjectFinalized } from "firebase-functions/v2/storage";
-import vision from "@google-cloud/vision";
+// functions/index.js
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 const db = getFirestore();
-const storage = getStorage();
-const visionClient = new vision.ImageAnnotatorClient();
+const messaging = getMessaging();
 
-export const studentCardVerifier = onObjectFinalized(
-  { bucket: "ton-bucket.appspot.com" },
+exports.sendPushFromNotification = onDocumentCreated(
+  "notifications/{notifId}",
   async (event) => {
-    const filePath = event.data.name;
-    if (!filePath.startsWith("student_cards/")) return;
+    const notif = event.data.data();
+    const userId = notif.toUser;
 
-    const userId = filePath.split("/")[1].split(".")[0];
-    const bucket = storage.bucket(event.data.bucket);
-    const file = bucket.file(filePath);
+    if (!userId) return;
 
-    const [url] = await file.getSignedUrl({
-      action: "read",
-      expires: Date.now() + 10 * 60 * 1000,
+    const userSnap = await db.doc(`users/${userId}`).get();
+    const token = userSnap.data()?.fcmToken;
+
+    if (!token) {
+      console.log("⚠️ Aucun token FCM pour", userId);
+      return;
+    }
+
+    await messaging.send({
+      token,
+      notification: {
+        title: notif.title || "Woppy",
+        body: notif.message || "Nouvelle notification",
+      },
+      data: {
+        type: notif.type || "generic",
+        id: event.params.notifId,
+      },
+      webpush: {
+        fcmOptions: {
+          link: notif.link || "/dashboard",
+        },
+      },
     });
 
-    try {
-      const [result] = await visionClient.textDetection(url);
-      const detections = result.textAnnotations;
-      const fullText = detections?.[0]?.description?.toLowerCase() || "";
-
-      const hasCarteEtudiante = fullText.includes("carte étudiante");
-      const yearMatch = fullText.match(/20\d{2}/g);
-      let isYearValid = false;
-
-      if (yearMatch) {
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        for (const y of yearMatch.map(Number)) {
-          const start = new Date(y, 8, 1); // Septembre
-          const end = new Date(y + 1, 7, 31); // Août suivant
-          if (now >= start && now <= end) {
-            isYearValid = true;
-            break;
-          }
-        }
-      }
-
-      const isValid = hasCarteEtudiante && isYearValid;
-
-      await db.collection("users").doc(userId).update({
-        studentVerificationStatus: isValid ? "verified" : "rejected",
-        verificationCheckedAt: new Date(),
-      });
-
-      console.log(
-        `Carte ${userId} → ${isValid ? "✅ Vérifiée" : "❌ Refusée"}`
-      );
-    } catch (err) {
-      console.error(err);
-      await db.collection("users").doc(userId).update({
-        studentVerificationStatus: "rejected",
-        verificationError: err.message,
-      });
-    }
+    console.log("🎉 Notification push envoyée à", userId);
   }
 );

@@ -32,10 +32,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
-
-////////////////////////////////////////////////////////////////////////////////
-// TYPES
-////////////////////////////////////////////////////////////////////////////////
+import Image from 'next/image';
 
 interface Experience {
   id: string;
@@ -55,25 +52,10 @@ interface DayAvailability {
 
 type WeekAvailability = Record<string, DayAvailability>;
 
-////////////////////////////////////////////////////////////////////////////////
-// COMPOSANT PRINCIPAL DU WIZARD
-////////////////////////////////////////////////////////////////////////////////
-
 export default function RegistrationWizard() {
 
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPES DU WIZARD
-  ////////////////////////////////////////////////////////////////////////////
-
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
-
-  // L'utilisateur veut-il un compte étudiant ?
   const [wantsStudentProfile, setWantsStudentProfile] = useState<boolean | null>(null);
-
-  ////////////////////////////////////////////////////////////////////////////
-  // STATE GÉNÉRAL (Étape 1)
-  ////////////////////////////////////////////////////////////////////////////
-
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -84,24 +66,13 @@ export default function RegistrationWizard() {
     bioGeneral: '',
     profilePhoto: null as File | null,
   });
-
-  ////////////////////////////////////////////////////////////////////////////
-  // STATE ÉTUDIANT (Étape 2 → 5)
-  ////////////////////////////////////////////////////////////////////////////
-
   const [studentData, setStudentData] = useState({
     studies: '',
     age: '',
     hourlyRate: '',
     description: '',
   });
-
-  ////////////////////////////////////////////////////////////////////////////
-  // DISPONIBILITÉS (Étape 3)
-  ////////////////////////////////////////////////////////////////////////////
-
   const days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-
   const [availability, setAvailability] = useState<WeekAvailability>(() => {
     const base: WeekAvailability = {};
     days.forEach((d) => {
@@ -110,16 +81,9 @@ export default function RegistrationWizard() {
     return base;
   });
 
-  ////////////////////////////////////////////////////////////////////////////
-  // EXPÉRIENCES (Étape 4)
-  ////////////////////////////////////////////////////////////////////////////
-
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [newExperience, setNewExperience] = useState({ title: '', description: '' });
 
-  ////////////////////////////////////////////////////////////////////////////
-  // UI STATE
-  ////////////////////////////////////////////////////////////////////////////
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -1007,8 +971,13 @@ export default function RegistrationWizard() {
 
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-white font-bold text-2xl">W</span>
+        <div className="w-32 h-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Image 
+            src="/images/logo.png"
+            width={100}
+            height={100}
+            alt="Logo Woppy"
+           />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Rejoignez Woppy

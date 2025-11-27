@@ -199,13 +199,13 @@ export default function DashboardPage() {
     );
   }
 
-  if (hasStudentProfile === true) {
+  /*if (hasStudentProfile === true) {
     secondaryActions.push({
       href: '/dashboard/finance',
       icon: <Star className="w-5 h-5" />,
       label: 'Mes finances',
     });
-  }
+  }*/
 
   const statsData = [
     {
