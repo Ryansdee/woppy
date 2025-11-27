@@ -26,7 +26,7 @@ export default function Navbar() {
 
   // 🔗 Liens principaux
   const links = [
-	{ name: 'Annnoces', href: '/jobs' },
+	{ name: 'Annoces', href: '/jobs' },
 	{ name: 'Étudiants', href: '/students' },
 	{ name: 'Mon Profil', href: '/dashboard/profile' },
 	{ name: 'Mon activité', href: '/dashboard/activity' },
