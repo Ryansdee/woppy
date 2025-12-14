@@ -43,7 +43,7 @@ interface Annonce {
   lieu: string;
   coords: { lat: number; lon: number } | null;
   remuneration: number;
-  statut: "ouverte" | "en cours" | "fermée";
+  statut: "ouverte" | "en cours" | "fini";
   photos: string[];
   maxApplicants: number;
   currentApplicants: number;
@@ -91,7 +91,7 @@ export default function AnnoncesPage() {
   const [filterMinRate, setFilterMinRate] = useState("");
 
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "ouverte" | "en cours" | "fermée"
+    "all" | "ouverte" | "en cours" | "fini"
   >("all");
 
   const [filterRadius, setFilterRadius] = useState(10);
@@ -158,7 +158,9 @@ useEffect(() => {
 }, [filterCity]);
 
 const filtered = useMemo(() => {
-  let results = [...annonces];
+  let results = annonces.filter(
+    (a) => a.statut !== "fini"
+  );
 
   // RECHERCHE TEXTE GLOBALE
   if (searchQuery.trim()) {
@@ -381,7 +383,7 @@ const filtered = useMemo(() => {
                 <option value="all">Tous</option>
                 <option value="ouverte">Ouvertes</option>
                 <option value="en cours">En cours</option>
-                <option value="fermée">Fermées</option>
+                <option value="fini">Fini</option>
               </select>
             </div>
 
