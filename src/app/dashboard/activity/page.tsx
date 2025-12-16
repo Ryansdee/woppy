@@ -118,7 +118,7 @@ export default function ActivityPage() {
         const pubQ = query(
           collection(db, "annonces"),
           where("userId", "==", uid),
-          where("statut", "==", "ouvert")
+          where("statut", "==", "ouverte")
         );
         const pubSnap = await getDocs(pubQ);
         setAnnoncesPubliees(
@@ -472,15 +472,22 @@ async function markJobAsDone(id: string) {
   });
 }
 
-function JobCard({ id, title, date, location, type, user, index }: {
+function JobCard({
+  id,
+  titre,
+  date,
+  lieu,
+  type,
+  index,
+}: {
   id: string;
-  title: string;
+  titre: string;
   date?: string;
-  location?: string;
+  lieu?: string;
   type: 'pending' | 'selected' | 'done';
-  user?: any;
   index: number;
 }) {
+
   const [loading, setLoading] = useState(false);
 
   const config: Record<'pending' | 'selected' | 'done', { badge: string; label: string; gradient: string }> = {
@@ -528,14 +535,14 @@ function JobCard({ id, title, date, location, type, user, index }: {
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#8a6bfe] transition-colors">
-              {title}
+            <h3 className="text-xl font-bold">
+              {titre}
             </h3>
             <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-              {location && (
+              {lieu && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
-                  {location}
+                  {lieu}
                 </span>
               )}
               {date && (

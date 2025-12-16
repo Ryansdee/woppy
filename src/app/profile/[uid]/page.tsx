@@ -123,6 +123,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   /* Auth */
   useEffect(() => {
@@ -243,21 +244,63 @@ export default function UserProfilePage() {
   }, [uid]);
 
   /* ==========================
-     Messagerie
+     Messagerie - AVEC VÉRIFICATION DE CHAT EXISTANT
   =========================== */
-async function handleMessage() {
-  if (!currentUser || !uid) return;
+  async function handleMessage() {
+    if (!currentUser || !uid) return;
+    if (sendingMessage) return; // Éviter les doubles clics
 
-  const newChat = await addDoc(collection(db, "chats"), {
-    participants: [currentUser.uid, uid],
-    createdAt: serverTimestamp(),
-    lastMessage: "",
-    lastMessageTime: serverTimestamp(),
-    typing: {}
-  });
+    setSendingMessage(true);
 
-  router.push(`/messages?chatId=${newChat.id}`);
-}
+    try {
+      // 1. Chercher un chat existant où les deux utilisateurs sont participants
+      const chatsRef = collection(db, 'chats');
+      
+      // Requête pour trouver les chats où l'utilisateur actuel est participant
+      const qChats = query(
+        chatsRef,
+        where('participants', 'array-contains', currentUser.uid)
+      );
+
+      const chatsSnap = await getDocs(qChats);
+
+      // 2. Vérifier si un chat avec l'autre utilisateur existe déjà
+      let existingChatId: string | null = null;
+
+      for (const chatDoc of chatsSnap.docs) {
+        const chatData = chatDoc.data();
+        const participants = chatData.participants as string[];
+
+        // Vérifier si l'autre utilisateur est aussi dans ce chat
+        if (participants.includes(uid)) {
+          existingChatId = chatDoc.id;
+          break;
+        }
+      }
+
+      // 3. Si un chat existe, rediriger vers celui-ci
+      if (existingChatId) {
+        router.push(`/messages?chatId=${existingChatId}`);
+        return;
+      }
+
+      // 4. Sinon, créer un nouveau chat
+      const newChat = await addDoc(collection(db, 'chats'), {
+        participants: [currentUser.uid, uid],
+        createdAt: serverTimestamp(),
+        lastMessage: '',
+        lastMessageTime: serverTimestamp(),
+        typing: {},
+      });
+
+      router.push(`/messages?chatId=${newChat.id}`);
+    } catch (error) {
+      console.error('Erreur lors de la création/récupération du chat:', error);
+      alert('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setSendingMessage(false);
+    }
+  }
 
   /* ==========================
      Loading
@@ -487,10 +530,22 @@ async function handleMessage() {
             {currentUser && currentUser.uid !== uid && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleMessage}
-                className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl shadow-md"
+                disabled={sendingMessage}
+                className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <MessageSquare size={18} /> Envoyer un message
+                {sendingMessage ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare size={18} />
+                    Envoyer un message
+                  </>
+                )}
               </motion.button>
             )}
           </div>
@@ -607,11 +662,7 @@ async function handleMessage() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {annonces.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/jobs/${a.id}`}
-                  className="block"
-                >
+                <Link key={a.id} href={`/jobs/${a.id}`} className="block">
                   <motion.div
                     whileHover={{ scale: 1.03 }}
                     className="bg-white border border-[#ddc2ff] p-5 rounded-2xl shadow h-full"
@@ -622,7 +673,8 @@ async function handleMessage() {
 
                     <div className="text-sm text-gray-600 space-y-1">
                       <p className="flex items-center gap-2">
-                        <CalendarIcon size={14} className="text-[#8a6bfe]" /> {a.date}
+                        <CalendarIcon size={14} className="text-[#8a6bfe]" />{' '}
+                        {a.date}
                       </p>
 
                       <p className="flex items-center gap-2">
@@ -630,7 +682,8 @@ async function handleMessage() {
                       </p>
 
                       <p className="flex items-center gap-2">
-                        <Euro size={14} className="text-[#8a6bfe]" /> {a.remuneration} €/h
+                        <Euro size={14} className="text-[#8a6bfe]" />{' '}
+                        {a.remuneration} €/h
                       </p>
                     </div>
                   </motion.div>

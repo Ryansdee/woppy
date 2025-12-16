@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth, db } from '@/lib/firebase';
-
 import {
   collection,
   query,
@@ -17,10 +16,9 @@ import {
   getDoc,
   serverTimestamp,
   updateDoc,
+  getDocs,
 } from 'firebase/firestore';
-
 import { onAuthStateChanged, User } from 'firebase/auth';
-
 import {
   Loader2,
   Send,
@@ -38,14 +36,12 @@ import {
   Smile,
   Image as ImageIcon,
 } from 'lucide-react';
-
 import {
   getStorage,
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
-
 import { Menu, MenuItem, MenuButton } from '@headlessui/react';
 
 // -----------------------------------------------------------------------------
@@ -98,8 +94,7 @@ export interface Job {
 const timeAgoFrom = (date: Date): string => {
   const now = new Date();
   const diffSec = (now.getTime() - date.getTime()) / 1000;
-
-  if (diffSec < 60) return 'à l\'instant';
+  if (diffSec < 60) return "à l'instant";
   if (diffSec < 3600) return `il y a ${Math.floor(diffSec / 60)}m`;
   if (diffSec < 86400) return `il y a ${Math.floor(diffSec / 3600)}h`;
   return `il y a ${Math.floor(diffSec / 86400)}j`;
@@ -108,11 +103,15 @@ const timeAgoFrom = (date: Date): string => {
 const formatMessageDate = (date: Date): string => {
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
-
-  if (diffDays === 0) return 'Aujourd\'hui';
+  if (diffDays === 0) return "Aujourd'hui";
   if (diffDays === 1) return 'Hier';
   if (diffDays < 7) return date.toLocaleDateString('fr-FR', { weekday: 'long' });
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+};
+
+// Helper pour dédupliquer par ID
+const deduplicateById = <T extends { id: string }>(items: T[]): T[] => {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
 };
 
 const MessageStatus = ({
@@ -123,11 +122,56 @@ const MessageStatus = ({
   userId: string;
 }) =>
   message.senderId !== userId ? null : message.readBy?.length &&
-  message.readBy.length > 1 ? (
+    message.readBy.length > 1 ? (
     <CheckCheck className="w-4 h-4 text-blue-400" />
   ) : (
     <Check className="w-4 h-4 text-gray-400" />
   );
+
+// -----------------------------------------------------------------------------
+// CACHE pour les profils utilisateurs (évite les requêtes répétées)
+// -----------------------------------------------------------------------------
+
+const userProfileCache = new Map<string, UserProfile>();
+
+const fetchUserProfile = async (uid: string): Promise<UserProfile> => {
+  // Vérifier le cache d'abord
+  if (userProfileCache.has(uid)) {
+    return userProfileCache.get(uid)!;
+  }
+
+  try {
+    const usnap = await getDoc(doc(db, 'users', uid));
+    const udata: any = usnap.exists() ? usnap.data() : {};
+    
+    const profile: UserProfile = {
+      uid,
+      displayName:
+        udata.displayName ||
+        `${udata.firstName || ''} ${udata.lastName || ''}`.trim() ||
+        'Utilisateur',
+      photoURL:
+        udata.photoURL ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          udata.firstName || 'U'
+        )}&background=3b82f6&color=fff`,
+      isOnline: !!udata.isOnline,
+      lastSeen: udata.lastSeen,
+    };
+
+    // Mettre en cache
+    userProfileCache.set(uid, profile);
+    return profile;
+  } catch (error) {
+    console.error(`Erreur lors du fetch du profil ${uid}:`, error);
+    return {
+      uid,
+      displayName: 'Utilisateur',
+      photoURL: `https://ui-avatars.com/api/?name=U&background=3b82f6&color=fff`,
+      isOnline: false,
+    };
+  }
+};
 
 // -----------------------------------------------------------------------------
 // MAIN COMPONENT
@@ -175,6 +219,17 @@ export default function MessagesPage() {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Cleanup typing timeout on unmount
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // AUTH — detect logged user
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -189,7 +244,7 @@ export default function MessagesPage() {
   }, [router]);
 
   // ---------------------------------------------------------------------------
-  // FETCH CHATS
+  // FETCH CHATS (avec déduplication et cache des profils)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!user) return;
@@ -200,51 +255,55 @@ export default function MessagesPage() {
       orderBy('lastMessageTime', 'desc')
     );
 
-    const unsub = onSnapshot(qChats, async (snap) => {
-      const list = await Promise.all(
-        snap.docs.map(async (d) => {
-          const data = d.data() as Chat;
+    const unsub = onSnapshot(
+      qChats,
+      async (snap) => {
+        try {
+          const list = await Promise.all(
+            snap.docs.map(async (d) => {
+              const data = d.data() as Chat;
 
-          const participantsData = await Promise.all(
-            data.participants.map(async (pid) => {
-              const usnap = await getDoc(doc(db, 'users', pid));
-              const udata: any = usnap.exists() ? usnap.data() : {};
+              // Dédupliquer les participants (au cas où)
+              const uniqueParticipants = [...new Set(data.participants)];
+
+              const participantsData = await Promise.all(
+                uniqueParticipants.map((pid) => fetchUserProfile(pid))
+              );
 
               return {
-                uid: pid,
-                displayName:
-                  udata.displayName ||
-                  `${udata.firstName || ''} ${udata.lastName || ''}`.trim() ||
-                  'Utilisateur',
-                photoURL:
-                  udata.photoURL ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    udata.firstName || 'U'
-                  )}&background=3b82f6&color=fff`,
-                isOnline: !!udata.isOnline,
-                lastSeen: udata.lastSeen,
-              } as UserProfile;
+                ...data,
+                id: d.id,
+                participants: uniqueParticipants,
+                participantsData,
+              };
             })
           );
 
-          return { ...data, id: d.id, participantsData };
-        })
-      );
+          // Dédupliquer les chats par ID
+          const uniqueChats = deduplicateById(list);
+          setChats(uniqueChats);
+          setLoading(false);
 
-      setChats(list);
-      setLoading(false);
-
-      if (chatId) {
-        const current = list.find((c) => c.id === chatId) || null;
-        setActiveChat(current);
+          if (chatId) {
+            const current = uniqueChats.find((c) => c.id === chatId) || null;
+            setActiveChat(current);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement des chats:', error);
+          setLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Erreur onSnapshot chats:', error);
+        setLoading(false);
       }
-    });
+    );
 
     return () => unsub();
   }, [user, chatId]);
 
   // ---------------------------------------------------------------------------
-  // FETCH MESSAGES
+  // FETCH MESSAGES (avec déduplication)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!chatId || !user) return;
@@ -258,8 +317,12 @@ export default function MessagesPage() {
         const list = snap.docs.map(
           (d) => ({ id: d.id, ...d.data() } as Message)
         );
-
-        setMessages(list);
+        // Dédupliquer les messages par ID
+        const uniqueMessages = deduplicateById(list);
+        setMessages(uniqueMessages);
+      },
+      (error) => {
+        console.error('Erreur onSnapshot messages:', error);
       }
     );
 
@@ -271,33 +334,33 @@ export default function MessagesPage() {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!activeChat || !user) return;
-
     const typing = activeChat.typing || {};
     const otherId = activeChat.participants.find((p) => p !== user.uid);
-
     setOtherTyping(!!typing?.[otherId || '']);
   }, [activeChat, user]);
 
-  const handleTyping = (value: string) => {
-    setNewMessage(value);
+  const handleTyping = useCallback(
+    (value: string) => {
+      setNewMessage(value);
+      if (!chatId || !user) return;
 
-    if (!chatId || !user) return;
-
-    updateDoc(doc(db, 'chats', chatId), {
-      [`typing.${user.uid}`]: true,
-    });
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
       updateDoc(doc(db, 'chats', chatId), {
-        [`typing.${user.uid}`]: false,
-      });
-    }, 2800);
-  };
+        [`typing.${user.uid}`]: true,
+      }).catch((err) => console.error('Erreur update typing:', err));
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        updateDoc(doc(db, 'chats', chatId), {
+          [`typing.${user.uid}`]: false,
+        }).catch((err) => console.error('Erreur reset typing:', err));
+      }, 2800);
+    },
+    [chatId, user]
+  );
 
   // ---------------------------------------------------------------------------
-  // FETCH COMMON JOBS
+  // FETCH COMMON JOBS (avec déduplication)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!user || !activeChat) return;
@@ -310,59 +373,77 @@ export default function MessagesPage() {
       where('participants', 'array-contains', user.uid)
     );
 
-    const unsub = onSnapshot(qJobs, (snap) => {
-      const list: Job[] = snap.docs
-        .map((d) => ({ id: d.id, ...(d.data() as any) }))
-        .filter(
-          (job) =>
-            Array.isArray(job.participants) &&
-            job.participants.includes(otherId)
-        );
+    const unsub = onSnapshot(
+      qJobs,
+      (snap) => {
+        const list: Job[] = snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .filter(
+            (job) =>
+              Array.isArray(job.participants) &&
+              job.participants.includes(otherId)
+          );
 
-      setCommonJobs(list);
-    });
+        // Dédupliquer les jobs par ID
+        const uniqueJobs = deduplicateById(list);
+        setCommonJobs(uniqueJobs);
+      },
+      (error) => {
+        console.error('Erreur onSnapshot jobs:', error);
+      }
+    );
 
     return () => unsub();
   }, [user, activeChat]);
 
   // ---------------------------------------------------------------------------
-  // FILE UPLOAD
+  // FILE UPLOAD (avec gestion d'erreur)
   // ---------------------------------------------------------------------------
-const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-  if (!event.target.files || !chatId || !user) return;
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || !chatId || !user) return;
 
-  const file = event.target.files[0];
-  if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-  const fileRef = storageRef(storage, `messages/${chatId}/${Date.now()}-${file.name}`);
+    try {
+      const fileRef = storageRef(
+        storage,
+        `messages/${chatId}/${Date.now()}-${file.name}`
+      );
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
 
-  await uploadBytes(fileRef, file);
-  const url = await getDownloadURL(fileRef);
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        senderId: user.uid,
+        type: 'file',
+        fileName: file.name,
+        fileUrl: url,
+        createdAt: serverTimestamp(),
+        readBy: [user.uid],
+      });
 
-  await addDoc(collection(db, 'chats', chatId, 'messages'), {
-    senderId: user.uid,
-    type: 'file',
-    fileName: file.name,
-    fileUrl: url,
-    createdAt: serverTimestamp(),
-    readBy: [user.uid],
-  });
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: `📎 ${file.name}`,
+        lastMessageTime: serverTimestamp(),
+        [`typing.${user.uid}`]: false,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'upload du fichier:', error);
+      alert('Erreur lors de l\'envoi du fichier. Veuillez réessayer.');
+    }
 
-  await updateDoc(doc(db, 'chats', chatId), {
-    lastMessage: `📎 ${file.name}`,
-    lastMessageTime: serverTimestamp(),
-    [`typing.${user.uid}`]: false,
-  });
-};
-
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // ---------------------------------------------------------------------------
-  // SEND MESSAGE
+  // SEND MESSAGE (avec gestion d'erreur)
   // ---------------------------------------------------------------------------
   const sendMessage = useCallback(
     async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
-
       if (!newMessage.trim() || !chatId || !user) return;
 
       setSending(true);
@@ -370,61 +451,91 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
       setNewMessage('');
       inputRef.current?.focus();
 
-      // --- Envoi du message ---
-      await addDoc(collection(db, `chats/${chatId}/messages`), {
-        senderId: user.uid,
-        text: msgText,
-        type: "text",
-        createdAt: serverTimestamp(),
-        readBy: [user.uid],
-      });
+      try {
+        // Envoi du message
+        await addDoc(collection(db, 'chats', chatId, 'messages'), {
+          senderId: user.uid,
+          text: msgText,
+          type: 'text',
+          createdAt: serverTimestamp(),
+          readBy: [user.uid],
+        });
 
-      // --- Mise à jour du chat ---
-      await updateDoc(doc(db, "chats", chatId), {
-        lastMessage: msgText,
-        lastMessageTime: serverTimestamp(),
-        [`typing.${user.uid}`]: false,
-      });
+        // Mise à jour du chat
+        await updateDoc(doc(db, 'chats', chatId), {
+          lastMessage: msgText,
+          lastMessageTime: serverTimestamp(),
+          [`typing.${user.uid}`]: false,
+        });
+
+        // ✅ CRÉER UNE NOTIFICATION pour l'autre utilisateur
+        const otherUserId = activeChat?.participants.find((p) => p !== user.uid);
+        
+        if (otherUserId) {
+          await addDoc(collection(db, 'notifications'), {
+            toUser: otherUserId,
+            fromUser: user.uid,
+            type: 'message',
+            message: `Nouveau message de ${user.displayName || 'un utilisateur'}`,
+            messagePreview: msgText.length > 100 ? msgText.substring(0, 100) + '...' : msgText,
+            chatId: chatId,
+            read: false,
+            createdAt: serverTimestamp(),
+          });
+        }
+
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi du message:', error);
+        setNewMessage(msgText);
+        alert('Erreur lors de l\'envoi du message. Veuillez réessayer.');
+      }
 
       setSending(false);
     },
-    [newMessage, chatId, user]
+    [newMessage, chatId, user, activeChat]
   );
 
   // ---------------------------------------------------------------------------
-  // REPORT MESSAGE
+  // REPORT MESSAGE (avec gestion d'erreur)
   // ---------------------------------------------------------------------------
   const reportMessage = async (msg: Message) => {
     if (!user || !chatId) return;
-
     if (!confirm('Signaler ce message ?')) return;
 
-    await addDoc(collection(db, 'reports'), {
-      reporterId: user.uid,
-      senderId: msg.senderId,
-      chatId,
-      messageId: msg.id,
-      text: msg.text || msg.fileName || '(fichier)',
-      createdAt: serverTimestamp(),
-    });
-
-    alert('Message signalé.');
+    try {
+      await addDoc(collection(db, 'reports'), {
+        reporterId: user.uid,
+        senderId: msg.senderId,
+        chatId,
+        messageId: msg.id,
+        text: msg.text || msg.fileName || '(fichier)',
+        createdAt: serverTimestamp(),
+      });
+      alert('Message signalé.');
+    } catch (error) {
+      console.error('Erreur lors du signalement:', error);
+      alert('Erreur lors du signalement. Veuillez réessayer.');
+    }
   };
+
+  // ---------------------------------------------------------------------------
+  // Auto-scroll to bottom when new messages arrive
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // ---------------------------------------------------------------------------
   // Group messages by date
   // ---------------------------------------------------------------------------
   const groupedMessages = messages.reduce((acc, msg) => {
     if (!msg.createdAt) return acc;
-    
     const date = new Date(msg.createdAt.toDate());
     const dateKey = date.toDateString();
-    
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
     acc[dateKey].push(msg);
-    
     return acc;
   }, {} as Record<string, Message[]>);
 
@@ -446,7 +557,6 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
   // ---------------------------------------------------------------------------
   // RENDER
   // ---------------------------------------------------------------------------
-
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -550,7 +660,7 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                   (p) => p.uid !== user?.uid
                 );
                 const isActive = c.id === chatId;
-                
+
                 return (
                   <motion.button
                     key={c.id}
@@ -571,7 +681,6 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                         <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-3 border-white rounded-full shadow-sm" />
                       )}
                     </div>
-
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-baseline justify-between mb-1">
                         <p className="font-semibold text-gray-900 truncate text-base">
@@ -633,7 +742,6 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                     <ArrowLeft size={20} className="text-white" />
                   </button>
                 )}
-
                 {other && (
                   <Link
                     href={`/profile/${other.uid}`}
@@ -679,7 +787,9 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                     <MenuItem>
                       {({ active }: { active: boolean }) => (
                         <button
-                          onClick={() => router.push(`/support?chatId=${chatId}`)}
+                          onClick={() =>
+                            router.push(`/support?chatId=${chatId}`)
+                          }
                           className={`${
                             active ? 'bg-red-50' : ''
                           } flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600`}
@@ -707,7 +817,8 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-semibold text-gray-900 flex items-center gap-2">
                         <Briefcase size={18} className="text-blue-600" />
-                        {commonJobs.length} projet{commonJobs.length > 1 ? 's' : ''} en commun
+                        {commonJobs.length} projet
+                        {commonJobs.length > 1 ? 's' : ''} en commun
                       </p>
                       <button
                         onClick={() => setShowCommonJobs(false)}
@@ -763,15 +874,20 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                       {msgs.map((msg, idx) => {
                         const isOwn = msg.senderId === user?.uid;
                         const prevMsg = idx > 0 ? msgs[idx - 1] : null;
-                        const nextMsg = idx < msgs.length - 1 ? msgs[idx + 1] : null;
-                        
-                        const showAvatar = !nextMsg || nextMsg.senderId !== msg.senderId;
-                        const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId;
+                        const nextMsg =
+                          idx < msgs.length - 1 ? msgs[idx + 1] : null;
+                        const showAvatar =
+                          !nextMsg || nextMsg.senderId !== msg.senderId;
+                        const isFirstInGroup =
+                          !prevMsg || prevMsg.senderId !== msg.senderId;
                         const isLastInGroup = showAvatar;
 
                         if (msg.type === 'system') {
                           return (
-                            <div key={msg.id} className="flex justify-center my-4">
+                            <div
+                              key={msg.id}
+                              className="flex justify-center my-4"
+                            >
                               <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs text-gray-600 shadow-sm border border-gray-100 max-w-md text-center">
                                 {msg.text}
                               </div>
@@ -788,7 +904,11 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                               isOwn ? 'justify-end' : 'justify-start'
                             } ${isFirstInGroup ? 'mt-2' : 'mt-0.5'}`}
                           >
-                            <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <div
+                              className={`flex gap-2 max-w-[75%] ${
+                                isOwn ? 'flex-row-reverse' : 'flex-row'
+                              }`}
+                            >
                               {/* Avatar (seulement sur dernier message du groupe) */}
                               {!isOwn && (
                                 <div className="w-8 h-8 flex-shrink-0">
@@ -811,10 +931,30 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                                         : 'bg-white text-gray-900 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'
                                     }`}
                                     style={{
-                                      borderTopRightRadius: isOwn && isFirstInGroup ? '16px' : isOwn ? '4px' : '16px',
-                                      borderTopLeftRadius: !isOwn && isFirstInGroup ? '16px' : !isOwn ? '4px' : '16px',
-                                      borderBottomRightRadius: isOwn && isLastInGroup ? '16px' : isOwn ? '4px' : '16px',
-                                      borderBottomLeftRadius: !isOwn && isLastInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                      borderTopRightRadius:
+                                        isOwn && isFirstInGroup
+                                          ? '16px'
+                                          : isOwn
+                                          ? '4px'
+                                          : '16px',
+                                      borderTopLeftRadius:
+                                        !isOwn && isFirstInGroup
+                                          ? '16px'
+                                          : !isOwn
+                                          ? '4px'
+                                          : '16px',
+                                      borderBottomRightRadius:
+                                        isOwn && isLastInGroup
+                                          ? '16px'
+                                          : isOwn
+                                          ? '4px'
+                                          : '16px',
+                                      borderBottomLeftRadius:
+                                        !isOwn && isLastInGroup
+                                          ? '16px'
+                                          : !isOwn
+                                          ? '4px'
+                                          : '16px',
                                     }}
                                   >
                                     {msg.type === 'file' ? (
@@ -827,7 +967,9 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                                         }`}
                                       >
                                         <Paperclip size={16} />
-                                        <span className="font-medium">{msg.fileName}</span>
+                                        <span className="font-medium">
+                                          {msg.fileName}
+                                        </span>
                                       </a>
                                     ) : (
                                       <p className="text-[15px] leading-relaxed break-words">
@@ -839,12 +981,20 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                                   {/* Menu contextuel */}
                                   <Menu
                                     as="div"
-                                    className={`absolute ${isOwn ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-0 opacity-0 group-hover:opacity-100 transition-opacity`}
+                                    className={`absolute ${
+                                      isOwn
+                                        ? 'left-0 -translate-x-full'
+                                        : 'right-0 translate-x-full'
+                                    } top-0 opacity-0 group-hover:opacity-100 transition-opacity`}
                                   >
                                     <MenuButton className="p-1.5 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50 mx-2">
                                       <MoreVertical className="w-4 h-4 text-gray-600" />
                                     </MenuButton>
-                                    <Menu.Items className={`absolute ${isOwn ? 'right-0' : 'left-0'} mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-10`}>
+                                    <Menu.Items
+                                      className={`absolute ${
+                                        isOwn ? 'right-0' : 'left-0'
+                                      } mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-10`}
+                                    >
                                       <MenuItem>
                                         {({ active }: { active: boolean }) => (
                                           <button
@@ -964,7 +1114,7 @@ const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
                           sendMessage();
                         }
                       }}
-                      className="w-full px-5 py-3 text-[15px] bg-gray-100 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white outline-none transition-all"
+                      className="w-full px-5 py-3 text-[15px] text-gray-600 bg-gray-100 border border-transparent rounded-3xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white outline-none transition-all"
                     />
                     <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-200 rounded-full transition-colors">
                       <Smile size={20} className="text-gray-600" />
