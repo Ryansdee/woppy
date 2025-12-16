@@ -1,6 +1,6 @@
 {
   "name": "woppy",
-  "version": "0.1.0",
+  "version": "1.35",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -20,7 +20,7 @@
     "framer-motion": "^12.23.24",
     "js-cookie": "^3.0.5",
     "leaflet": "^1.9.4",
-    "next": "16.0.0",
+    "next": "16.0.7",
     "next-pwa": "^5.6.0",
     "react": "19.2.0",
     "react-big-calendar": "^1.19.4",
