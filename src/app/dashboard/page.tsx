@@ -181,7 +181,13 @@ export default function DashboardPage() {
       href: '/dashboard/collaborateur',
       icon: <UserCheck className="w-5 h-5" />,
       label: 'Espace collaborateur',
-    });
+    },
+    {
+      href: '/contact/admin',
+      icon: <MessageSquare className="w-5 h-5" />,
+      label: 'Support Admin',
+    }
+    );
   }
 
   if (role === 'admin') {
