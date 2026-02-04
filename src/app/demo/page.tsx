@@ -10,41 +10,16 @@ export default function DemoPage() {
 
   return (
     <main className="min-h-screen text-black bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">W</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900">Woppy</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/" 
-              className="flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition"
-            >
-              <ArrowLeft size={20} />
-              <span className="hidden sm:inline">Retour</span>
-            </Link>
-            <Link 
-              href="/auth/register" 
-              className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg transition"
-            >
-              Commencer
-            </Link>
-          </div>
-        </div>
-      </nav>
+
 
       {/* Hero Section */}
-      <section className="pt-32 pb-16 px-6 bg-gradient-to-br from-[#f5e5ff] to-white">
+      <section className="pt-20 pb-12 px-4 sm:px-6 bg-gradient-to-br from-[#f5e5ff] to-white">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-6">
             <Play className="text-[#8a6bfe]" size={20} />
             <span className="text-sm font-medium text-gray-700">Démo interactive</span>
           </div>
-          <h1 className="text-5xl font-bold mb-4">Découvrez Woppy en action</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Découvrez Woppy en action</h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Explorez toutes les fonctionnalités de la plateforme à travers cette démo interactive. 
             Voyez comment Woppy simplifie la mise en relation entre étudiants et employeurs.
@@ -57,7 +32,9 @@ export default function DemoPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">Choisissez votre profil</h2>
-            <p className="text-gray-600">Explorez Woppy selon votre perspective</p>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Explorez Woppy selon votre perspective
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -109,7 +86,8 @@ export default function DemoPage() {
 
             {/* Étapes */}
             <div className="mb-12">
-              <div className="flex items-center justify-between max-w-4xl mx-auto mb-8">
+              <div className="overflow-x-auto">
+                <div className="flex gap-4 min-w-[520px] justify-between">
                 {[1, 2, 3, 4].map((step) => (
                   <div key={step} className="flex items-center">
                     <button
@@ -132,6 +110,7 @@ export default function DemoPage() {
                   </div>
                 ))}
               </div>
+            </div>
 
               {/* Étape 1 : Créer une annonce */}
               {currentStep === 1 && (
@@ -615,28 +594,6 @@ export default function DemoPage() {
           </div>
         </section>
       )}
-
-      {/* Section Vidéo explicative */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-4">Regardez Woppy en vidéo</h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Découvrez en 2 minutes comment fonctionne la plateforme
-          </p>
-          <div className="relative bg-gray-900 rounded-2xl overflow-hidden aspect-video flex items-center justify-center group cursor-pointer hover:scale-105 transition-transform">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#8a6bfe]/80 to-[#b89fff]/80"></div>
-            <button className="relative z-10 w-20 h-20 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
-              <Play className="text-[#8a6bfe] ml-1" size={32} />
-            </button>
-            <p className="absolute bottom-6 left-0 right-0 text-white font-semibold text-lg">
-              Tutoriel complet - 2:30
-            </p>
-          </div>
-          <p className="text-sm text-gray-500 mt-4">
-            La vidéo sera bientôt disponible
-          </p>
-        </div>
-      </section>
 
       {/* CTA Final */}
       <section className="py-20 px-6 bg-gradient-to-br from-[#8a6bfe] via-[#9b7bff] to-[#b89fff] text-white">

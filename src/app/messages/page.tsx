@@ -408,7 +408,7 @@ export default function MessagesPage() {
     try {
       const fileRef = storageRef(
         storage,
-        `messages/${chatId}/${Date.now()}-${file.name}`
+        `attachments/${chatId}/${Date.now()}-${file.name}`
       );
       await uploadBytes(fileRef, file);
       const url = await getDownloadURL(fileRef);
@@ -437,6 +437,16 @@ export default function MessagesPage() {
       fileInputRef.current.value = '';
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // Helper image in chat
+  // ---------------------------------------------------------------------------
+
+  const isImageFile = (fileName?: string) => {
+    if (!fileName) return false;
+    return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileName);
+  };
+
 
   // ---------------------------------------------------------------------------
   // SEND MESSAGE (avec gestion d'erreur)
@@ -924,59 +934,67 @@ export default function MessagesPage() {
 
                               <div className="flex flex-col">
                                 <div className="group relative">
-                                  <div
-                                    className={`px-4 py-2 ${
-                                      isOwn
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md'
-                                        : 'bg-white text-gray-900 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'
-                                    }`}
-                                    style={{
-                                      borderTopRightRadius:
-                                        isOwn && isFirstInGroup
-                                          ? '16px'
-                                          : isOwn
-                                          ? '4px'
-                                          : '16px',
-                                      borderTopLeftRadius:
-                                        !isOwn && isFirstInGroup
-                                          ? '16px'
-                                          : !isOwn
-                                          ? '4px'
-                                          : '16px',
-                                      borderBottomRightRadius:
-                                        isOwn && isLastInGroup
-                                          ? '16px'
-                                          : isOwn
-                                          ? '4px'
-                                          : '16px',
-                                      borderBottomLeftRadius:
-                                        !isOwn && isLastInGroup
-                                          ? '16px'
-                                          : !isOwn
-                                          ? '4px'
-                                          : '16px',
-                                    }}
-                                  >
-                                    {msg.type === 'file' ? (
-                                      <a
-                                        href={msg.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 text-sm hover:underline ${
-                                          isOwn ? 'text-white' : 'text-blue-600'
-                                        }`}
-                                      >
-                                        <Paperclip size={16} />
-                                        <span className="font-medium">
-                                          {msg.fileName}
-                                        </span>
-                                      </a>
-                                    ) : (
-                                      <p className="text-[15px] leading-relaxed break-words">
-                                        {msg.text}
-                                      </p>
-                                    )}
-                                  </div>
+                                  {/* ✅ AFFICHAGE DES IMAGES avec fond gris */}
+                                  {msg.type === 'file' && isImageFile(msg.fileName) ? (
+                                    <a
+                                      href={msg.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block p-1.5 bg-gray-200 rounded-2xl hover:bg-gray-300 transition-colors"
+                                      style={{
+                                        borderTopRightRadius:
+                                          isOwn && isFirstInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                        borderTopLeftRadius:
+                                          !isOwn && isFirstInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                        borderBottomRightRadius:
+                                          isOwn && isLastInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                        borderBottomLeftRadius:
+                                          !isOwn && isLastInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                      }}
+                                    >
+                                      <img
+                                        src={msg.fileUrl}
+                                        alt={msg.fileName}
+                                        className="max-w-[260px] md:max-w-xs rounded-xl shadow-md object-cover"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <div
+                                      className={`px-4 py-2 ${
+                                        isOwn
+                                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md'
+                                          : 'bg-white text-gray-900 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'
+                                      }`}
+                                      style={{
+                                        borderTopRightRadius:
+                                          isOwn && isFirstInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                        borderTopLeftRadius:
+                                          !isOwn && isFirstInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                        borderBottomRightRadius:
+                                          isOwn && isLastInGroup ? '16px' : isOwn ? '4px' : '16px',
+                                        borderBottomLeftRadius:
+                                          !isOwn && isLastInGroup ? '16px' : !isOwn ? '4px' : '16px',
+                                      }}
+                                    >
+                                      {msg.type === 'file' ? (
+                                        <a
+                                          href={msg.fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`flex items-center gap-2 text-sm hover:underline ${
+                                            isOwn ? 'text-white' : 'text-blue-600'
+                                          }`}
+                                        >
+                                          <Paperclip size={16} />
+                                          <span className="font-medium">{msg.fileName}</span>
+                                        </a>
+                                      ) : (
+                                        <p className="text-[15px] leading-relaxed break-words">
+                                          {msg.text}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {/* Menu contextuel */}
                                   <Menu
@@ -1096,9 +1114,6 @@ export default function MessagesPage() {
                         onChange={handleFileUpload}
                       />
                     </label>
-                    <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors">
-                      <ImageIcon size={22} className="text-blue-600" />
-                    </button>
                   </div>
 
                   <div className="flex-1 relative">

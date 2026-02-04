@@ -106,7 +106,7 @@ export default function Navbar() {
 			  }`}
 			  title="Messages"
 			>
-			  <MessageSquare className="w-6 h-6" />
+			  <MessageSquare className="w-6 h-6 cursor-pointer" />
 			</button>
 		  )}
 
@@ -117,7 +117,7 @@ export default function Navbar() {
 			  className="relative p-2 text-[#8a6bfe] hover:text-[#6e4bf5] transition"
 			  title="Notifications"
 			>
-			  <Bell className="w-6 h-6" />
+			  <Bell className="w-6 h-6 cursor-pointer" />
 			  {notifCount > 0 && (
 				<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
 				  {notifCount}
@@ -137,7 +137,7 @@ export default function Navbar() {
 			  }`}
 			  title="Tableau de bord"
 			>
-			  <LayoutDashboard className="w-6 h-6" />
+			  <LayoutDashboard className="w-6 h-6 cursor-pointer" />
 			</button>
 		  )}
 
@@ -222,7 +222,7 @@ export default function Navbar() {
 				>
 				  <Bell className="w-5 h-5" /> Notifications
 				  {notifCount > 0 && (
-					<span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+					<span className="bg-red-500 text-white cursor-pointer text-xs font-bold px-2 py-0.5 rounded-full">
 					  {notifCount}
 					</span>
 				  )}
@@ -233,9 +233,9 @@ export default function Navbar() {
 					router.push('/dashboard');
 					setMenuOpen(false);
 				  }}
-				  className="flex items-center gap-2 text-[#8a6bfe] font-medium"
+				  className="flex items-center gap-2 text-[#8a6bfe] cursor-pointer font-medium"
 				>
-				  <LayoutDashboard className="w-5 h-5" /> Tableau de bord
+				  <LayoutDashboard className="w-5 h-5 cursor-pointer" /> Tableau de bord
 				</button>
 
 				<div className="mt-3 border-t border-[#e4d2ff] pt-3">

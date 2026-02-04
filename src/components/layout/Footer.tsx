@@ -28,7 +28,7 @@
               <ul className="space-y-2 text-sm">
                 <li><Link href="/#features" className="hover:text-white transition">Fonctionnalités</Link></li>
                 <li><Link href="/#pricing" className="hover:text-white transition">Tarifs</Link></li>
-                <li><Link href="/#demo" className="hover:text-white transition">Démo</Link></li>
+                <li><Link href="/demo" className="hover:text-white transition">Démo</Link></li>
               </ul>
             </div>
 

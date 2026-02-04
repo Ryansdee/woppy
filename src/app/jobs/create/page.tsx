@@ -23,6 +23,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { user } from "firebase-functions/v1/auth";
 
 export default function CreateAnnoncePage() {
   const [loading, setLoading] = useState(false);
@@ -105,21 +106,22 @@ export default function CreateAnnoncePage() {
       // upload des photos
       const uploaded: string[] = [];
 
+      const u = auth.currentUser;
+      if (!u) {
+        alert("Vous devez être connecté.");
+        setLoading(false);
+        return;
+      }
+
       for (const file of photos) {
         const storageRef = ref(
           storage,
-          `annonces_photos/${Date.now()}_${file.name}`
+          `annonceImages/${u.uid}/${file.name}`
         );
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
         uploaded.push(url);
       }
-        const u = auth.currentUser;
-        if (!u) {
-          alert("Vous devez être connecté.");
-          setLoading(false);
-          return;
-        }
 
         await addDoc(collection(db, "annonces"), {
           titre: form.titre,
