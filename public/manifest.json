@@ -1,7 +1,7 @@
 {
   "name": "Woppy Dashboard",
   "short_name": "Woppy",
-  "description": "Ton espace étudiant Woppy — annonces, profils, et opportunités.",
+  "description": "Woppy connecte les étudiants vérifiés et les particuliers pour des petits jobs rapides, rémunérés et sécurisés à Louvain-la-Neuve et alentours.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -18,5 +18,6 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "id": "Woppy-01"
 }
