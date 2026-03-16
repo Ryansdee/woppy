@@ -98,14 +98,15 @@ export default function JobDetailPage() {
         const qSnap = await getDocs(query(collection(db, "candidatures"), where("annonceId", "==", annonce.id)));
         const list = await Promise.all(qSnap.docs.map(async d => {
           const c = d.data() as any;
-          const uSnap = await getDoc(doc(db, "users", c.userId));
+          const uid = c.candidatId ?? c.userId; // supporte les deux pour la rétrocompat
+          const uSnap = await getDoc(doc(db, "users", uid));
           let name = "Utilisateur", photo = "";
           if (uSnap.exists()) {
             const u = uSnap.data();
             name = `${u.firstName} ${u.lastName}`.trim();
             photo = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c5fe6&color=fff`;
           }
-          return { id: d.id, ...c, userName: name, photoURL: photo };
+          return { id: d.id, ...c, userId: uid, userName: name, photoURL: photo };
         }));
         setCandidatures(list);
       } catch (e) { console.error(e); }
@@ -117,7 +118,7 @@ export default function JobDetailPage() {
   useEffect(() => {
     async function check() {
       if (!user || !annonce) return;
-      const snap = await getDocs(query(collection(db, "candidatures"), where("annonceId", "==", annonce.id), where("userId", "==", user.uid)));
+      const snap = await getDocs(query(collection(db, "candidatures"), where("annonceId", "==", annonce.id), where("candidatId", "==", user.uid)));
       setAlreadyApplied(!snap.empty);
     }
     check();
@@ -340,7 +341,8 @@ function PostulerAnnonce({ annonce, user, hasStudentProfile, alreadyApplied, set
     setLoading(true);
     try {
       await addDoc(collection(db, "candidatures"), {
-        annonceId: annonce.id, userId: user.uid,
+        annonceId: annonce.id,
+        candidatId: user.uid,   // ← candidatId (cohérent avec les règles Firestore)
         date: serverTimestamp(), statut: "en attente",
       });
       await addDoc(collection(db, "notifications"), {
