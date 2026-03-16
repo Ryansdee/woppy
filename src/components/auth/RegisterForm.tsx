@@ -1,1040 +1,516 @@
 'use client';
 
-import { JSX, useState } from 'react';
+import { JSX, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User,
-  Mail,
-  Lock,
-  MapPin,
-  Camera,
-  Calendar,
-  Plus,
-  X,
-  Euro,
-  AlertCircle,
-  Check,
+  User, Mail, Lock, MapPin, Camera, Calendar,
+  Plus, X, Euro, AlertCircle, Check, GraduationCap,
+  Building2, Loader2,
 } from 'lucide-react';
+import { auth, db, storage } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-import { auth, db, storage } from "@/lib/firebase";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import Image from 'next/image';
+/* ── shared styles ── */
+const inputCls = "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition";
+const inputWithIconCls = `${inputCls} pl-10`;
 
-interface Experience {
-  id: string;
-  title: string;
-  description: string;
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+        {label}{required && <span className="text-violet-500 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
 }
 
-interface TimeSlot {
-  start: string;
-  end: string;
+/* ── CityField EN DEHORS du composant principal ──
+   Défini au niveau du module, pas recréé à chaque render. ── */
+interface CityFieldProps {
+  value: string;
+  onChange: (val: string) => void;
 }
 
-interface DayAvailability {
-  enabled: boolean;
-  slots: TimeSlot[];
+function CityField({ value, onChange }: CityFieldProps) {
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [open, setOpen]               = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const containerRef                  = useRef<HTMLDivElement>(null);
+
+  /* Ferme si clic en dehors */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  /* Fetch suggestions */
+  useEffect(() => {
+    const q = value.trim();
+    if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=be&addressdetails=1&limit=8`
+        );
+        const data = await res.json();
+        const seen = new Set<string>();
+        const cities = data
+          .map((s: any) => ({
+            ...s,
+            _name: s.address?.city || s.address?.town || s.address?.village || s.address?.municipality || s.name,
+            _region: s.address?.province || s.address?.state || s.address?.county || '',
+          }))
+          .filter((s: any) => {
+            if (!s._name || seen.has(s._name)) return false;
+            seen.add(s._name);
+            return true;
+          })
+          .slice(0, 5);
+        setSuggestions(cities);
+        if (cities.length > 0) setOpen(true);
+      } catch {}
+      setLoading(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [value]);
+
+  const select = (s: any) => {
+    onChange(s._name || s.display_name);
+    setOpen(false);
+    setSuggestions([]);
+  };
+
+  return (
+    <Field label="Ville" required>
+      <div className="relative" ref={containerRef}>
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none" size={16} />
+        <input
+          value={value}
+          onChange={(e) => { onChange(e.target.value); if (e.target.value.length >= 2) setOpen(true); }}
+          className={inputWithIconCls + (loading ? ' pr-10' : '')}
+          placeholder="Louvain-la-Neuve"
+          autoComplete="off"
+        />
+        {loading && (
+          <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400 pointer-events-none" />
+        )}
+        {open && suggestions.length > 0 && (
+          <div className="absolute z-30 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-lg overflow-hidden">
+            {suggestions.map((s, i) => (
+              <button
+                type="button"
+                key={i}
+                onClick={() => select(s)}
+                className={`w-full text-left px-4 py-2.5 hover:bg-violet-50 transition-colors flex items-center justify-between
+                            ${i < suggestions.length - 1 ? 'border-b border-slate-100' : ''}`}
+              >
+                <span className="text-sm font-medium text-slate-800">{s._name}</span>
+                {s._region && <span className="text-xs text-slate-400 ml-2 shrink-0">{s._region}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Field>
+  );
 }
 
-type WeekAvailability = Record<string, DayAvailability>;
+/* ══════════════════════════════════════════════════════
+   COMPOSANT PRINCIPAL
+══════════════════════════════════════════════════════ */
+
+interface Experience { id: string; title: string; description: string; }
+interface TimeSlot   { start: string; end: string; }
+interface DayAvail   { enabled: boolean; slots: TimeSlot[]; }
+type WeekAvail       = Record<string, DayAvail>;
 
 export default function RegistrationWizard() {
-
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
+  const [step, setStep]                   = useState<0|1|2|3|4|5>(0);
   const [wantsStudentProfile, setWantsStudentProfile] = useState<boolean | null>(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    city: '',
-    bioGeneral: '',
-    profilePhoto: null as File | null,
+  const [formData, setFormData]           = useState({
+    firstName: '', lastName: '', email: '',
+    password: '', confirmPassword: '', city: '',
+    bioGeneral: '', profilePhoto: null as File | null,
   });
-  const [studentData, setStudentData] = useState({
-    studies: '',
-    age: '',
-    hourlyRate: '',
-    description: '',
+  const [studentData, setStudentData]     = useState({
+    studies: '', age: '', hourlyRate: '', description: '',
   });
   const days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  const [availability, setAvailability] = useState<WeekAvailability>(() => {
-    const base: WeekAvailability = {};
-    days.forEach((d) => {
-      base[d] = { enabled: false, slots: [] };
-    });
-    return base;
+  const [availability, setAvailability]   = useState<WeekAvail>(() => {
+    const b: WeekAvail = {};
+    days.forEach(d => { b[d] = { enabled: false, slots: [] }; });
+    return b;
   });
-
-  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [experiences, setExperiences]     = useState<Experience[]>([]);
   const [newExperience, setNewExperience] = useState({ title: '', description: '' });
+  const [photoPreview, setPhotoPreview]   = useState<string | null>(null);
+  const [error, setError]                 = useState('');
+  const [loading, setLoading]             = useState(false);
 
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setFormData(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  ////////////////////////////////////////////////////////////////////////////
-  // UTILITAIRES
-  ////////////////////////////////////////////////////////////////////////////
-
-  const handleInput = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleStudentInput = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setStudentData({ ...studentData, [e.target.name]: e.target.value });
-  };
-
-  ////////////////////////////////////////////////////////////////////////////
-  // UPLOAD PHOTO
-  ////////////////////////////////////////////////////////////////////////////
+  const handleStudentInput = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setStudentData(s => ({ ...s, [e.target.name]: e.target.value }));
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setFormData({ ...formData, profilePhoto: file });
+    setFormData(f => ({ ...f, profilePhoto: file }));
     const reader = new FileReader();
     reader.onloadend = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  ////////////////////////////////////////////////////////////////////////////
-  // VALIDATION ÉTAPE 1 (Infos générales)
-  ////////////////////////////////////////////////////////////////////////////
-
   const validateStep1 = () => {
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      !formData.city
-    ) {
-      setError("Merci de remplir tous les champs obligatoires.");
-      return false;
+    if (!formData.firstName || !formData.lastName || !formData.email ||
+        !formData.password || !formData.confirmPassword || !formData.city) {
+      setError('Merci de remplir tous les champs obligatoires.'); return false;
     }
-
-    if (!formData.email.includes("@")) {
-      setError("Adresse email invalide.");
-      return false;
-    }
-
-    if (formData.password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
-      return false;
-    }
-
+    if (!formData.email.includes('@')) { setError('Adresse email invalide.'); return false; }
+    if (formData.password.length < 8)  { setError('Le mot de passe doit contenir au moins 8 caractères.'); return false; }
+    if (formData.password !== formData.confirmPassword) { setError('Les mots de passe ne correspondent pas.'); return false; }
     return true;
   };
 
-  ////////////////////////////////////////////////////////////////////////////
-  // NAVIGATION ENTRE ÉTAPES (avec validations)
-  ////////////////////////////////////////////////////////////////////////////
-
-  const goNext = () => {
-    if (step === 1 && !validateStep1()) return;
-    setError('');
-    setStep((s) => (s + 1) as any);
-  };
-
-  const goBack = () => {
-    if (step === 0) return;
-    setStep((s) => (s - 1) as any);
-  };
-
-  ////////////////////////////////////////////////////////////////////////////
-  // ANIMATION FRAMER POUR LES ÉTAPES
-  ////////////////////////////////////////////////////////////////////////////
+  const goNext = () => { if (step === 1 && !validateStep1()) return; setError(''); setStep(s => (s + 1) as any); };
+  const goBack = () => { if (step === 0) return; setStep(s => (s - 1) as any); };
 
   const animatedWrap = (content: JSX.Element) => (
     <AnimatePresence mode="wait">
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -15 }}
-        transition={{ duration: 0.25 }}
-      >
+      <motion.div key={step} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22 }}>
         {content}
       </motion.div>
     </AnimatePresence>
   );
 
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 0 — Choix profil étudiant
-  ////////////////////////////////////////////////////////////////////////////
+  const NavButtons = ({ onNext, nextLabel = 'Continuer', isSubmit = false }:
+    { onNext?: () => void; nextLabel?: string; isSubmit?: boolean }) => (
+    <div className="flex justify-between pt-6 border-t border-slate-100 mt-6">
+      {step > 0
+        ? <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">Retour</button>
+        : <div />
+      }
+      <button onClick={onNext ?? goNext} disabled={isSubmit && loading}
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition disabled:opacity-50 shadow-sm shadow-violet-200">
+        {isSubmit && loading
+          ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Création...</>
+          : <>{nextLabel}{isSubmit && <Check size={15} />}</>
+        }
+      </button>
+    </div>
+  );
+
+  const StepHeader = ({ title, desc }: { title: string; desc: string }) => (
+    <div className="mb-6">
+      <h2 className="text-lg font-extrabold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{title}</h2>
+      <p className="text-sm text-slate-500">{desc}</p>
+    </div>
+  );
+
+  /* ══ ÉTAPES ══ */
 
   const renderStep0 = () => animatedWrap(
-    <div className="text-center space-y-6">
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-8 rounded-2xl">
-        <h2 className="text-2xl font-bold mb-3">
-          Souhaites-tu créer un profil étudiant ?
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Le profil étudiant augmente ta visibilité et te permet d’accéder aux missions.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => {
-              setWantsStudentProfile(true);
-              setStep(1);
-            }}
-            className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white py-4 rounded-xl font-semibold"
-          >
-            Oui, créer mon profil étudiant
+    <div className="space-y-5">
+      <StepHeader title="Quel est ton profil ?" desc="Choisis comment tu veux utiliser Woppy." />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          { student: true,  Icon: GraduationCap, title: 'Étudiant',   desc: "Postule aux missions, gagne jusqu'à 18€/h et développe ton réseau." },
+          { student: false, Icon: Building2,     title: 'Particulier', desc: "Publie des annonces et trouve de l'aide pour tes missions du quotidien." },
+        ].map(({ student, Icon, title, desc }) => (
+          <motion.button key={title} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => { setWantsStudentProfile(student); setStep(1); }}
+            className="group relative flex flex-col items-start gap-3 p-5 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50/40 transition-all text-left">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${student ? 'bg-violet-100 text-violet-600 group-hover:bg-violet-200' : 'bg-slate-100 text-slate-600 group-hover:bg-violet-100 group-hover:text-violet-600'}`}>
+              <Icon size={20} />
+            </div>
+            <div>
+              <div className="font-bold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{title}</div>
+              <div className="text-xs text-slate-500 leading-relaxed">{desc}</div>
+            </div>
+            <div className="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-violet-500 transition" />
           </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => {
-              setWantsStudentProfile(false);
-              setStep(1);
-            }}
-            className="bg-white border-2 border-gray-300 py-4 rounded-xl font-semibold"
-          >
-            Non, continuer sans
-          </motion.button>
-        </div>
+        ))}
       </div>
     </div>
   );
-
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 1 — Infos générales (non étudiant)
-  ////////////////////////////////////////////////////////////////////////////
 
   const renderStep1 = () => animatedWrap(
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <StepHeader title="Informations générales" desc="Ces informations sont nécessaires pour créer ton compte." />
 
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-6 rounded-xl">
-        <h2 className="text-xl font-bold">Informations générales</h2>
-        <p className="text-gray-600 text-sm">
-          Ces informations sont nécessaires pour créer ton compte.
-        </p>
-      </div>
-
-      {/* Photo */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Photo de profil *</label>
+      <Field label="Photo de profil" required={wantsStudentProfile === true}>
         <div className="flex items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border">
-            {photoPreview ? (
-              <img src={photoPreview} className="w-full h-full object-cover" />
-            ) : (
-              <Camera className="text-gray-400" size={30} />
-            )}
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
+            {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" alt="preview" /> : <Camera className="text-slate-400" size={22} />}
           </div>
-          <motion.label
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="px-4 py-2 bg-[#8a6bfe] text-white rounded-lg cursor-pointer"
-          >
-            Choisir une photo
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-          </motion.label>
+          <div>
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl cursor-pointer transition">
+              <Camera size={14} /> Choisir une photo
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+            </label>
+            <p className="text-xs text-slate-400 mt-1.5">
+              {wantsStudentProfile ? 'Obligatoire — améliore ta visibilité auprès des clients.' : "Optionnelle — tu pourras l'ajouter plus tard depuis ton profil."}
+            </p>
+          </div>
         </div>
+      </Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Prénom" required>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="firstName" value={formData.firstName} onChange={handleInput} className={inputWithIconCls} placeholder="Jean" />
+          </div>
+        </Field>
+        <Field label="Nom" required>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="lastName" value={formData.lastName} onChange={handleInput} className={inputWithIconCls} placeholder="Dupont" />
+          </div>
+        </Field>
       </div>
 
-      {/* FIRST NAME */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Prénom *
-        </label>
+      <Field label="Email" required>
         <div className="relative">
-          <User className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="Jean"
-          />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input name="email" type="email" value={formData.email} onChange={handleInput} className={inputWithIconCls} placeholder="jean@example.com" />
         </div>
+      </Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Mot de passe" required>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="password" type="password" value={formData.password} onChange={handleInput} className={inputWithIconCls} placeholder="••••••••" />
+          </div>
+        </Field>
+        <Field label="Confirmer" required>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInput} className={inputWithIconCls} placeholder="••••••••" />
+          </div>
+        </Field>
       </div>
 
-      {/* LAST NAME */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Nom *
-        </label>
-        <div className="relative">
-          <User className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="Dupont"
-          />
-        </div>
-      </div>
+      {/* ✅ CityField stable — défini hors du composant parent */}
+      <CityField
+        value={formData.city}
+        onChange={(val) => setFormData(f => ({ ...f, city: val }))}
+      />
 
-      {/* EMAIL */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Email *
-        </label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="email"
-            value={formData.email}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="jean@example.com"
-          />
-        </div>
-      </div>
+      <Field label="Courte bio">
+        <textarea name="bioGeneral" value={formData.bioGeneral} onChange={handleInput} rows={3} className={inputCls} placeholder="Parle de toi en quelques mots..." />
+      </Field>
 
-      {/* PASSWORD + CONFIRM */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Mot de passe *
-        </label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="••••••••"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Confirmer le mot de passe *
-        </label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="••••••••"
-          />
-        </div>
-      </div>
-
-      {/* CITY */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Ville *
-        </label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-          <input
-            name="city"
-            value={formData.city}
-            onChange={handleInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="Louvain-la-Neuve"
-          />
-        </div>
-      </div>
-
-      {/* BIO GÉNÉRALE */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Courte bio
-        </label>
-        <textarea
-          name="bioGeneral"
-          value={formData.bioGeneral}
-          onChange={handleInput}
-          rows={3}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
-          placeholder="Parlez de vous en quelques mots..."
-        />
-      </div>
-
-      {/* NAVIGATION */}
-      <div className="flex justify-between pt-4">
-        <div></div>
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goNext}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold"
-        >
-          Continuer
-        </motion.button>
-      </div>
-
+      <NavButtons />
     </div>
   );
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 2 — Infos étudiantes
-  ////////////////////////////////////////////////////////////////////////////
 
   const renderStep2 = () => animatedWrap(
-    <div className="space-y-6">
-
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-6 rounded-xl">
-        <h2 className="text-xl font-bold">Informations étudiantes</h2>
-        <p className="text-gray-600 text-sm">
-          Ces informations aident les employeurs à mieux te connaître.
-        </p>
+    <div className="space-y-5">
+      <StepHeader title="Profil étudiant" desc="Ces informations aident les particuliers à mieux te connaître." />
+      <Field label="Études" required>
+        <input name="studies" value={studentData.studies} onChange={handleStudentInput} className={inputCls} placeholder="Ex : Bachelier en communication" />
+      </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Âge" required>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="age" type="number" value={studentData.age} onChange={handleStudentInput} className={inputWithIconCls} placeholder="20" />
+          </div>
+        </Field>
+        <Field label="Tarif souhaité (€/h)">
+          <div className="relative">
+            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input name="hourlyRate" type="number" step="0.5" min={0} max={100} value={studentData.hourlyRate} onChange={handleStudentInput} className={inputWithIconCls} placeholder="15.00" />
+          </div>
+        </Field>
       </div>
-
-      {/* Études */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Études *</label>
-        <input
-          name="studies"
-          value={studentData.studies}
-          onChange={handleStudentInput}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
-          placeholder="Ex : Bachelier en communication"
-        />
-      </div>
-
-      {/* Âge */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Âge *</label>
-        <div className="relative">
-          <Calendar className="absolute left-3 top-3 text-gray-400" size={18}/>
-          <input
-            name="age"
-            type="number"
-            value={studentData.age}
-            onChange={handleStudentInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="20"
-          />
-        </div>
-      </div>
-
-      {/* Rate */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Rémunération souhaitée (€/h)
-        </label>
-        <div className="relative">
-          <Euro className="absolute left-3 top-3 text-gray-400" size={18}/>
-          <input
-            name="hourlyRate"
-            type="number"
-            step="0.5"
-            min={0}
-            max={100}
-            value={studentData.hourlyRate}
-            onChange={handleStudentInput}
-            className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl"
-            placeholder="15.00"
-          />
-        </div>
-      </div>
-
-      {/* Description étudiante */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Description du profil étudiant
-        </label>
-        <textarea
-          name="description"
-          value={studentData.description}
-          onChange={handleStudentInput}
-          rows={4}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
-          placeholder="Parle de tes compétences, tes études, ton expérience..."
-        />
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goBack}
-          className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700"
-        >
-          Retour
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goNext}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold"
-        >
-          Continuer
-        </motion.button>
-      </div>
-
+      <Field label="Description du profil">
+        <textarea name="description" value={studentData.description} onChange={handleStudentInput} rows={4} className={inputCls} placeholder="Parle de tes compétences, tes études, ton expérience..." />
+      </Field>
+      <NavButtons />
     </div>
   );
 
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 3 — Disponibilités multi-créneaux
-  ////////////////////////////////////////////////////////////////////////////
-
-  const addSlot = (day: string) => {
-    const updated = { ...availability };
-    updated[day].slots.push({ start: '', end: '' });
-    setAvailability(updated);
-  };
-
-  const updateSlot = (
-    day: string,
-    index: number,
-    field: keyof TimeSlot,
-    value: string
-  ) => {
-    const updated = { ...availability };
-    updated[day].slots[index][field] = value;
-    setAvailability(updated);
-  };
-
-  const removeSlot = (day: string, index: number) => {
-    const updated = { ...availability };
-    updated[day].slots.splice(index, 1);
-    setAvailability(updated);
-  };
+  const addSlot    = (day: string) => { const u = { ...availability }; u[day].slots.push({ start: '', end: '' }); setAvailability(u); };
+  const updateSlot = (day: string, i: number, field: keyof TimeSlot, value: string) => { const u = { ...availability }; u[day].slots[i][field] = value; setAvailability(u); };
+  const removeSlot = (day: string, i: number) => { const u = { ...availability }; u[day].slots.splice(i, 1); setAvailability(u); };
 
   const renderStep3 = () => animatedWrap(
-    <div className="space-y-6">
-
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-6 rounded-xl">
-        <h2 className="text-xl font-bold">Disponibilités</h2>
-        <p className="text-gray-600 text-sm">
-          Tu peux ajouter plusieurs créneaux dans une même journée.
-        </p>
-      </div>
-
-      {/* Liste des jours */}
+    <div className="space-y-4">
+      <StepHeader title="Disponibilités" desc="Active les jours où tu es disponible et ajoute tes créneaux." />
       {days.map((day) => (
-        <div key={day} className="border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">{day}</span>
-            <input
-              type="checkbox"
-              className="w-5 h-5 accent-[#8a6bfe]"
-              checked={availability[day].enabled}
-              onChange={(e) => {
-                const updated = { ...availability };
-                updated[day].enabled = e.target.checked;
-                setAvailability(updated);
-              }}
-            />
+        <div key={day} className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-3 bg-slate-50">
+            <span className="text-sm font-semibold text-slate-800">{day}</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={availability[day].enabled}
+                onChange={(e) => { const u = { ...availability }; u[day].enabled = e.target.checked; setAvailability(u); }} />
+              <div className="w-9 h-5 bg-slate-200 peer-checked:bg-violet-600 rounded-full transition
+                              after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                              after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4" />
+            </label>
           </div>
-
-          {/* Créneaux */}
           {availability[day].enabled && (
-            <div className="space-y-3">
+            <div className="px-4 py-3 space-y-3">
               {availability[day].slots.map((slot, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="time"
-                    value={slot.start}
-                    onChange={(e) => updateSlot(day, i, "start", e.target.value)}
-                    className="border border-gray-300 rounded-lg px-2 py-1"
-                  />
-                  <span className="text-gray-600">→</span>
-                  <input
-                    type="time"
-                    value={slot.end}
-                    onChange={(e) => updateSlot(day, i, "end", e.target.value)}
-                    className="border border-gray-300 rounded-lg px-2 py-1"
-                  />
-
-                  <button
-                    onClick={() => removeSlot(day, i)}
-                    className="text-gray-400 hover:text-red-500"
-                  >
-                    <X size={18} />
-                  </button>
+                  <input type="time" value={slot.start} onChange={(e) => updateSlot(day, i, 'start', e.target.value)}
+                    className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  <span className="text-slate-400 text-sm">→</span>
+                  <input type="time" value={slot.end} onChange={(e) => updateSlot(day, i, 'end', e.target.value)}
+                    className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                  <button onClick={() => removeSlot(day, i)} className="ml-auto text-slate-400 hover:text-red-500 transition"><X size={16} /></button>
                 </div>
               ))}
-
-              {/* Ajouter créneau */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => addSlot(day)}
-                className="flex items-center gap-2 text-[#8a6bfe] font-medium"
-              >
-                <Plus size={18} /> Ajouter un créneau
-              </motion.button>
+              <button onClick={() => addSlot(day)} className="flex items-center gap-1.5 text-violet-600 text-sm font-semibold hover:text-violet-700 transition">
+                <Plus size={15} /> Ajouter un créneau
+              </button>
             </div>
           )}
         </div>
       ))}
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goBack}
-          className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700"
-        >
-          Retour
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goNext}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold"
-        >
-          Continuer
-        </motion.button>
-      </div>
-
+      <NavButtons />
     </div>
   );
 
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 4 — Expériences
-  ////////////////////////////////////////////////////////////////////////////
-
-  const addExperience = () => {
-    if (!newExperience.title.trim()) return;
-    setExperiences([
-      ...experiences,
-      {
-        id: Date.now().toString(),
-        title: newExperience.title,
-        description: newExperience.description,
-      },
-    ]);
-    setNewExperience({ title: '', description: '' });
-  };
-
-  const removeExperience = (id: string) => {
-    setExperiences(experiences.filter((e) => e.id !== id));
-  };
-
   const renderStep4 = () => animatedWrap(
-    <div className="space-y-6">
-
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-6 rounded-xl">
-        <h2 className="text-xl font-bold">Expériences</h2>
-        <p className="text-gray-600 text-sm">
-          Ajoute tes expériences (optionnel).
-        </p>
-      </div>
-
-      {/* Liste */}
+    <div className="space-y-5">
+      <StepHeader title="Expériences" desc="Ajoute tes expériences pertinentes (optionnel)." />
       {experiences.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {experiences.map((exp) => (
-            <div
-              key={exp.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-start"
-            >
+            <div key={exp.id} className="flex justify-between items-start bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
               <div>
-                <h4 className="font-semibold">{exp.title}</h4>
-                {exp.description && (
-                  <p className="text-sm text-gray-600">{exp.description}</p>
-                )}
+                <p className="text-sm font-semibold text-slate-900">{exp.title}</p>
+                {exp.description && <p className="text-xs text-slate-500 mt-0.5">{exp.description}</p>}
               </div>
-
-              <button
-                onClick={() => removeExperience(exp.id)}
-                className="text-gray-400 hover:text-red-500"
-              >
-                <X size={18}/>
-              </button>
+              <button onClick={() => setExperiences(e => e.filter(ex => ex.id !== exp.id))} className="text-slate-400 hover:text-red-500 transition ml-3 shrink-0"><X size={15} /></button>
             </div>
           ))}
         </div>
       )}
-
-      {/* Formulaire ajout */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-        <input
-          type="text"
-          value={newExperience.title}
-          onChange={(e) =>
-            setNewExperience({ ...newExperience, title: e.target.value })
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          placeholder="Titre de l'expérience"
-        />
-
-        <textarea
-          rows={2}
-          value={newExperience.description}
-          onChange={(e) =>
-            setNewExperience({ ...newExperience, description: e.target.value })
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          placeholder="Description (optionnel)"
-        />
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={addExperience}
-          className="w-full bg-[#8a6bfe] text-white py-2 rounded-lg"
-        >
-          Ajouter
-        </motion.button>
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+        <input type="text" value={newExperience.title} onChange={(e) => setNewExperience(n => ({ ...n, title: e.target.value }))} className={inputCls} placeholder="Titre de l'expérience" />
+        <textarea rows={2} value={newExperience.description} onChange={(e) => setNewExperience(n => ({ ...n, description: e.target.value }))} className={inputCls} placeholder="Description (optionnel)" />
+        <button onClick={() => { if (!newExperience.title.trim()) return; setExperiences(e => [...e, { id: Date.now().toString(), ...newExperience }]); setNewExperience({ title: '', description: '' }); }}
+          className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold py-2.5 rounded-xl transition">
+          <Plus size={15} /> Ajouter
+        </button>
       </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goBack}
-          className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700"
-        >
-          Retour
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goNext}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold"
-        >
-          Continuer
-        </motion.button>
-      </div>
-
+      <NavButtons />
     </div>
   );
-  ////////////////////////////////////////////////////////////////////////////
-  // ÉTAPE 5 — Bio étudiante + final
-  ////////////////////////////////////////////////////////////////////////////
 
   const renderStep5 = () => animatedWrap(
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-[#8a6bfe]/10 to-[#b89fff]/10 p-6 rounded-xl">
-        <h2 className="text-xl font-bold">Bio étudiante</h2>
-        <p className="text-gray-600 text-sm">
-          Un dernier mot pour te présenter aux employeurs.
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Bio étudiante
-        </label>
-        <textarea
-          name="bioStudent"
-          value={(studentData as any).bioStudent || ''}
-          onChange={(e) =>
-            setStudentData({ ...studentData, bioStudent: e.target.value } as any)
-          }
-          rows={4}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl"
-          placeholder="Explique ce que tu recherches, tes atouts comme étudiant..."
-        />
-      </div>
-
-      <div className="flex justify-between pt-4">
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={goBack}
-          className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700"
-        >
-          Retour
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={handleSubmitFinal}
-          disabled={loading}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold flex items-center gap-2 disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Création...
-            </>
-          ) : (
-            <>
-              Terminer
-              <Check size={18} />
-            </>
-          )}
-        </motion.button>
-      </div>
+    <div className="space-y-5">
+      <StepHeader title="Dernière étape" desc="Un mot pour te présenter aux particuliers qui consultent ton profil." />
+      <Field label="Bio étudiante">
+        <textarea name="bioStudent" value={(studentData as any).bioStudent || ''}
+          onChange={(e) => setStudentData(s => ({ ...s, bioStudent: e.target.value } as any))}
+          rows={4} className={inputCls} placeholder="Explique ce que tu recherches, tes atouts, ta motivation..." />
+      </Field>
+      <NavButtons onNext={handleSubmitFinal} nextLabel="Créer mon compte" isSubmit />
     </div>
   );
 
-  ////////////////////////////////////////////////////////////////////////////
-  // SOUMISSION FINALE — Création Firebase Auth + Firestore
-  ////////////////////////////////////////////////////////////////////////////
-
   const handleSubmitFinal = async () => {
-    setError('');
-    setLoading(true);
-
+    setError(''); setLoading(true);
     try {
-      // 1. Création du compte Auth
-      const userCred = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      const userCred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCred.user;
-
-      // 2. Upload photo si présente
       let photoURL = '';
       if (formData.profilePhoto) {
-        const storageRef = ref(
-          storage,
-          `profilePhotos/${user.uid}/${formData.profilePhoto.name}`
-        );
-        await uploadBytes(storageRef, formData.profilePhoto);
-        photoURL = await getDownloadURL(storageRef);
-
-        await updateProfile(user, {
-          displayName: `${formData.firstName} ${formData.lastName}`,
-          photoURL,
-        });
+        const r = ref(storage, `profilePhotos/${user.uid}/${formData.profilePhoto.name}`);
+        await uploadBytes(r, formData.profilePhoto);
+        photoURL = await getDownloadURL(r);
+        await updateProfile(user, { displayName: `${formData.firstName} ${formData.lastName}`, photoURL });
       }
-
-      // 3. Construction du document Firestore
-      const baseDoc = {
-        uid: user.uid,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        city: formData.city,
-        bio: formData.bioGeneral,
-        photoURL,
-        createdAt: serverTimestamp(),
-      };
-
-      let finalDoc: any = baseDoc;
-
-      if (wantsStudentProfile) {
-        finalDoc = {
-          ...baseDoc,
-          hasStudentProfile: true,
-          studentProfile: {
-            studies: studentData.studies,
-            age: studentData.age,
-            hourlyRate: studentData.hourlyRate,
-            description: studentData.description,
-            availability,
-            experiences,
-            bio: (studentData as any).bioStudent || '',
-            isComplete: true,
-          },
-        };
-      } else {
-        finalDoc = {
-          ...baseDoc,
-          hasStudentProfile: false,
-        };
-      }
-
-      // 4. Sauvegarde Firestore
+      const base = { uid: user.uid, firstName: formData.firstName, lastName: formData.lastName, email: formData.email, city: formData.city, bio: formData.bioGeneral, photoURL, createdAt: serverTimestamp() };
+      const finalDoc = wantsStudentProfile
+        ? { ...base, hasStudentProfile: true, studentProfile: { studies: studentData.studies, age: studentData.age, hourlyRate: studentData.hourlyRate, description: studentData.description, availability, experiences, bio: (studentData as any).bioStudent || '', isComplete: true } }
+        : { ...base, hasStudentProfile: false };
       await setDoc(doc(db, 'users', user.uid), finalDoc);
-
-      // 5. Redirection
       window.location.href = '/dashboard';
     } catch (err: any) {
-      console.error('Erreur Firebase :', err);
-      if (err.code === 'auth/email-already-in-use') {
-        setError("Cette adresse email est déjà utilisée.");
-      } else {
-        setError("Une erreur est survenue lors de l'inscription.");
-      }
-    } finally {
-      setLoading(false);
-    }
+      setError(err.code === 'auth/email-already-in-use' ? 'Cette adresse email est déjà utilisée.' : "Une erreur est survenue lors de l'inscription.");
+    } finally { setLoading(false); }
   };
 
-  ////////////////////////////////////////////////////////////////////////////
-  // RENDER FINAL — Stepper + routing d’étapes
-  ////////////////////////////////////////////////////////////////////////////
-
-  const stepTitlesStudent = [
-    'Choix',
-    'Infos',
-    'Étudiant',
-    'Dispos',
-    'Expériences',
-    'Bio',
-  ];
-
-  const stepTitlesNonStudent = [
-    'Choix',
-    'Infos',
-    'Finalisation',
-  ];
-
+  const stepTitlesStudent    = ['Profil', 'Infos', 'Étudiant', 'Dispos', 'Expériences', 'Bio'];
+  const stepTitlesNonStudent = ['Profil', 'Infos', 'Finalisation'];
   const titles = wantsStudentProfile ? stepTitlesStudent : stepTitlesNonStudent;
+  const progress = titles.length > 1 ? (step / (titles.length - 1)) * 100 : 0;
 
   const renderCurrentStep = () => {
     if (step === 0) return renderStep0();
     if (step === 1) return renderStep1();
-
-    // Non-étudiant → on ne pose plus de questions après l'étape 1
-    if (!wantsStudentProfile) {
-      return animatedWrap(
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Prêt à créer ton compte
-            </h2>
-            <p className="text-gray-600 text-sm">
-              Tes informations de base sont complètes. Tu pourras plus tard
-              ajouter un profil étudiant depuis ton tableau de bord.
-            </p>
-          </div>
-
-          <div className="flex justify-between pt-4">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={goBack}
-              className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700"
-            >
-              Retour
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleSubmitFinal}
-              disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-semibold flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Création...
-                </>
-              ) : (
-                'Créer mon compte'
-              )}
-            </motion.button>
+    if (!wantsStudentProfile) return animatedWrap(
+      <div className="space-y-5">
+        <div className="flex items-start gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0"><Check size={20} /></div>
+          <div>
+            <h2 className="font-bold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Tout est prêt !</h2>
+            <p className="text-sm text-slate-600">Tes informations sont complètes. Tu pourras ajouter un profil étudiant à tout moment depuis ton tableau de bord.</p>
           </div>
         </div>
-      );
-    }
-
-    // Étudiant → parcours complet
+        <NavButtons onNext={handleSubmitFinal} nextLabel="Créer mon compte" isSubmit />
+      </div>
+    );
     if (step === 2) return renderStep2();
     if (step === 3) return renderStep3();
     if (step === 4) return renderStep4();
     if (step === 5) return renderStep5();
-
     return null;
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto text-black">
-
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-32 h-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Image 
-            src="/images/logo.png"
-            width={100}
-            height={100}
-            alt="Logo Woppy"
-           />
+    <div className="w-full text-slate-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+      <div className="mb-8">
+        <div className="h-1.5 bg-slate-100 rounded-full mb-5 overflow-hidden">
+          <motion.div className="h-full bg-violet-600 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.35 }} />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Rejoignez Woppy
-        </h1>
-        <p className="text-gray-600">
-          Crée ton compte en quelques étapes simples.
-        </p>
+        <div className="flex items-start justify-between">
+          {titles.map((title, i) => (
+            <div key={i} className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
+              <motion.div animate={step === i ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.35 }}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors
+                  ${step > i ? 'bg-violet-600 text-white' : step === i ? 'bg-violet-600 text-white ring-4 ring-violet-100' : 'bg-slate-100 text-slate-400'}`}>
+                {step > i ? <Check size={12} /> : i + 1}
+              </motion.div>
+              <span className={`text-[11px] font-medium text-center ${step >= i ? 'text-slate-700' : 'text-slate-400'}`}>{title}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Stepper */}
-      <div className="mb-8 flex items-center justify-between">
-        {titles.map((title, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center">
-            <motion.div
-              animate={step === i ? { scale: [1, 1.1, 1] } : {}}
-              transition={{ duration: 0.4 }}
-              className={`
-                w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold mb-1
-                ${step >= i ? 'bg-[#8a6bfe] text-white' : 'bg-gray-200 text-gray-500'}
-              `}
-            >
-              {i}
-            </motion.div>
-            <span
-              className={`text-xs font-medium ${
-                step >= i ? 'text-gray-900' : 'text-gray-500'
-              }`}
-            >
-              {title}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Message d'erreur */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
-          <AlertCircle className="text-red-500 mt-0.5" size={20} />
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex gap-3 items-start">
+          <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={17} />
           <p className="text-sm text-red-600">{error}</p>
-        </div>
+        </motion.div>
       )}
 
-      {/* Contenu de l'étape courante */}
       {renderCurrentStep()}
 
-      {/* Lien connexion */}
-      <div className="text-center mt-8">
-        <p className="text-gray-600 text-sm">
-          Tu as déjà un compte ?{' '}
-          <Link
-            href="/auth/login"
-            className="text-[#8a6bfe] hover:text-[#7a5bee] font-semibold"
-          >
-            Se connecter
-          </Link>
-        </p>
-      </div>
+      <p className="text-center text-sm text-slate-500 mt-8">
+        Tu as déjà un compte ?{' '}
+        <Link href="/auth/login" className="text-violet-600 hover:text-violet-700 font-semibold">Se connecter</Link>
+      </p>
     </div>
   );
 }

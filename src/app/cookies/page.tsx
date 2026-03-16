@@ -1,461 +1,364 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Cookie, Settings, Eye, BarChart, Shield } from 'lucide-react';
+import { ArrowLeft, Cookie, Settings, Eye, BarChart, Shield, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
+
+const summaryCards = [
+  {
+    icon: <Shield size={15} />,
+    title: 'Cookies essentiels',
+    desc: 'Indispensables au fonctionnement — toujours actifs.',
+    color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  },
+  {
+    icon: <BarChart size={15} />,
+    title: 'Cookies analytiques',
+    desc: 'Statistiques anonymisées pour améliorer la plateforme.',
+    color: 'bg-blue-50 text-blue-600 border-blue-100',
+  },
+  {
+    icon: <Settings size={15} />,
+    title: 'Vous contrôlez',
+    desc: 'Gérez ou retirez votre consentement à tout moment.',
+    color: 'bg-violet-50 text-violet-600 border-violet-100',
+  },
+];
+
+const cookieTypes = [
+  {
+    icon: <Shield size={16} />,
+    title: 'Cookies strictement nécessaires',
+    badge: 'Toujours actifs',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    desc: 'Ces cookies sont indispensables au fonctionnement de la Plateforme. Sans eux, des fonctionnalités essentielles comme la connexion ou la sécurité ne seraient pas disponibles.',
+    examples: [
+      { name: 'session_token', detail: 'Maintient votre connexion active (expire à la fermeture du navigateur)' },
+      { name: 'csrf_token', detail: 'Protection contre les attaques CSRF — 24 heures' },
+      { name: 'cookie_consent', detail: 'Mémorise vos préférences de cookies — 1 an' },
+    ],
+  },
+  {
+    icon: <Settings size={16} />,
+    title: 'Cookies fonctionnels',
+    badge: 'Recommandés · Désactivables',
+    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+    desc: "Ces cookies améliorent l'expérience en mémorisant vos préférences d'affichage et vos dernières actions sur la Plateforme.",
+    examples: [
+      { name: 'user_preferences', detail: 'Sauvegarde vos préférences de filtres et d\'affichage — 6 mois' },
+      { name: 'recent_searches', detail: 'Mémorise vos dernières recherches — 30 jours' },
+      { name: 'tour_completed', detail: 'Indique si vous avez terminé l\'onboarding — permanent' },
+    ],
+  },
+  {
+    icon: <BarChart size={16} />,
+    title: 'Cookies analytiques',
+    badge: 'Optionnels · Désactivables',
+    badgeColor: 'bg-violet-50 text-violet-700 border-violet-200',
+    desc: 'Ces cookies nous aident à comprendre comment la Plateforme est utilisée, grâce à des données anonymisées et agrégées. Aucune donnée n\'est utilisée pour vous identifier personnellement.',
+    examples: [
+      { name: '_ga / _gid', detail: 'Google Analytics — mesure d\'audience anonymisée (2 ans / 24h)' },
+    ],
+    note: 'Les données analytiques sont strictement anonymisées. Elles ne permettent jamais de vous identifier.',
+  },
+  {
+    icon: <Eye size={16} />,
+    title: 'Cookies marketing',
+    badge: 'Non utilisés actuellement',
+    badgeColor: 'bg-slate-100 text-slate-500 border-slate-200',
+    desc: 'Woppy n\'utilise actuellement aucun cookie publicitaire ou de remarketing. Cette catégorie ne sera activée qu\'avec votre consentement explicite et en cas de besoin futur.',
+    examples: [],
+    note: 'En accord avec notre positionnement de plateforme collaborative, nous ne revendons pas vos données et ne ciblons pas d\'audience publicitaire.',
+    noteColor: 'bg-amber-50 border-amber-200 text-amber-700',
+  },
+];
+
+const sections = [
+  {
+    n: "01",
+    title: "Qu'est-ce qu'un cookie ?",
+    content: (
+      <>
+        <p>Un cookie est un petit fichier texte stocké sur votre appareil (ordinateur, smartphone, tablette) lors de votre visite sur un site web. Les cookies permettent au site de mémoriser vos actions et préférences sur une période donnée.</p>
+        <p className="mt-3">Les cookies ne contiennent pas de code exécutable et ne peuvent pas accéder aux données de votre appareil. Ils facilitent votre navigation et améliorent votre expérience.</p>
+        <div className="mt-4 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+          <p className="text-xs font-bold text-violet-700 mb-1">À noter</p>
+          <p className="text-xs text-violet-700 leading-relaxed">Cette politique couvre également les technologies similaires : stockage local (localStorage / sessionStorage) utilisé pour les sessions et préférences d'interface.</p>
+        </div>
+      </>
+    ),
+  },
+  {
+    n: "02",
+    title: "Pourquoi utilisons-nous des cookies ?",
+    content: (
+      <>
+        <p>Woppy utilise des cookies pour :</p>
+        <ul className="mt-3 space-y-1.5">
+          {[
+            "Assurer le bon fonctionnement de la Plateforme et la sécurité des sessions",
+            "Maintenir votre connexion active entre les pages",
+            "Mémoriser vos préférences d'affichage et de filtres",
+            "Analyser l'utilisation du site de façon anonymisée afin de l'améliorer",
+          ].map(i => (
+            <li key={i} className="flex items-start gap-2.5">
+              <ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />
+              <span className="text-sm text-slate-600">{i}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-slate-600">Nous n'utilisons pas de cookies à des fins publicitaires, de remarketing ou de profilage commercial.</p>
+      </>
+    ),
+  },
+  {
+    n: "03",
+    title: "Types de cookies utilisés",
+    content: (
+      <div className="space-y-4">
+        {cookieTypes.map(ct => (
+          <div key={ct.title} className="border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 bg-slate-50 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500">
+                  {ct.icon}
+                </div>
+                <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>{ct.title}</h3>
+              </div>
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${ct.badgeColor}`}>{ct.badge}</span>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-slate-600 leading-relaxed">{ct.desc}</p>
+              {ct.examples.length > 0 && (
+                <div className="space-y-1.5">
+                  {ct.examples.map(ex => (
+                    <div key={ex.name} className="flex items-start gap-2.5 text-xs text-slate-500">
+                      <code className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[11px] shrink-0">{ex.name}</code>
+                      <span>{ex.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {ct.note && (
+                <div className={`px-3 py-2.5 rounded-xl border text-xs leading-relaxed ${ct.noteColor || 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                  {ct.note}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    n: "04",
+    title: "Cookies tiers",
+    content: (
+      <>
+        <p>Certains cookies sont déposés par nos sous-traitants techniques :</p>
+        <div className="mt-3 space-y-2">
+          {[
+            { name: "Google Firebase", role: "Gestion de l'authentification et stockage des données", link: "https://firebase.google.com/support/privacy", linkLabel: "firebase.google.com/support/privacy" },
+            { name: "Google Analytics", role: "Mesure d'audience anonymisée (si activé)", link: "https://policies.google.com/privacy", linkLabel: "policies.google.com/privacy" },
+            { name: "Stripe", role: "Traitement des paiements sécurisés", link: "https://stripe.com/privacy", linkLabel: "stripe.com/privacy" },
+          ].map(p => (
+            <div key={p.name} className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{p.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{p.role}</p>
+                </div>
+                <a href={p.link} target="_blank" rel="noopener noreferrer"
+                  className="text-[11px] text-violet-600 hover:underline shrink-0">{p.linkLabel}</a>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-slate-500">Ces partenaires sont soumis à des engagements contractuels de confidentialité conformes au RGPD.</p>
+      </>
+    ),
+  },
+  {
+    n: "05",
+    title: "Gérer vos préférences",
+    content: (
+      <>
+        <p className="font-semibold text-slate-800 text-sm mb-2">Via votre navigateur</p>
+        <p className="text-sm text-slate-600 mb-3">Vous pouvez gérer ou supprimer les cookies directement depuis les paramètres de votre navigateur :</p>
+        <div className="space-y-1.5">
+          {[
+            { browser: "Chrome", path: "Paramètres → Confidentialité et sécurité → Cookies" },
+            { browser: "Firefox", path: "Options → Vie privée et sécurité → Cookies" },
+            { browser: "Safari", path: "Préférences → Confidentialité → Cookies" },
+            { browser: "Edge", path: "Paramètres → Cookies et autorisations de site" },
+          ].map(b => (
+            <div key={b.browser} className="flex items-start gap-2.5 text-sm text-slate-600">
+              <code className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[11px] shrink-0">{b.browser}</code>
+              <span className="text-slate-500">{b.path}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-amber-700 leading-relaxed">Le blocage des cookies essentiels peut affecter le fonctionnement de Woppy, notamment la connexion à votre compte.</p>
+        </div>
+      </>
+    ),
+  },
+  {
+    n: "06",
+    title: "Durée de conservation",
+    content: (
+      <div className="overflow-hidden rounded-xl border border-slate-200">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Durée</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {[
+              ["Cookies de session", "Supprimés à la fermeture du navigateur"],
+              ["Cookies essentiels", "24 heures à 1 an"],
+              ["Cookies fonctionnels", "30 jours à 1 an"],
+              ["Cookies analytiques", "24 heures à 2 ans"],
+              ["Cookies marketing", "Non utilisés actuellement"],
+            ].map(([type, duration]) => (
+              <tr key={type} className="hover:bg-slate-50/50">
+                <td className="px-4 py-3 text-slate-800 font-medium">{type}</td>
+                <td className="px-4 py-3 text-slate-500">{duration}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ),
+  },
+  {
+    n: "07",
+    title: "Mises à jour de cette politique",
+    content: (
+      <p>Nous pouvons mettre à jour cette Politique des Cookies pour refléter les évolutions de nos pratiques ou de la législation. La date de dernière mise à jour est indiquée en haut de cette page. Toute modification significative fera l'objet d'une notification.</p>
+    ),
+  },
+  {
+    n: "08",
+    title: "Contact",
+    content: (
+      <div className="grid sm:grid-cols-2 gap-3">
+        {[
+          { label: "Données & cookies", value: "privacy@woppy.be", href: "mailto:privacy@woppy.be" },
+          { label: "Support général", value: "support@woppy.be", href: "mailto:support@woppy.be" },
+        ].map(item => (
+          <div key={item.label} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+            <a href={item.href} className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors">{item.value}</a>
+          </div>
+        ))}
+        <div className="sm:col-span-2 bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Autorité de contrôle belge</p>
+          <p className="text-sm font-semibold text-slate-800">Autorité de Protection des Données (APD)</p>
+          <a href="https://www.autoriteprotectiondonnees.be" target="_blank" rel="noopener noreferrer"
+            className="text-xs text-violet-600 hover:underline">autoriteprotectiondonnees.be</a>
+        </div>
+      </div>
+    ),
+  },
+];
 
 export default function CookiesPage() {
   return (
-    <main className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <Image
-                src="/images/logo.png"
-                alt="Logo Woppy"
-                width={24}
-                height={24}
-                className="rounded-md"
-                />
-            </div>
-            <span className="text-2xl font-bold text-gray-900">Woppy</span>
-          </Link>
-          <Link 
-            href="/" 
-            className="flex items-center gap-2 text-gray-600 hover:text-[#8a6bfe] transition"
-          >
-            <ArrowLeft size={20} />
-            <span>Retour à l'accueil</span>
-          </Link>
-        </div>
-      </nav>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 px-6 bg-gradient-to-br from-[#f5e5ff] to-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Cookie className="text-white" size={40} />
+      <main className="min-h-screen bg-white" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+
+        {/* ── Navbar ── */}
+        <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-slate-100 z-50">
+          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Image src="/images/logo.png" alt="Logo Woppy" width={28} height={28} className="rounded-xl" />
+              <span className="font-bold text-lg text-violet-600" style={{ fontFamily: 'Sora, system-ui' }}>woppy</span>
+            </Link>
+            <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors font-medium">
+              <ArrowLeft size={15} /> Retour à l'accueil
+            </Link>
           </div>
-          <h1 className="text-5xl font-bold mb-4 text-black">Politique des Cookies</h1>
-          <p className="text-xl text-gray-600 mb-4">Woppy SPRL</p>
-          <p className="text-sm text-gray-500">Dernière mise à jour : 25 octobre 2025</p>
-        </div>
-      </section>
+        </nav>
 
-      {/* Résumé rapide */}
-      <section className="py-12 px-6 bg-[#f5e5ff]/30">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl p-8 shadow-lg border border-[#8a6bfe]/20">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">En bref</h2>
-            <p className="text-gray-700 mb-6">
-              Nous utilisons des cookies et technologies similaires pour améliorer votre expérience sur Woppy. 
-              Vous pouvez gérer vos préférences à tout moment.
-            </p>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="text-green-600" size={20} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm mb-1">Cookies essentiels</p>
-                  <p className="text-xs text-gray-600">Nécessaires au fonctionnement du site</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BarChart className="text-blue-600" size={20} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm mb-1">Cookies analytiques</p>
-                  <p className="text-xs text-gray-600">Pour comprendre l'utilisation du site</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Settings className="text-purple-600" size={20} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm mb-1">Vous contrôlez</p>
-                  <p className="text-xs text-gray-600">Gérez vos préférences facilement</p>
-                </div>
-              </div>
+        {/* ── Hero ── */}
+        <section className="pt-24 pb-10 px-6 bg-slate-50 border-b border-slate-100">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="w-14 h-14 bg-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <Cookie className="text-white" size={24} />
             </div>
+            <h1 className="font-bold text-3xl text-slate-900 mb-2 tracking-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+              Politique des Cookies
+            </h1>
+            <p className="text-slate-500 text-sm mb-1">Woppy — Plateforme d'économie collaborative</p>
+            <p className="text-xs text-slate-400">Dernière mise à jour : 25 octobre 2025</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Contenu de la politique */}
-      <section className="py-16 px-6">
-        <div className="max-w-4xl mx-auto prose prose-lg">
-          
-          {/* Section 1 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">1</span>
-              Qu'est-ce qu'un cookie ?
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Un cookie est un petit fichier texte stocké sur votre appareil (ordinateur, smartphone, tablette) lorsque vous visitez un site web. Les cookies permettent au site de mémoriser vos actions et préférences sur une période de temps.
-              </p>
-              <p>
-                Les cookies ne contiennent pas de virus et ne peuvent pas accéder aux données de votre appareil. Ils facilitent votre navigation et améliorent votre expérience utilisateur.
-              </p>
-              <div className="bg-[#f5e5ff] p-6 rounded-xl mt-4">
-                <p className="font-semibold mb-2">💡 Bon à savoir</p>
-                <p className="text-sm">
-                  Les cookies ne sont pas les seules technologies de suivi. Nous utilisons également des technologies similaires comme le stockage local (localStorage), les pixels de suivi et les identifiants d'appareil. Cette politique couvre toutes ces technologies.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">2</span>
-              Pourquoi utilisons-nous des cookies ?
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>Woppy utilise des cookies pour plusieurs raisons :</p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Assurer le bon fonctionnement de la plateforme</li>
-                <li>Mémoriser vos préférences et paramètres</li>
-                <li>Maintenir votre session de connexion sécurisée</li>
-                <li>Analyser l'utilisation du site pour l'améliorer</li>
-                <li>Personnaliser votre expérience</li>
-                <li>Mesurer l'efficacité de nos communications</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Section 3 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">3</span>
-              Types de cookies utilisés
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-6">
-              
-              {/* Cookies essentiels */}
-              <div className="bg-white border-2 border-[#8a6bfe] rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-[#8a6bfe] rounded-xl flex items-center justify-center">
-                    <Shield className="text-white" size={24} />
+        {/* ── Summary cards ── */}
+        <section className="bg-white border-b border-slate-100">
+          <div className="max-w-3xl mx-auto px-6 py-8">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">En bref</p>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {summaryCards.map(card => (
+                <div key={card.title} className={`flex items-start gap-3 border rounded-xl p-4 ${card.color}`}>
+                  <div className="w-7 h-7 rounded-lg bg-white/70 flex items-center justify-center shrink-0">
+                    {card.icon}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">Cookies strictement nécessaires</h3>
-                    <span className="text-sm text-gray-600">Toujours actifs - Non désactivables</span>
+                    <p className="text-xs font-bold mb-0.5">{card.title}</p>
+                    <p className="text-[11px] leading-relaxed opacity-80">{card.desc}</p>
                   </div>
                 </div>
-                <p className="mb-3">
-                  Ces cookies sont indispensables au fonctionnement de la plateforme. Sans eux, certaines parties du site ne fonctionneraient pas correctement.
-                </p>
-                <p className="font-semibold mb-2">Exemples :</p>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>session_token :</strong> Maintient votre connexion active (expire à la fermeture du navigateur)</li>
-                  <li><strong>csrf_token :</strong> Protection contre les attaques de type Cross-Site Request Forgery (24h)</li>
-                  <li><strong>cookie_consent :</strong> Mémorise vos préférences de cookies (1 an)</li>
-                  <li><strong>language :</strong> Mémorise votre langue préférée (1 an)</li>
-                </ul>
-              </div>
-
-              {/* Cookies fonctionnels */}
-              <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                    <Settings className="text-white" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Cookies fonctionnels</h3>
-                    <span className="text-sm text-green-600">Recommandés - Désactivables</span>
-                  </div>
-                </div>
-                <p className="mb-3">
-                  Ces cookies permettent d'améliorer les fonctionnalités et la personnalisation du site.
-                </p>
-                <p className="font-semibold mb-2">Exemples :</p>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>user_preferences :</strong> Sauvegarde vos préférences d'affichage et filtres (6 mois)</li>
-                  <li><strong>recent_searches :</strong> Mémorise vos recherches récentes (30 jours)</li>
-                  <li><strong>notification_settings :</strong> Préférences de notifications (1 an)</li>
-                  <li><strong>tour_completed :</strong> Indique si vous avez terminé le tutoriel (permanent)</li>
-                </ul>
-              </div>
-
-              {/* Cookies analytiques */}
-              <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-                    <BarChart className="text-white" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Cookies analytiques</h3>
-                    <span className="text-sm text-green-600">Optionnels - Désactivables</span>
-                  </div>
-                </div>
-                <p className="mb-3">
-                  Ces cookies nous aident à comprendre comment les visiteurs utilisent notre site, afin de l'améliorer.
-                </p>
-                <p className="font-semibold mb-2">Exemples :</p>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>_ga, _gid :</strong> Google Analytics - Mesure d'audience (2 ans / 24h)</li>
-                  <li><strong>_hjid :</strong> Hotjar - Analyse comportementale (1 an)</li>
-                  <li><strong>amplitude_id :</strong> Amplitude - Analyse d'événements (10 ans)</li>
-                </ul>
-                <p className="text-sm mt-3 bg-[#f5e5ff] p-3 rounded-lg">
-                  <strong>Note :</strong> Les données collectées sont anonymisées et agrégées. Nous n'utilisons jamais ces données pour vous identifier personnellement.
-                </p>
-              </div>
-
-              {/* Cookies marketing */}
-              <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                    <Eye className="text-white" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Cookies marketing</h3>
-                    <span className="text-sm text-orange-600">Optionnels - Désactivables</span>
-                  </div>
-                </div>
-                <p className="mb-3">
-                  Ces cookies sont utilisés pour afficher des publicités pertinentes et mesurer l'efficacité de nos campagnes.
-                </p>
-                <p className="font-semibold mb-2">Exemples :</p>
-                <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>_fbp :</strong> Facebook Pixel - Publicités ciblées (3 mois)</li>
-                  <li><strong>IDE :</strong> Google DoubleClick - Publicités display (13 mois)</li>
-                  <li><strong>li_sugr :</strong> LinkedIn - Remarketing (90 jours)</li>
-                </ul>
-                <p className="text-sm mt-3 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                  <strong>⚠️ Important :</strong> Actuellement, Woppy n'utilise PAS de cookies marketing. Cette catégorie est listée pour transparence et pourrait être activée à l'avenir avec votre consentement explicite.
-                </p>
-              </div>
-
+              ))}
             </div>
           </div>
+        </section>
 
-          {/* Section 4 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">4</span>
-              Cookies tiers
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Certains cookies sont déposés par des services tiers que nous utilisons pour améliorer notre plateforme :
-              </p>
-              
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-bold mb-2">Google Analytics</h4>
-                  <p className="text-sm mb-2">Mesure d'audience et statistiques de visite</p>
-                  <p className="text-xs text-gray-600">
-                    Politique de confidentialité : <a href="https://policies.google.com/privacy" className="text-[#8a6bfe] hover:underline" target="_blank" rel="noopener noreferrer">policies.google.com/privacy</a>
-                  </p>
+        {/* ── TOC ── */}
+        <section className="bg-white border-b border-slate-100">
+          <div className="max-w-3xl mx-auto px-6 py-5">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Sommaire</p>
+            <div className="grid sm:grid-cols-2 gap-1">
+              {sections.map(s => (
+                <a key={s.n} href={`#section-${s.n}`}
+                  className="flex items-center gap-2.5 text-sm text-slate-600 hover:text-violet-600 py-1.5 transition-colors group">
+                  <span className="text-[11px] font-bold text-slate-300 group-hover:text-violet-300 w-6 shrink-0">{s.n}</span>
+                  {s.title}
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Content ── */}
+        <section className="py-10 px-6">
+          <div className="max-w-3xl mx-auto space-y-5">
+            {sections.map(s => (
+              <div key={s.n} id={`section-${s.n}`}
+                className="bg-white rounded-2xl border border-slate-100 overflow-hidden scroll-mt-20">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-50">
+                  <span className="text-[11px] font-bold text-violet-400 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full shrink-0">
+                    {s.n}
+                  </span>
+                  <h2 className="font-bold text-sm text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+                    {s.title}
+                  </h2>
                 </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-bold mb-2">Hotjar (si activé)</h4>
-                  <p className="text-sm mb-2">Analyse comportementale et cartes de chaleur</p>
-                  <p className="text-xs text-gray-600">
-                    Politique de confidentialité : <a href="https://www.hotjar.com/legal/policies/privacy" className="text-[#8a6bfe] hover:underline" target="_blank" rel="noopener noreferrer">hotjar.com/legal/policies/privacy</a>
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-bold mb-2">Services d'hébergement</h4>
-                  <p className="text-sm mb-2">Stockage et sécurité des données</p>
-                  <p className="text-xs text-gray-600">
-                    Nos hébergeurs peuvent utiliser des cookies techniques pour la sécurité et la performance
-                  </p>
+                <div className="px-6 py-5 text-sm text-slate-600 leading-relaxed">
+                  {s.content}
                 </div>
               </div>
-
-              <p className="text-sm bg-[#f5e5ff] p-4 rounded-lg mt-4">
-                <strong>Note :</strong> Nous sélectionnons soigneusement nos partenaires et nous assurons qu'ils respectent le RGPD et vos droits à la vie privée.
-              </p>
-            </div>
+            ))}
           </div>
+        </section>
 
-          {/* Section 5 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">5</span>
-              Gérer vos préférences
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Vous avez le contrôle total sur l'utilisation des cookies sur Woppy :
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mt-6 mb-3">5.1 Via notre bandeau de cookies</h3>
-              <p>
-                Lors de votre première visite, un bandeau vous permet de choisir quels types de cookies vous acceptez. 
-                Vous pouvez modifier ce choix à tout moment en cliquant sur "Gérer les cookies" dans le footer du site.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mt-6 mb-3">5.2 Via les paramètres de votre compte</h3>
-              <p>
-                Connectez-vous à votre compte Woppy, accédez à <strong>Paramètres → Confidentialité → Cookies</strong> pour gérer vos préférences détaillées.
-              </p>
-
-              <h3 className="text-xl font-bold text-gray-900 mt-6 mb-3">5.3 Via votre navigateur</h3>
-              <p>
-                Vous pouvez également gérer les cookies directement depuis votre navigateur :
-              </p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Chrome :</strong> Paramètres → Confidentialité et sécurité → Cookies</li>
-                <li><strong>Firefox :</strong> Options → Vie privée et sécurité → Cookies</li>
-                <li><strong>Safari :</strong> Préférences → Confidentialité → Cookies</li>
-                <li><strong>Edge :</strong> Paramètres → Cookies et autorisations de site</li>
-              </ul>
-
-              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mt-4">
-                <p className="font-semibold mb-2">⚠️ Attention</p>
-                <p className="text-sm">
-                  Le blocage ou la suppression de tous les cookies peut affecter le bon fonctionnement de Woppy. 
-                  Certaines fonctionnalités pourraient ne plus être disponibles.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 6 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">6</span>
-              Durée de conservation
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Les cookies ont des durées de vie différentes selon leur fonction :
-              </p>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <thead className="bg-[#8a6bfe] text-white">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Type de cookie</th>
-                      <th className="px-4 py-3 text-left">Durée</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Cookies de session</td>
-                      <td className="px-4 py-3">Supprimés à la fermeture du navigateur</td>
-                    </tr>
-                    <tr className="border-b bg-gray-50">
-                      <td className="px-4 py-3">Cookies essentiels</td>
-                      <td className="px-4 py-3">24 heures à 1 an</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Cookies fonctionnels</td>
-                      <td className="px-4 py-3">30 jours à 1 an</td>
-                    </tr>
-                    <tr className="border-b bg-gray-50">
-                      <td className="px-4 py-3">Cookies analytiques</td>
-                      <td className="px-4 py-3">24 heures à 2 ans</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3">Cookies marketing</td>
-                      <td className="px-4 py-3">90 jours à 13 mois</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 7 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">7</span>
-              Technologies similaires
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                En plus des cookies, nous utilisons d'autres technologies pour améliorer votre expérience :
-              </p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>
-                  <strong>LocalStorage / SessionStorage :</strong> Stockage local dans votre navigateur pour sauvegarder vos préférences et améliorer les performances
-                </li>
-                <li>
-                  <strong>Pixels invisibles (web beacons) :</strong> Petites images transparentes pour mesurer l'ouverture des emails
-                </li>
-                <li>
-                  <strong>Empreinte digitale (fingerprinting) :</strong> Nous n'utilisons PAS cette technique intrusive
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Section 8 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">8</span>
-              Modifications de cette politique
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Nous pouvons mettre à jour cette Politique des Cookies pour refléter les changements de nos pratiques ou de la législation. 
-                La date "Dernière mise à jour" en haut de cette page indique quand la politique a été modifiée pour la dernière fois.
-              </p>
-              <p>
-                Nous vous encourageons à consulter régulièrement cette page pour rester informé de notre utilisation des cookies.
-              </p>
-            </div>
-          </div>
-
-          {/* Section 9 */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <span className="w-10 h-10 bg-[#8a6bfe] text-white rounded-lg flex items-center justify-center text-lg font-bold">9</span>
-              Contact
-            </h2>
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Pour toute question concernant notre utilisation des cookies, contactez-nous :
-              </p>
-              <div className="bg-[#f5e5ff] p-6 rounded-xl">
-                <p className="font-semibold mb-2">Woppy SPRL</p>
-                <p>Adresse : Louvain-la-Neuve, Belgique</p>
-                <p>Email : <a href="mailto:privacy@woppy.be" className="text-[#8a6bfe] hover:underline">privacy@woppy.be</a></p>
-                <p>Support : <a href="mailto:support@woppy.be" className="text-[#8a6bfe] hover:underline">support@woppy.be</a></p>
-              </div>
-            </div>
-          </div>
-
-          {/* Liens utiles */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Ressources utiles</h2>
-            <div className="bg-gray-50 p-6 rounded-xl space-y-2">
-              <p className="font-semibold mb-3 text-black">Pour en savoir plus sur les cookies :</p>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <a href="https://www.autoriteprotectiondonnees.be" className="text-[#8a6bfe] hover:underline" target="_blank" rel="noopener noreferrer">
-                    → Autorité de Protection des Données (Belgique)
-                  </a>
-                </li>
-                <li>
-                  <a href="https://www.allaboutcookies.org" className="text-[#8a6bfe] hover:underline" target="_blank" rel="noopener noreferrer">
-                    → All About Cookies (guide complet)
-                  </a>
-                </li>
-                <li>
-                  <a href="https://www.youronlinechoices.com" className="text-[#8a6bfe] hover:underline" target="_blank" rel="noopener noreferrer">
-                    → Your Online Choices (opt-out publicitaire)
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-        </div>
-      </section>
-    </main>
+      </main>
+    </>
   );
 }

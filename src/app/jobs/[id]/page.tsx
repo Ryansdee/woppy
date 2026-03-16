@@ -4,620 +4,459 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-
 import {
-  doc,
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-  updateDoc,
+  doc, getDoc, collection, query, where,
+  getDocs, addDoc, serverTimestamp, updateDoc,
 } from "firebase/firestore";
-
 import {
-  ChevronLeft,
-  Sparkles,
-  MapPin,
-  Calendar,
-  Clock,
-  Euro,
-  User,
-  Loader2,
-  AlertCircle,
+  ChevronLeft, MapPin, Calendar, Clock, Euro, User,
+  Loader2, AlertCircle, CheckCircle, MessageSquare,
+  ArrowRight, GraduationCap, Briefcase, ChevronRight,
 } from "lucide-react";
 
-/* -------------------------------------------------------
-   INTERFACES
--------------------------------------------------------- */
-
+/* ── interfaces ── */
 interface Annonce {
-  id: string;
-  titre: string;
-  description: string;
-  date: string;
-  duree: number;
-  lieu: string;
-  remuneration: number;
+  id: string; titre: string; description: string; date: string;
+  duree: number; lieu: string; remuneration: number;
   statut: "ouverte" | "en cours" | "fini";
-  userId: string;
-  createdAt?: any;
-  photos: string[];
-  acceptedUserId?: string;
-  acceptedUserName?: string;
+  userId: string; createdAt?: any; photos: string[];
+  acceptedUserId?: string; acceptedUserName?: string;
   taskCompletion?: { author?: boolean; student?: boolean };
 }
-
 interface Candidature {
-  id: string;
-  userId: string;
-  statut: string;
-  date: any;
-  userName?: string;
-  photoURL?: string;
+  id: string; userId: string; statut: string; date: any;
+  userName?: string; photoURL?: string;
 }
+interface AuteurUser { firstName?: string; lastName?: string; photoURL?: string; }
 
-interface AuteurUser {
-  firstName?: string;
-  lastName?: string;
-  photoURL?: string;
-}
+const STATUS_CFG = {
+  ouverte:   { label: "Ouverte",   dot: "#22c55e", color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
+  "en cours":{ label: "En cours",  dot: "#f59e0b", color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
+  fini:      { label: "Terminée",  dot: "#94a3b8", color: "#475569", bg: "#f8fafc", border: "#e2e8f0" },
+};
 
-/* -------------------------------------------------------
-   PAGE
--------------------------------------------------------- */
-
+/* ══════════════════════════════════════════════════════════
+   PAGE PRINCIPALE
+══════════════════════════════════════════════════════════ */
 export default function JobDetailPage() {
-  const { id } = useParams();
-  const router = useRouter();
+  const { id }  = useParams();
+  const router  = useRouter();
 
-  const [user, setUser] = useState<any>(null);
-  const [annonce, setAnnonce] = useState<Annonce | null>(null);
-  const [auteur, setAuteur] = useState<AuteurUser | null>(null);
-
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]           = useState<any>(null);
+  const [annonce, setAnnonce]     = useState<Annonce | null>(null);
+  const [auteur, setAuteur]       = useState<AuteurUser | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
-  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [hasStudentProfile, setHasStudentProfile] = useState(false);
+  const [alreadyApplied, setAlreadyApplied]       = useState(false);
 
-  /* -------------------------------------------------------
-     AUTH
-  -------------------------------------------------------- */
+  /* auth */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.push("/auth/login");
-      else setUser(u);
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) { router.push("/auth/login"); return; }
+      setUser(u);
+      // Vérifie le statut étudiant
+      try {
+        const snap = await getDoc(doc(db, "users", u.uid));
+        if (snap.exists()) setHasStudentProfile(snap.data().hasStudentProfile === true);
+      } catch {}
     });
     return () => unsub();
   }, [router]);
 
-  /* -------------------------------------------------------
-     CHARGER ANNONCE
-  -------------------------------------------------------- */
+  /* annonce */
   useEffect(() => {
-    async function fetchAnnonce() {
+    async function fetch() {
       if (!id) return;
-
       try {
-        const ref = doc(db, "annonces", String(id));
-        const snap = await getDoc(ref);
-
-        if (!snap.exists()) {
-          setAnnonce(null);
-          return;
-        }
-
-        const data = snap.data() as any;
-
-        // normalisation
-        const photos = Array.isArray(data.photos) ? data.photos : [];
-
-        setAnnonce({
-          id: snap.id,
-          ...data,
-          photos,
-        });
-      } catch (err) {
-        console.error("Erreur annonce :", err);
-      } finally {
-        setLoading(false);
-      }
+        const snap = await getDoc(doc(db, "annonces", String(id)));
+        if (snap.exists()) setAnnonce({ id: snap.id, ...snap.data(), photos: snap.data().photos ?? [] } as Annonce);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     }
-
-    fetchAnnonce();
+    fetch();
   }, [id]);
 
-  /* -------------------------------------------------------
-     CHARGER AUTEUR
-  -------------------------------------------------------- */
+  /* auteur */
   useEffect(() => {
-    async function fetchAuteur() {
-      if (!annonce?.userId) return;
-
-      try {
-        const ref = doc(db, "users", annonce.userId);
-        const snap = await getDoc(ref);
-
-        if (snap.exists()) {
-          const u = snap.data();
-          setAuteur({
-            firstName: u.firstName,
-            lastName: u.lastName,
-            photoURL:
-              u.photoURL ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                `${u.firstName} ${u.lastName}`
-              )}&background=8a6bfe&color=fff`,
-          });
-        }
-      } catch (err) {
-        console.error("Erreur auteur :", err);
+    if (!annonce?.userId) return;
+    getDoc(doc(db, "users", annonce.userId)).then(snap => {
+      if (snap.exists()) {
+        const u = snap.data();
+        setAuteur({ firstName: u.firstName, lastName: u.lastName, photoURL: u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.firstName} ${u.lastName}`)}&background=7c5fe6&color=fff` });
       }
-    }
-
-    fetchAuteur();
+    });
   }, [annonce]);
 
-  /* -------------------------------------------------------
-     GÉOCODAGE ADRESSE
-  -------------------------------------------------------- */
+  /* candidatures */
   useEffect(() => {
-    async function geocodeAdresse() {
-      if (!annonce?.lieu) return;
-
+    async function fetchCandidatures() {
+      if (!annonce || !user || annonce.userId !== user.uid) return;
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            annonce.lieu
-          )}`
-        );
-
-        const data = await res.json();
-
-        if (data.length > 0) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-
-          setPosition([lat, lon]);
-        }
-      } catch (err) {
-        console.error("Erreur géocodage :", err);
-      }
-    }
-
-    geocodeAdresse();
-  }, [annonce]);
-
-  /* -------------------------------------------------------
-      CHARGER CANDIDATURES (si auteur)
-  -------------------------------------------------------- */
-  useEffect(() => {
-  async function fetchCandidatures() {
-    if (!annonce || !user || annonce.userId !== user.uid) return;
-
-    try {
-      const qSnap = await getDocs(
-        query(collection(db, "candidatures"), where("annonceId", "==", annonce.id))
-      );
-
-      const list = await Promise.all(
-        qSnap.docs.map(async (d) => {
+        const qSnap = await getDocs(query(collection(db, "candidatures"), where("annonceId", "==", annonce.id)));
+        const list = await Promise.all(qSnap.docs.map(async d => {
           const c = d.data() as any;
-
-          const userRef = doc(db, "users", c.userId);
-          const userSnap = await getDoc(userRef);
-
-          let name = "Utilisateur";
-          let photo = "";
-
-          if (userSnap.exists()) {
-            const u = userSnap.data();
+          const uSnap = await getDoc(doc(db, "users", c.userId));
+          let name = "Utilisateur", photo = "";
+          if (uSnap.exists()) {
+            const u = uSnap.data();
             name = `${u.firstName} ${u.lastName}`.trim();
-            photo =
-              u.photoURL ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8a6bfe&color=fff`;
+            photo = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c5fe6&color=fff`;
           }
-
-          return {
-            id: d.id,
-            ...c,
-            userName: name,
-            photoURL: photo,
-          };
-        })
-      );
-
-      setCandidatures(list);
-    } catch (e) {
-      console.error("Erreur candidatures:", e);
+          return { id: d.id, ...c, userName: name, photoURL: photo };
+        }));
+        setCandidatures(list);
+      } catch (e) { console.error(e); }
     }
-  }
+    fetchCandidatures();
+  }, [annonce, user]);
 
-  fetchCandidatures();
-}, [annonce, user]);
+  /* already applied */
+  useEffect(() => {
+    async function check() {
+      if (!user || !annonce) return;
+      const snap = await getDocs(query(collection(db, "candidatures"), where("annonceId", "==", annonce.id), where("userId", "==", user.uid)));
+      setAlreadyApplied(!snap.empty);
+    }
+    check();
+  }, [user, annonce]);
 
-
-  /* -------------------------------------------------------
-     LOADER
-  -------------------------------------------------------- */
-
-  if (loading)
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-white">
-        <Loader2 className="animate-spin text-[#8a6bfe]" size={40} />
+  /* ── loaders ── */
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+          <Briefcase size={18} className="text-white" />
+        </div>
+        <p className="text-sm text-slate-500">Chargement…</p>
       </div>
-    );
+    </div>
+  );
 
-  if (!annonce)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <AlertCircle className="text-red-500 w-10 h-10 mb-4" />
-        <p className="text-gray-600">Annonce introuvable.</p>
+  if (!annonce) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
+        <AlertCircle size={20} className="text-slate-400" />
       </div>
-    );
+      <p className="text-sm font-medium text-slate-600">Annonce introuvable.</p>
+      <Link href="/jobs" className="text-xs text-violet-600 hover:underline">Retour aux annonces</Link>
+    </div>
+  );
 
-  const photos = annonce.photos || [];
-  const auteurNom =
-    auteur?.firstName || auteur?.lastName
-      ? `${auteur?.firstName || ""} ${auteur?.lastName || ""}`
-      : "Utilisateur";
-
-  /* -------------------------------------------------------
-     UI – HEADER WOPPY VIOLET
-  -------------------------------------------------------- */
+  const cfg        = STATUS_CFG[annonce.statut] || STATUS_CFG["ouverte"];
+  const auteurNom  = auteur?.firstName ? `${auteur.firstName} ${auteur.lastName || ""}`.trim() : "Utilisateur";
+  const isOwner    = user?.uid === annonce.userId;
+  const isAccepted = user?.uid === annonce.acceptedUserId;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f5e5ff] via-white to-gray-50 text-gray-900 pb-20">
-      {/* Header */}
-      <header className="relative px-6 py-10 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white mb-10 shadow-lg rounded-b-3xl">
-        <div className="max-w-4xl mx-auto relative z-10">
-          <Link
-            href="/jobs"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white transition mb-6"
-          >
-            <ChevronLeft size={20} /> Retour aux annonces
-          </Link>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
 
-          <h1 className="text-4xl font-extrabold mb-4 drop-shadow-sm flex items-center gap-3">
-            {annonce.titre}
-            <Sparkles className="text-yellow-300 animate-pulse" size={26} />
-          </h1>
+      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-          {/* Statut */}
-          <div className="mt-2">
-            {annonce.statut === "ouverte" && (
-              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-green-400/30 text-white border border-green-300/40 backdrop-blur">
-                🟢 Ouverte
-              </span>
-            )}
-
-            {annonce.statut === "en cours" && (
-              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-yellow-400/30 text-white border border-yellow-300/40 backdrop-blur">
-                🟡 En cours
-              </span>
-            )}
-
-            {annonce.statut === "fini" && (
-              <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-red-400/30 text-white border border-red-300/40 backdrop-blur">
-                🔴 Terminée
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Halo */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 w-[900px] h-[900px] bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        </div>
-      </header>
-
-      {/* CONTENU */}
-      <div className="max-w-4xl mx-auto px-6">
-
-        {/* Galerie photos */}
-        {photos.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-            {photos.map((p, i) => (
-              <div
-                key={i}
-                className="relative w-full h-40 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition group"
-              >
-                <Image
-                  src={p}
-                  alt="photo"
-                  fill
-                  className="object-cover group-hover:scale-105 transition duration-300"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-        {/* INFORMATIONS DE L’ANNONCE */}
-        <div className="grid sm:grid-cols-2 gap-4 text-black mb-10">
-          <InfoCard icon={<MapPin />} label={annonce.lieu} />
-          <InfoCard icon={<Calendar />} label={annonce.date} />
-          <InfoCard icon={<Clock />} label={`${annonce.duree}h`} />
-          <InfoCard icon={<Euro />} label={`${annonce.remuneration} €/h`} />
-        </div>
-
-        {/* DESCRIPTION */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-10 border border-gray-200">
-          <h3 className="text-xl font-bold mb-3 text-[#8a6bfe]">
-            Description du job
-          </h3>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-            {annonce.description}
-          </p>
-        </div>
-
-        {/* INFORMATIONS AUTEUR */}
-        {auteur && (
-          <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-2xl p-5 shadow mb-10">
-            <Image
-              src={auteur.photoURL || ""}
-              alt={auteurNom}
-              width={70}
-              height={70}
-              className="rounded-full border object-cover"
-            />
-            <div>
-              <p className="font-semibold text-gray-900">{auteurNom}</p>
-              <p className="text-sm text-gray-500">
-                Auteur de l’annonce
-              </p>
+        {/* ── Topbar ── */}
+        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+          <div className="max-w-4xl mx-auto px-6 h-14 flex items-center gap-3">
+            <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+              <ChevronLeft size={18} />
+            </Link>
+            <div className="w-px h-4 bg-slate-200" />
+            <span className="text-sm font-semibold text-slate-900 truncate" style={{ fontFamily: 'Sora, system-ui' }}>
+              {annonce.titre}
+            </span>
+            <div className="ml-auto flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+              {cfg.label}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* ------------------------------------------------------------
-            CANDIDATURES (si auteur)
-        ------------------------------------------------------------ */}
-        {user?.uid === annonce.userId && (
-          <AuteurCandidatures
-            annonce={annonce}
-            candidatures={candidatures}
-            setAnnonce={setAnnonce}
-            setCandidatures={setCandidatures}
-          />
-        )}
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="grid lg:grid-cols-3 gap-6">
 
-        {/* ------------------------------------------------------------
-            ÉTAT TÂCHE TERMINÉE
-        ------------------------------------------------------------ */}
-        {(user?.uid === annonce.userId ||
-          user?.uid === annonce.acceptedUserId) &&
-          annonce.acceptedUserId && (
-            <TaskCompletion annonce={annonce} user={user} setAnnonce={setAnnonce} />
-          )}
+            {/* ── Colonne principale ── */}
+            <div className="lg:col-span-2 space-y-5">
 
-        {/* ------------------------------------------------------------
-            BOUTON POSTULER (si étudiant non auteur)
-        ------------------------------------------------------------ */}
-        {user?.uid !== annonce.userId &&
-          user?.uid !== annonce.acceptedUserId &&
-          annonce.statut === "ouverte" && (
-            <PostulerAnnonce
-              annonce={annonce}
-              user={user}
-              setMessage={() => {}}
-            />
-          )}
+              {/* Photos */}
+              {annonce.photos.length > 0 && (
+                <div className={`grid gap-3 ${annonce.photos.length === 1 ? '' : 'grid-cols-2'}`}>
+                  {annonce.photos.map((p, i) => (
+                    <div key={i} className={`relative overflow-hidden rounded-2xl bg-slate-100 ${i === 0 && annonce.photos.length > 1 ? 'col-span-2' : ''}`}
+                      style={{ height: i === 0 && annonce.photos.length > 1 ? 220 : 140 }}>
+                      <Image src={p} alt="" fill className="object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Titre + statut */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+                  {annonce.titre}
+                </h1>
+                <p className="text-sm text-slate-400">
+                  {annonce.createdAt?.seconds
+                    ? new Date(annonce.createdAt.seconds * 1000).toLocaleDateString("fr-BE", { day: "numeric", month: "long", year: "numeric" })
+                    : "Date inconnue"}
+                </p>
+              </div>
+
+              {/* Description */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Description</h2>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{annonce.description}</p>
+              </div>
+
+              {/* Candidatures (auteur) */}
+              {isOwner && (
+                <AuteurCandidatures annonce={annonce} candidatures={candidatures} setAnnonce={setAnnonce} setCandidatures={setCandidatures} />
+              )}
+
+              {/* Confirmation tâche */}
+              {(isOwner || isAccepted) && annonce.acceptedUserId && (
+                <TaskCompletion annonce={annonce} user={user} setAnnonce={setAnnonce} />
+              )}
+            </div>
+
+            {/* ── Sidebar ── */}
+            <div className="space-y-4">
+
+              {/* Détails */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Détails</h2>
+                {[
+                  { icon: <Euro size={14} />, label: "Rémunération", value: `${annonce.remuneration} €/h`, bold: true },
+                  { icon: <MapPin size={14} />, label: "Lieu", value: annonce.lieu },
+                  { icon: <Calendar size={14} />, label: "Date", value: annonce.date },
+                  { icon: <Clock size={14} />, label: "Durée", value: `${annonce.duree} heure${annonce.duree > 1 ? 's' : ''}` },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0 mt-0.5">
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">{item.label}</p>
+                      <p className={`text-sm text-slate-800 truncate ${item.bold ? 'font-bold text-violet-700' : 'font-medium'}`}>
+                        {item.value}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Auteur */}
+              {auteur && (
+                <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Publié par</h2>
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src={auteur.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(auteurNom)}&background=7c5fe6&color=fff`}
+                      alt={auteurNom} width={40} height={40}
+                      className="rounded-xl object-cover border border-slate-100"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{auteurNom}</p>
+                      <p className="text-xs text-slate-400">Particulier</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CTA postuler */}
+              {!isOwner && !isAccepted && annonce.statut === "ouverte" && (
+                <PostulerAnnonce
+                  annonce={annonce}
+                  user={user}
+                  hasStudentProfile={hasStudentProfile}
+                  alreadyApplied={alreadyApplied}
+                  setAlreadyApplied={setAlreadyApplied}
+                />
+              )}
+
+              {/* Étudiant accepté */}
+              {isAccepted && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                  <CheckCircle size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800">Candidature acceptée</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">Tu as été sélectionné pour cette mission.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
-/* ===============================================================
-   COMPONENT : InfoCard Woppy
-=============================================================== */
-function InfoCard({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 hover:shadow-lg transition-all">
-      <div className="p-2 bg-[#8a6bfe]/10 text-[#8a6bfe] rounded-lg">
-        {icon}
-      </div>
-      <span className="font-medium">{label}</span>
-    </div>
-  );
-}
-
-/* ===============================================================
-   COMPONENT : PostulerAnnonce
-=============================================================== */
-function PostulerAnnonce({
-  annonce,
-  user,
-}: {
-  annonce: Annonce;
-  user: any;
-  setMessage?: any;
+/* ══════════════════════════════════════════════════════════
+   PostulerAnnonce
+══════════════════════════════════════════════════════════ */
+function PostulerAnnonce({ annonce, user, hasStudentProfile, alreadyApplied, setAlreadyApplied }: {
+  annonce: Annonce; user: any; hasStudentProfile: boolean;
+  alreadyApplied: boolean; setAlreadyApplied: (v: boolean) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Pas de profil étudiant
+  if (!hasStudentProfile) return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+      <div className="flex items-start gap-3 mb-3">
+        <GraduationCap size={16} className="text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Profil étudiant requis</p>
+          <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+            Pour postuler à cette annonce, tu dois activer ton profil étudiant depuis ton tableau de bord.
+          </p>
+        </div>
+      </div>
+      <Link href="/dashboard/profile"
+        className="flex items-center justify-center gap-2 w-full py-2.5 bg-amber-500 hover:bg-amber-600
+                   text-white text-sm font-semibold rounded-xl transition">
+        Activer mon profil étudiant <ArrowRight size={13} />
+      </Link>
+    </div>
+  );
+
+  // Déjà candidaté
+  if (alreadyApplied || success) return (
+    <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 flex items-start gap-3">
+      <CheckCircle size={16} className="text-violet-500 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold text-violet-800">Candidature envoyée</p>
+        <p className="text-xs text-violet-600 mt-0.5">Le client recevra une notification.</p>
+      </div>
+    </div>
+  );
 
   async function postuler() {
-    if (!user) return alert("Connexion obligatoire.");
+    if (!user) return;
     setLoading(true);
-
     try {
-      // Création candidature
       await addDoc(collection(db, "candidatures"), {
-        annonceId: annonce.id,
-        userId: user.uid,
-        date: serverTimestamp(),
-        statut: "en attente",
+        annonceId: annonce.id, userId: user.uid,
+        date: serverTimestamp(), statut: "en attente",
       });
-
-      // Notification vers auteur
       await addDoc(collection(db, "notifications"), {
-        toUser: annonce.userId,
-        fromUser: user.uid,
-        type: "nouvelle_candidature",
-        annonceId: annonce.id,
+        toUser: annonce.userId, fromUser: user.uid,
+        type: "nouvelle_candidature", annonceId: annonce.id,
         message: "Un étudiant a postulé à votre annonce.",
-        createdAt: serverTimestamp(),
-        read: false,
+        createdAt: serverTimestamp(), read: false,
       });
-
-      alert("Votre candidature a été envoyée 🎉");
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la candidature.");
-    }
-
+      setSuccess(true);
+      setAlreadyApplied(true);
+    } catch (e) { console.error(e); }
     setLoading(false);
   }
 
   return (
-    <div className="mt-8 text-center">
-      <button
-        onClick={postuler}
-        disabled={loading}
-        className="px-8 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-xl shadow-lg hover:shadow-xl transition font-semibold"
-      >
-        {loading ? "Envoi..." : "Postuler à cette annonce"}
+    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+      <p className="text-xs text-slate-400 mb-3">
+        En postulant, le client recevra une notification et pourra consulter ton profil.
+      </p>
+      <button onClick={postuler} disabled={loading}
+        className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold
+                   rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{ fontFamily: 'Sora, system-ui' }}>
+        {loading ? <><Loader2 size={14} className="animate-spin" /> Envoi…</> : <>Postuler à cette annonce <ChevronRight size={14} /></>}
       </button>
     </div>
   );
 }
 
-/* ===============================================================
-   COMPONENT : Liste des candidatures (pour l'auteur)
-=============================================================== */
-function AuteurCandidatures({
-  annonce,
-  candidatures,
-  setAnnonce,
-  setCandidatures,
-}: any) {
+/* ══════════════════════════════════════════════════════════
+   AuteurCandidatures
+══════════════════════════════════════════════════════════ */
+function AuteurCandidatures({ annonce, candidatures, setAnnonce, setCandidatures }: any) {
   const router = useRouter();
 
   async function accepter(c: Candidature) {
     try {
-      // Acceptation candidature
       await updateDoc(doc(db, "annonces", annonce.id), {
-        statut: "en cours",
-        acceptedUserId: c.userId,
-        acceptedUserName: c.userName,
+        statut: "en cours", acceptedUserId: c.userId, acceptedUserName: c.userName,
         taskCompletion: { author: false, student: false },
       });
-
-      await updateDoc(doc(db, "candidatures", c.id), {
-        statut: "acceptée",
-      });
-
+      await updateDoc(doc(db, "candidatures", c.id), { statut: "acceptée" });
       await addDoc(collection(db, "notifications"), {
-        toUser: c.userId,
-        fromUser: annonce.userId,
-        type: "acceptation",
-        annonceId: annonce.id,
-        message: "Votre candidature a été acceptée 🎉",
-        createdAt: serverTimestamp(),
-        read: false,
+        toUser: c.userId, fromUser: annonce.userId, type: "acceptation",
+        annonceId: annonce.id, message: "Votre candidature a été acceptée 🎉",
+        createdAt: serverTimestamp(), read: false,
       });
-
-      setAnnonce({
-        ...annonce,
-        statut: "en cours",
-        acceptedUserId: c.userId,
-        acceptedUserName: c.userName,
-        taskCompletion: { author: false, student: false },
-      });
-
-      alert("Candidat accepté !");
-    } catch (err) {
-      console.error(err);
-      alert("Impossible d'accepter ce candidat");
-    }
+      setAnnonce({ ...annonce, statut: "en cours", acceptedUserId: c.userId, acceptedUserName: c.userName, taskCompletion: { author: false, student: false } });
+    } catch (e) { console.error(e); }
   }
 
   async function openChat(targetId: string) {
     try {
-      const q = query(
-        collection(db, "chats"),
-        where("participants", "array-contains", annonce.userId)
-      );
-
-      const snap = await getDocs(q);
-      let chatFound = null;
-
-      for (const docSnap of snap.docs) {
-        const data = docSnap.data();
-        if (data.participants.includes(targetId)) {
-          chatFound = { id: docSnap.id };
-          break;
-        }
+      const snap = await getDocs(query(collection(db, "chats"), where("participants", "array-contains", annonce.userId)));
+      let chatId: string | null = null;
+      for (const d of snap.docs) {
+        if (d.data().participants.includes(targetId)) { chatId = d.id; break; }
       }
-
-      if (!chatFound) {
+      if (!chatId) {
         const newChat = await addDoc(collection(db, "chats"), {
-          participants: [annonce.userId, targetId],
-          annonceId: annonce.id,
-          createdAt: serverTimestamp(),
-          lastMessage: "",
-          lastMessageTime: serverTimestamp(),
-          unreadCount: {
-            [annonce.userId]: 0,
-            [targetId]: 1,
-          },
+          participants: [annonce.userId, targetId], annonceId: annonce.id,
+          createdAt: serverTimestamp(), lastMessage: "", lastMessageTime: serverTimestamp(),
+          unreadCount: { [annonce.userId]: 0, [targetId]: 1 },
         });
-        router.push(`/messages?chatId=${newChat.id}`);
-      } else {
-        router.push(`/messages?chatId=${chatFound.id}`);
+        chatId = newChat.id;
       }
-    } catch (err) {
-      console.error("Erreur chat :", err);
-    }
+      router.push(`/messages?chatId=${chatId}`);
+    } catch (e) { console.error(e); }
   }
 
   return (
-    <div className="mt-10 border-t pt-6">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[#8a6bfe]">
-        <User size={20} /> Candidatures reçues
+    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+        Candidatures reçues
+        {candidatures.length > 0 && (
+          <span className="ml-2 bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full text-[10px] font-bold normal-case">
+            {candidatures.length}
+          </span>
+        )}
       </h3>
 
       {candidatures.length === 0 ? (
-        <p className="text-gray-500 text-sm">Aucune candidature reçue.</p>
+        <div className="flex flex-col items-center py-6 text-center">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-2">
+            <User size={16} className="text-slate-400" />
+          </div>
+          <p className="text-sm text-slate-500">Aucune candidature pour l'instant.</p>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {candidatures.map((c: Candidature) => (
-            <div
-              key={c.id}
-              className="flex justify-between items-center bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
-            >
+            <div key={c.id}
+              className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
               <div className="flex items-center gap-3">
-                <Image
-                  src={c.photoURL || ""}
-                  alt={c.userName || ""}
-                  width={48}
-                  height={48}
-                  className="rounded-full border object-cover"
-                />
+                <Image src={c.photoURL || ""} alt={c.userName || ""} width={36} height={36}
+                  className="rounded-xl object-cover border border-slate-200" />
                 <div>
-                  <p className="font-semibold">{c.userName}</p>
-                  <p className="text-xs text-gray-500">{c.statut}</p>
+                  <p className="text-sm font-semibold text-slate-900">{c.userName}</p>
+                  <span className="text-[11px] font-medium"
+                    style={{ color: c.statut === "acceptée" ? "#15803d" : "#64748b" }}>
+                    {c.statut === "acceptée" ? "✓ Acceptée" : "En attente"}
+                  </span>
                 </div>
               </div>
-
               <div className="flex gap-2">
-                <button
-                  onClick={() => accepter(c)}
-                  disabled={annonce.acceptedUserId === c.userId}
-                  className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#7a5bee]"
-                >
-                  {annonce.acceptedUserId === c.userId
-                    ? "Accepté"
-                    : "Accepter"}
+                <button onClick={() => openChat(c.userId)}
+                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-violet-600 transition">
+                  <MessageSquare size={14} />
                 </button>
-
-                <button
-                  onClick={() => openChat(c.userId)}
-                  className="px-4 py-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-lg text-sm"
-                >
-                  Message
+                <button onClick={() => accepter(c)} disabled={annonce.acceptedUserId === c.userId}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    annonce.acceptedUserId === c.userId
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
+                      : "bg-violet-600 hover:bg-violet-700 text-white"
+                  }`}>
+                  {annonce.acceptedUserId === c.userId ? "Accepté" : "Accepter"}
                 </button>
               </div>
             </div>
@@ -628,59 +467,63 @@ function AuteurCandidatures({
   );
 }
 
-/* ===============================================================
-   COMPONENT : TaskCompletion (tâche effectuée)
-=============================================================== */
+/* ══════════════════════════════════════════════════════════
+   TaskCompletion
+══════════════════════════════════════════════════════════ */
 function TaskCompletion({ annonce, user, setAnnonce }: any) {
-  const router = useRouter();
-
-  const isAuthor = user.uid === annonce.userId;
+  const router    = useRouter();
+  const isAuthor  = user.uid === annonce.userId;
   const isStudent = user.uid === annonce.acceptedUserId;
+  const myDone    = isAuthor ? annonce.taskCompletion?.author : annonce.taskCompletion?.student;
+  const otherDone = isAuthor ? annonce.taskCompletion?.student : annonce.taskCompletion?.author;
 
   async function confirm() {
     try {
       const update = {
-        author: annonce.taskCompletion?.author || isAuthor,
+        author:  annonce.taskCompletion?.author  || isAuthor,
         student: annonce.taskCompletion?.student || isStudent,
       };
-
-      await updateDoc(doc(db, "annonces", annonce.id), {
-        taskCompletion: update,
-      });
-
-      setAnnonce({
-        ...annonce,
-        taskCompletion: update,
-      });
-
+      await updateDoc(doc(db, "annonces", annonce.id), { taskCompletion: update });
+      setAnnonce({ ...annonce, taskCompletion: update });
       if (update.author && update.student) {
-        await updateDoc(doc(db, "annonces", annonce.id), {
-          statut: "fini",
-        });
-
-        if (isAuthor) {
-          router.push(
-            `/review/${annonce.acceptedUserId}?annonceId=${annonce.id}`
-          );
-        }
+        await updateDoc(doc(db, "annonces", annonce.id), { statut: "fini" });
+        if (isAuthor) router.push(`/review/${annonce.acceptedUserId}?annonceId=${annonce.id}`);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (e) { console.error(e); }
   }
 
   return (
-    <div className="mt-10 text-center border-t pt-6">
-      <button
-        onClick={confirm}
-        disabled={
-          (isAuthor && annonce.taskCompletion?.author) ||
-          (isStudent && annonce.taskCompletion?.student)
-        }
-        className="px-6 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
-      >
-        Confirmer que la tâche est effectuée
-      </button>
+    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Confirmer la mission</h3>
+
+      {/* État des deux confirmations */}
+      <div className="space-y-2 mb-4">
+        {[
+          { label: isAuthor ? "Ma confirmation (client)" : "Confirmation du client", done: annonce.taskCompletion?.author },
+          { label: isAuthor ? "Confirmation de l'étudiant" : "Ma confirmation (étudiant)", done: annonce.taskCompletion?.student },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-2.5 text-sm">
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.done ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+              {item.done && <CheckCircle size={10} className="text-white" />}
+            </div>
+            <span className={item.done ? "text-emerald-700 font-medium" : "text-slate-500"}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {myDone ? (
+        <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+          <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+          {otherDone ? "Mission terminée par les deux parties." : "En attente de la confirmation de l'autre partie."}
+        </div>
+      ) : (
+        <button onClick={confirm}
+          className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold
+                     rounded-xl transition flex items-center justify-center gap-2"
+          style={{ fontFamily: 'Sora, system-ui' }}>
+          <CheckCircle size={14} /> Confirmer la mission effectuée
+        </button>
+      )}
     </div>
   );
 }

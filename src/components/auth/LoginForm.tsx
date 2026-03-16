@@ -98,7 +98,7 @@ export default function LoginForm() {
       </div>
 
       {/* Formulaire */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5 text-black">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
             <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />

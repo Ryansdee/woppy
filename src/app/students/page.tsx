@@ -1,354 +1,310 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
-  Loader2,
-  Search,
-  User,
-  MessageSquare,
-  MapPin,
-  Filter,
-  X,
-  Sparkles,
-  BookOpen,
+  Loader2, Search, MessageSquare, MapPin,
+  X, BookOpen, SlidersHorizontal, ChevronRight,
+  GraduationCap,
 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Student {
   uid: string;
-  firstName?: string;
-  lastName?: string;
-  username?: string;
-  photoURL?: string;
-  bio?: string;
-  isAvailable?: boolean;
-  hasStudentProfile?: boolean;
-  city?: string;
+  firstName?: string; lastName?: string; username?: string;
+  photoURL?: string; bio?: string; isAvailable?: boolean;
+  hasStudentProfile?: boolean; city?: string;
   studentProfile?: {
-    description?: string;
-    experiences?: {
-      id: string;
-      title: string;
-      description: string;
-      hourlyRate?: string;
-    }[];
+    description?: string; hourlyRate?: string;
+    experiences?: { id: string; title: string; description: string; hourlyRate?: string; }[];
   };
 }
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const router = useRouter();
+  const [students, setStudents]           = useState<Student[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [search, setSearch]               = useState('');
   const [filterAvailable, setFilterAvailable] = useState<boolean | null>(null);
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCity, setSelectedCity]   = useState('all');
+  const [showFilters, setShowFilters]     = useState(false);
+  const [currentUser, setCurrentUser]     = useState<any>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => setCurrentUser(u));
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'users'), where('hasStudentProfile', '==', true));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() })) as Student[];
-      setStudents(list);
+    const unsub = onSnapshot(q, snap => {
+      setStudents(snap.docs.map(d => ({ uid: d.id, ...d.data() })) as Student[]);
       setLoading(false);
     });
     return () => unsub();
   }, []);
 
-  // 🏙️ Liste dynamique des villes selon les résultats visibles
+  async function handleMessage(targetUid: string) {
+    if (!currentUser) { router.push('/auth/login'); return; }
+    const newChat = await addDoc(collection(db, 'chats'), {
+      participants: [currentUser.uid, targetUid],
+      createdAt: serverTimestamp(), lastMessage: '',
+      lastMessageTime: serverTimestamp(), typing: {},
+    });
+    router.push(`/messages?chatId=${newChat.id}`);
+  }
+
   const cities = useMemo(() => {
-    const visibleCities = new Set(
-      students
-        .filter((s) => filterAvailable === null || s.isAvailable === filterAvailable)
-        .map((s) => s.city)
-        .filter(Boolean)
+    const s = new Set(
+      students.filter(s => filterAvailable === null || s.isAvailable === filterAvailable)
+        .map(s => s.city).filter(Boolean)
     );
-    return Array.from(visibleCities).sort();
+    return Array.from(s).sort();
   }, [students, filterAvailable]);
 
-  // 🔍 Filtrage pondéré et optimisé
   const filtered = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-
+    const q = search.trim().toLowerCase();
     return students
-      .map((s) => {
-        const searchable = [
-          s.firstName,
-          s.lastName,
-          s.username,
-          s.city,
-          s.bio,
+      .map(s => {
+        const text = [s.firstName, s.lastName, s.username, s.city, s.bio,
           s.studentProfile?.description,
-          s.studentProfile?.experiences
-            ?.map((e) => `${e.title} ${e.description}`)
-            .join(' '),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-
-        const score =
-          (s.firstName?.toLowerCase().includes(normalizedSearch) ? 2 : 0) +
-          (s.lastName?.toLowerCase().includes(normalizedSearch) ? 2 : 0) +
-          (searchable.includes(normalizedSearch) ? 1 : 0);
-
-        const matchesAvailability =
-          filterAvailable === null || s.isAvailable === filterAvailable;
-        const matchesCity = selectedCity === 'all' || s.city === selectedCity;
-
-        return { ...s, score, matchesAvailability, matchesCity };
+          s.studentProfile?.experiences?.map(e => `${e.title} ${e.description}`).join(' '),
+        ].filter(Boolean).join(' ').toLowerCase();
+        const score = (s.firstName?.toLowerCase().includes(q) ? 2 : 0) +
+          (s.lastName?.toLowerCase().includes(q) ? 2 : 0) +
+          (text.includes(q) ? 1 : 0);
+        return { ...s, score,
+          matchesAvailability: filterAvailable === null || s.isAvailable === filterAvailable,
+          matchesCity: selectedCity === 'all' || s.city === selectedCity,
+        };
       })
-      .filter(
-        (s) =>
-          (normalizedSearch === '' || s.score > 0) &&
-          s.matchesAvailability &&
-          s.matchesCity
-      )
+      .filter(s => (q === '' || s.score > 0) && s.matchesAvailability && s.matchesCity)
       .sort((a, b) => b.score - a.score);
   }, [students, search, filterAvailable, selectedCity]);
 
-  const availableCount = students.filter((s) => s.isAvailable).length;
-  const totalCount = students.length;
+  const totalCount     = students.length;
+  const availableCount = students.filter(s => s.isAvailable).length;
+  const activeFilters  = [filterAvailable !== null, selectedCity !== 'all'].filter(Boolean).length;
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]">
-        <Loader2 className="animate-spin w-12 h-12 text-[#8a6bfe]" />
-        <p className="text-gray-600 mt-4 font-medium">Chargement des étudiants...</p>
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+          <GraduationCap size={18} className="text-white" />
+        </div>
+        <p className="text-sm text-slate-500 font-medium">Chargement…</p>
       </div>
-    );
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br py-4 from-[#f5e5ff] via-white to-[#e8d5ff]">
-      {/* 🎯 Header avec stats */}
-      <div className="bg-white/60 backdrop-blur-lg border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-[#8a6bfe] to-[#6b4ff0] rounded-xl text-white">
-                  <User className="w-6 h-6" />
-                </div>
-                Étudiants
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {totalCount} profils • {availableCount} disponibles
-              </p>
-            </div>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
 
-            {/* 🔍 Recherche + Filtres */}
-            <div className="flex gap-3 flex-1 lg:max-w-xl">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom, ville ou compétence..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white text-[#8a6bfe] border border-[#8a6bfe] rounded-xl focus:ring-2 focus:ring-[#8a6bfe] focus:border-transparent outline-none shadow-sm hover:shadow-md transition-all"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg"
-                  >
-                    <X className="w-4 h-4 text-gray-400" />
-                  </button>
-                )}
-              </div>
+      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-3 bg-white border rounded-xl flex items-center gap-2 transition-all hover:shadow-md ${
-                  showFilters ? 'border-[#8a6bfe] text-[#8a6bfe]' : 'border-gray-200 text-gray-700'
-                }`}
-              >
-                <Filter className="w-5 h-5" />
-                <span className="hidden sm:inline">Filtres</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Résumé des filtres actifs */}
-          {(filterAvailable !== null || selectedCity !== 'all' || search) && (
-            <div className="flex flex-wrap gap-2 mt-3 text-sm">
+        {/* ── Topbar ── */}
+        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input type="text" placeholder="Nom, ville, compétence…" value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50
+                           placeholder:text-slate-400 text-slate-800
+                           focus:outline-none focus:ring-2 focus:ring-violet-400/25 focus:border-violet-400
+                           focus:bg-white transition-all" />
               {search && (
-                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
-                  🔍 {search}
-                  <button onClick={() => setSearch('')}>
-                    <X className="w-3 h-3 text-gray-500" />
-                  </button>
+                <button onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            <button onClick={() => setShowFilters(!showFilters)}
+              className={`relative flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-xl border transition-all ${
+                showFilters ? 'border-violet-300 text-violet-600 bg-violet-50' : 'border-slate-200 bg-white text-slate-600 hover:border-violet-200'
+              }`}>
+              <SlidersHorizontal size={14} />
+              <span className="hidden sm:inline">Filtres</span>
+              {activeFilters > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {activeFilters}
                 </span>
               )}
-              {selectedCity !== 'all' && (
-                <span className="px-3 py-1 bg-gray-100 rounded-full flex items-center gap-2">
-                  📍 {selectedCity}
-                  <button onClick={() => setSelectedCity('all')}>
-                    <X className="w-3 h-3 text-gray-500" />
-                  </button>
-                </span>
+            </button>
+
+            <span className="ml-auto text-xs text-slate-400 hidden sm:block">
+              {totalCount} profils · {availableCount} disponibles
+            </span>
+          </div>
+
+          {showFilters && (
+            <div className="border-t border-slate-100 bg-white px-6 py-3 flex flex-wrap gap-2 items-center">
+              {[
+                { label: `Tous (${totalCount})`, value: null },
+                { label: `Disponibles (${availableCount})`, value: true },
+                { label: `Indisponibles (${totalCount - availableCount})`, value: false },
+              ].map(btn => (
+                <button key={String(btn.value)} onClick={() => setFilterAvailable(btn.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    filterAvailable === btn.value
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
+                  }`}>
+                  {btn.label}
+                </button>
+              ))}
+              {cities.length > 0 && (
+                <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)}
+                  className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-400/25 text-slate-600">
+                  <option value="all">Toutes les villes</option>
+                  {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+              {activeFilters > 0 && (
+                <button onClick={() => { setFilterAvailable(null); setSelectedCity('all'); }}
+                  className="text-xs text-slate-400 hover:text-violet-600 transition-colors ml-1">
+                  Réinitialiser
+                </button>
               )}
             </div>
           )}
+        </div>
 
-          {/* 🎛️ Filtres déroulants – sans animation JS lourde */}
-          {showFilters && (
-            <div className="pt-4 pb-2 flex flex-wrap gap-3 transition-all">
-              <button
-                onClick={() => setFilterAvailable(null)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  filterAvailable === null
-                    ? 'bg-[#8a6bfe] text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Tous ({totalCount})
-              </button>
-              <button
-                onClick={() => setFilterAvailable(true)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  filterAvailable === true
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Disponibles ({availableCount})
-              </button>
-              <button
-                onClick={() => setFilterAvailable(false)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  filterAvailable === false
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Indisponibles ({totalCount - availableCount})
-              </button>
-
-              {cities.length > 0 && (
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#8a6bfe]"
-                >
-                  <option value="all">Toutes les villes</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
+        {/* ── Page header ── */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="max-w-6xl mx-auto px-6 py-6 flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="font-bold text-2xl text-slate-900 tracking-tight mb-1"
+                style={{ fontFamily: 'Sora, system-ui' }}>
+                Étudiants
+              </h1>
+              <p className="text-sm text-slate-500">
+                {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
+                {search && ` pour "${search}"`}
+                {activeFilters > 0 && (
+                  <button onClick={() => { setFilterAvailable(null); setSelectedCity('all'); }}
+                    className="ml-2 text-violet-600 hover:text-violet-700 font-medium transition-colors">
+                    · Réinitialiser les filtres
+                  </button>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedCity !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full">
+                  <MapPin size={10} /> {selectedCity}
+                  <button onClick={() => setSelectedCity('all')}><X size={10} /></button>
+                </span>
               )}
+              {filterAvailable !== null && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full">
+                  {filterAvailable ? 'Disponibles' : 'Indisponibles'}
+                  <button onClick={() => setFilterAvailable(null)}><X size={10} /></button>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Grid ── */}
+        <div className="max-w-6xl mx-auto px-6 py-8 pb-20">
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-28 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                <Search size={20} className="text-slate-400" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-800 mb-1">Aucun résultat</h3>
+              <p className="text-sm text-slate-400 mb-5">Modifie ta recherche ou réinitialise les filtres.</p>
+              <button onClick={() => { setSearch(''); setFilterAvailable(null); setSelectedCity('all'); }}
+                className="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition">
+                Réinitialiser
+              </button>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filtered.map(student => (
+                <StudentCard key={student.uid} student={student} currentUser={currentUser} onMessage={handleMessage} />
+              ))}
             </div>
           )}
         </div>
       </div>
+    </>
+  );
+}
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-gray-600">
-            {filtered.length} {filtered.length === 1 ? 'résultat' : 'résultats'}{' '}
-            {search && `pour "${search}"`}
-          </p>
-          {filtered.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Sparkles className="w-4 h-4 text-[#8a6bfe]" />
-              Profils mis à jour en temps réel
-            </div>
+/* ══════════════════════════════════════════════════════════ */
+function StudentCard({ student, currentUser, onMessage }: {
+  student: Student; currentUser: any; onMessage: (uid: string) => void;
+}) {
+  const name = [student.firstName, student.lastName].filter(Boolean).join(' ') || student.username || 'Étudiant';
+
+  return (
+    <div className="group bg-white rounded-2xl border border-slate-100 hover:border-violet-200
+                    hover:shadow-[0_8px_32px_rgba(124,95,230,0.1)] transition-all duration-200 overflow-hidden flex flex-col">
+
+      {/* Top strip */}
+      <div className="relative h-14 bg-transparent border-b border-transparent"></div>
+
+      {/* Avatar */}
+      <div className="-mt-7 px-5">
+        <img src={student.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c5fe6&color=fff`}
+          alt={name}
+          className="w-20 h-20 rounded-xl object-cover border-2 border-white shadow-md bg-violet-100 z-10" />
+      </div>
+
+      {/* Content */}
+      <div className="px-5 pt-2 pb-5 flex flex-col flex-1">
+        <h3 className="font-bold text-sm text-slate-900 mb-0.5 group-hover:text-violet-700 transition-colors"
+          style={{ fontFamily: 'Sora, system-ui' }}>
+          {name}
+        </h3>
+
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {student.city && (
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <MapPin size={10} /> {student.city}
+            </span>
+          )}
+          {student.studentProfile?.hourlyRate && (
+            <span className="text-xs font-bold text-violet-600">{student.studentProfile.hourlyRate} €/h</span>
           )}
         </div>
 
-        {/* Liste des étudiants */}
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Search className="w-10 h-10 text-[#8a6bfe] mb-3" />
-            <p className="text-xl font-semibold text-gray-700 mb-1">Aucun résultat</p>
-            <p className="text-gray-500 mb-4">
-              Essayez de modifier vos critères ou réinitialisez les filtres.
+        <p className="text-xs text-slate-500 line-clamp-2 mb-3 flex-1 leading-relaxed">
+          {student.studentProfile?.description || student.bio || 'Étudiant disponible pour des missions.'}
+        </p>
+
+        {student.studentProfile?.experiences && student.studentProfile.experiences.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+              <BookOpen size={9} /> Expériences
             </p>
-            <button
-              onClick={() => {
-                setSearch('');
-                setFilterAvailable(null);
-                setSelectedCity('all');
-              }}
-              className="px-5 py-2 bg-[#8a6bfe] text-white rounded-lg hover:bg-[#7a5aee]"
-            >
-              Réinitialiser
-            </button>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map((student) => (
-              <div
-                key={student.uid}
-                className="relative bg-white rounded-2xl shadow-sm hover:shadow-xl border border-gray-100 overflow-hidden transition-all duration-200 hover:-translate-y-1"
-              >
-                <div className="h-20 bg-gradient-to-br from-[#8a6bfe] via-[#9b7dff] to-[#b19cff] relative" />
-
-                <div className="relative -mt-12 px-6">
-                  <img
-                    src={
-                      student.photoURL ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        student.firstName || student.username || 'Etudiant'
-                      )}&background=8a6bfe&color=fff`
-                    }
-                    alt={student.firstName || student.username}
-                    className="w-24 h-24 rounded-2xl object-cover border-4 bg-[#8a6bfe] border-white shadow-xl"
-                  />
-                </div>
-
-                <div className="px-6 pb-6">
-                  <h3 className="font-bold text-lg text-gray-900">
-                    {student.firstName} {student.lastName}
-                  </h3>
-                  {student.city && (
-                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {student.city}
-                    </p>
-                  )}
-
-                  <p className="text-sm text-gray-600 mt-3 line-clamp-2">
-                    {student.studentProfile?.description ||
-                      student.bio ||
-                      'Étudiant disponible pour des missions.'}
-                  </p>
-
-                  {student.studentProfile?.experiences &&
-                    student.studentProfile.experiences.length > 0 && (
-                      <div className="mt-4 space-y-1">
-                        <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
-                          <BookOpen className="w-3 h-3" /> Expériences
-                        </p>
-                        {student.studentProfile.experiences.slice(0, 2).map((exp) => (
-                          <div key={exp.id} className="text-xs text-gray-700 truncate">
-                            • {exp.title}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                  <div className="flex gap-2 mt-5">
-                    <Link
-                      href={`/profile/${student.uid}`}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#8a6bfe] to-[#7a5aee] text-white text-sm rounded-lg text-center hover:shadow-lg transition-all"
-                    >
-                      Voir le profil
-                    </Link>
-                    <Link
-                      href={`/messages?newChat=${student.uid}`}
-                      className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
+            {student.studentProfile.experiences.slice(0, 2).map(exp => (
+              <p key={exp.id} className="text-xs text-slate-500 truncate">· {exp.title}</p>
             ))}
           </div>
         )}
+
+        <div className="flex gap-2 mt-auto pt-3 border-t border-slate-50">
+          <Link href={`/profile/${student.uid}`}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-violet-600 hover:bg-violet-700
+                       text-white text-xs font-semibold rounded-xl transition-all">
+            Voir le profil <ChevronRight size={11} />
+          </Link>
+          {currentUser && currentUser.uid !== student.uid && (
+            <button onClick={() => onMessage(student.uid)} title="Envoyer un message"
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-violet-600 rounded-xl transition-all">
+              <MessageSquare size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

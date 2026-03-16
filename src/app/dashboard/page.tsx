@@ -1,518 +1,409 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { JSX, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
-  Megaphone,
-  ListChecks,
-  Users,
-  MessageSquare,
-  UserCog,
-  ShieldCheck,
-  Sparkles,
-  Handshake,
-  Trophy,
-  ArrowRight,
-  BarChart3,
-  UserCheck,
-  Clock,
-  TrendingUp,
-  Zap,
-  Star,
-  Gift,
-  Bell,
-  Settings,
+  Megaphone, ListChecks, Users, MessageSquare, UserCog,
+  ShieldCheck, Trophy, ArrowRight, BarChart3, UserCheck,
+  TrendingUp, Star, Bell, Settings, Briefcase, Activity,
+  ChevronRight, Zap,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
-  collection,
-  getCountFromServer,
-  doc,
-  getDoc,
-  query,
-  where,
+  collection, getCountFromServer, doc, getDoc, query, where,
 } from 'firebase/firestore';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
-    students: 0,
-    users: 0,
-    annonces: 0,
-    jobs: 0,
-  });
-  const [user, setUser] = useState<any>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const [stats, setStats]     = useState({ students: 0, users: 0, annonces: 0, jobs: 0 });
+  const [user, setUser]       = useState<any>(null);
+  const [firstName, setFirstName] = useState('');
+  const [role, setRole]       = useState<string | null>(null);
   const [greeting, setGreeting] = useState('');
-  const [hasStudentProfile, setHasStudentProfile] = useState<boolean>(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        window.location.href = '/auth/login';
-        return;
-      }
-
+      if (!u) { window.location.href = '/auth/login'; return; }
       setUser(u);
-
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
-
         if (snap.exists()) {
-          const data = snap.data();
-          setRole(data.role || null);
-          setHasStudentProfile(data.hasStudentProfile === true);
+          const d = snap.data();
+          setRole(d.role || null);
+          setFirstName(d.firstName || u.displayName?.split(' ')[0] || u.email?.split('@')[0] || '');
         }
-      } catch (err) {
-        console.error('Erreur récupération rôle/profil étudiant :', err);
-      }
-    });
-
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) window.location.href = '/auth/login';
-      else {
-        setUser(u);
-        try {
-          const snap = await getDoc(doc(db, 'users', u.uid));
-          if (snap.exists()) setRole(snap.data().role || null);
-        } catch (err) {
-          console.error('Erreur récupération rôle :', err);
-        }
+      } catch {
+        setFirstName(u.displayName?.split(' ')[0] || u.email?.split('@')[0] || '');
       }
     });
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Bonjour');
-    else if (hour < 18) setGreeting('Bon après-midi');
-    else setGreeting('Bonsoir');
+    const h = new Date().getHours();
+    setGreeting(h < 13 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir');
   }, []);
 
   useEffect(() => {
-    async function fetchStats() {
+    (async () => {
       try {
-        const studentsQuery = query(
-          collection(db, "users"),
-          where("hasStudentProfile", "==", true)
-        );
-
-        const jobsQuery = query(
-          collection(db, "annonces"),
-          where("statut", "==", "fini")
-        );
-
-        const [studentsSnap, usersSnap, annoncesSnap, jobsSnap] =
-          await Promise.all([
-            getCountFromServer(studentsQuery),
-            getCountFromServer(collection(db, "users")),
-            getCountFromServer(collection(db, "annonces")),
-            getCountFromServer(jobsQuery),
-          ]);
-
-        setStats({
-          students: studentsSnap.data().count,
-          users: usersSnap.data().count,
-          annonces: annoncesSnap.data().count,
-          jobs: jobsSnap.data().count,
-        });
-      } catch (err) {
-        console.error("Erreur chargement stats :", err);
-      }
-    }
-    fetchStats();
+        const [sS, uS, aS, jS] = await Promise.all([
+          getCountFromServer(query(collection(db, 'users'), where('hasStudentProfile', '==', true))),
+          getCountFromServer(collection(db, 'users')),
+          getCountFromServer(collection(db, 'annonces')),
+          getCountFromServer(query(collection(db, 'annonces'), where('statut', '==', 'fini'))),
+        ]);
+        setStats({ students: sS.data().count, users: uS.data().count, annonces: aS.data().count, jobs: jS.data().count });
+      } catch {}
+    })();
   }, []);
 
   if (!user) return null;
 
-  const mainActions = [
-    {
-      href: '/jobs/create',
-      icon: <Megaphone className="w-6 h-6" />,
-      label: 'Publier',
-      description: 'Créer une annonce',
-      color: 'from-[#8a6bfe] to-[#6b4fd9]',
-      primary: true,
-    },
-    {
-      href: '/jobs',
-      icon: <ListChecks className="w-6 h-6" />,
-      label: 'Annonces',
-      description: 'Parcourir les offres',
-      color: 'from-[#6b4fd9] to-[#8a6bfe]',
-    },
-    {
-      href: '/students',
-      icon: <Users className="w-6 h-6" />,
-      label: 'Étudiants',
-      description: 'Trouver des talents',
-      color: 'from-[#7b5bef] to-[#9d7fff]',
-    },
-    {
-      href: '/messages',
-      icon: <MessageSquare className="w-6 h-6" />,
-      label: 'Messages',
-      description: 'Conversations',
-      color: 'from-[#5b4bc9] to-[#7b5bef]',
-    },
+  /* ── data ── */
+  const primaryActions = [
+    { href: '/jobs/create',  icon: <Megaphone   size={15} />, label: 'Publier une annonce',    sub: 'Créer et diffuser' },
+    { href: '/jobs',         icon: <ListChecks  size={15} />, label: 'Annonces',               sub: 'Parcourir les offres' },
+    { href: '/students',     icon: <Users       size={15} />, label: 'Étudiants',              sub: 'Trouver des talents' },
+    { href: '/messages',     icon: <MessageSquare size={15}/>, label: 'Messagerie',            sub: 'Conversations' },
   ];
 
-  const secondaryActions = [
-    {
-      href: '/dashboard/profile',
-      icon: <UserCog className="w-5 h-5" />,
-      label: 'Mon profil',
-    },
-    {
-      href: '/dashboard/activity',
-      icon: <Clock className="w-5 h-5" />,
-      label: 'Mon activité',
-    },
+  const accountLinks: { href: string; icon: JSX.Element; label: string; desc: string }[] = [
+    { href: '/dashboard/profile',   icon: <UserCog  size={14}/>, label: 'Mon profil',          desc: 'Informations personnelles' },
+    { href: '/dashboard/activity',  icon: <Activity size={14}/>, label: 'Activité',            desc: 'Historique et missions' },
   ];
-
-  if (role === 'collaborator' || role === 'admin') {
-    secondaryActions.push({
-      href: '/dashboard/collaborateur',
-      icon: <UserCheck className="w-5 h-5" />,
-      label: 'Espace collaborateur',
-    });
-  }
-
+  if (role === 'collaborator' || role === 'admin')
+    accountLinks.push({ href: '/dashboard/collaborateur', icon: <UserCheck size={14}/>, label: 'Espace collaborateur', desc: 'Gestion des profils' });
   if (role === 'admin') {
-    secondaryActions.push(
-      {
-        href: '/dashboard/jobs-career',
-        icon: <Briefcase className="w-5 h-5" />,
-        label: 'Créer des postes',
-      },
-      {
-        href: '/dashboard/applications',
-        icon: <ListChecks className="w-5 h-5" />,
-        label: 'Candidatures',
-      }
-    );
+    accountLinks.push({ href: '/dashboard/jobs-career',  icon: <Briefcase size={14}/>, label: 'Postes internes',      desc: 'Créer des offres' });
+    accountLinks.push({ href: '/dashboard/applications', icon: <ListChecks size={14}/>, label: 'Candidatures',        desc: 'Gérer les demandes' });
   }
 
-  /*if (hasStudentProfile === true) {
-    secondaryActions.push({
-      href: '/dashboard/finance',
-      icon: <Star className="w-5 h-5" />,
-      label: 'Mes finances',
-    });
-  }*/
-
-  const statsData = [
-    {
-      label: 'Étudiants',
-      value: stats.students,
-      icon: <Users className="w-6 h-6" />,
-      color: 'from-[#8a6bfe] to-[#6b4fd9]',
-      change: '+12%',
-    },
-    {
-      label: 'Annonces',
-      value: stats.annonces,
-      icon: <Megaphone className="w-6 h-6" />,
-      color: 'from-[#7b5bef] to-[#5b4bc9]',
-      change: '+8%',
-    },
-    {
-      label: 'Travaux réalisés',
-      value: stats.jobs,
-      icon: <Trophy className="w-6 h-6" />,
-      color: 'from-[#9d7fff] to-[#8a6bfe]',
-      change: '+15%',
-    },
-    {
-      label: 'Utilisateurs',
-      value: stats.users,
-      icon: <Star className="w-6 h-6" />,
-      color: 'from-[#6b4fd9] to-[#7b5bef]',
-      change: '+10%',
-    },
+  const kpis = [
+    { label: 'Étudiants', value: stats.students, delta: '+12 %', icon: <Users size={13}/> },
+    { label: 'Annonces',  value: stats.annonces,  delta: '+8 %',  icon: <Megaphone size={13}/> },
+    { label: 'Missions terminées', value: stats.jobs, delta: '+15 %', icon: <Trophy size={13}/> },
+    { label: 'Utilisateurs', value: stats.users,  delta: '+10 %', icon: <Star size={13}/> },
   ];
+
+  const roleLabel = role === 'admin' ? 'Admin' : role === 'collaborator' ? 'Collaborateur' : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-      {/* Header avec gradient Woppy */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl"
-      >
-        <div className="max-w-7xl mx-auto px-6 py-12 sm:py-16">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <p className="text-purple-100 text-sm font-medium mb-2">
-                  {greeting} 👋
-                </p>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
-                  {user.displayName || user.email.split('@')[0]}
-                </h1>
-                <p className="text-purple-100 text-base sm:text-lg max-w-2xl">
-                  Bienvenue sur ton tableau de bord Woppy
-                </p>
-              </motion.div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+        .db { font-family: system-ui, -apple-system, sans-serif; }
+        .db-mono { font-family: 'Geist Mono', 'Fira Code', monospace; }
+        .db-title { font-family: 'Sora', system-ui, sans-serif; }
+      `}</style>
 
-              {/* Badge rôle */}
-              {role && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium"
-                >
-                  <Zap className="w-4 h-4" />
-                  {role === 'admin' ? 'Administrateur' : role === 'collaborator' ? 'Collaborateur' : 'Membre'}
-                </motion.div>
+      <div className="db min-h-screen" style={{ background: '#ffffff', color: '#0c0b14' }}>
+
+        {/* ════════════ TOPBAR ════════════ */}
+        <header style={{ borderBottom: '1px solid rgba(255,255,255,0.055)', background: 'rgba(255, 255, 255, 0.92)' }}
+          className="sticky top-0 z-50 backdrop-blur-xl">
+          <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+
+            {/* left */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-md flex items-center justify-center"
+                style={{ background: '#7c5fe6' }}>
+                <span className="db-title font-bold text-white" style={{ fontSize: 9 }}>W</span>
+              </div>
+              <span className="db-title font-semibold text-sm" style={{ color: '#0c0b14', letterSpacing: '-0.01em' }}>
+                Dashboard
+              </span>
+              {roleLabel && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-md"
+                  style={{ background: 'rgba(124,95,230,0.12)', color: '#9d82ff', border: '1px solid rgba(124,95,230,0.2)' }}>
+                  {roleLabel}
+                </span>
               )}
             </div>
 
-            {/* Actions rapides header */}
-            <div className="hidden lg:flex items-center gap-2">
-              <Link
-                href="/notifications"
-                className="p-3 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-400 rounded-full animate-pulse" />
-              </Link>
-              <Link
-                href="/dashboard/profile"
-                className="p-3 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <Settings className="w-5 h-5" />
-              </Link>
+            {/* right */}
+            <div className="flex items-center gap-0.5">
+              {[
+                { href: '/notifications', icon: <Bell size={15} /> },
+                { href: '/dashboard/profile', icon: <Settings size={15} /> },
+              ].map(({ href, icon }) => (
+                <Link key={href} href={href}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: '#6b6880' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#c4bfdc')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#6b6880')}>
+                  {icon}
+                </Link>
+              ))}
+              <div className="w-px h-3.5 mx-2" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="h-6 px-2.5 rounded-md flex items-center gap-1.5 text-xs font-medium cursor-default"
+                style={{ background: 'rgba(124,95,230,0.1)', color: '#0c0b14', border: '1px solid rgba(124,95,230,0.18)' }}>
+                <div className="w-1.5 h-1.5 rounded-full text-[#0c0b14]" />
+                {firstName || '…'}
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </header>
 
-      {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-6 py-8 sm:py-12">
-        {/* Actions principales - Cards grandes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#8a6bfe]" />
-            Actions rapides
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {mainActions.map((action, index) => (
+        <div className="max-w-6xl mx-auto px-6 py-12">
+
+          {/* ════════════ GREETING ════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-12"
+          >
+            <p className="text-xs font-medium mb-3" style={{ color: '#4a4760', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              {greeting}
+            </p>
+            <h1 className="db-title font-bold mb-2"
+              style={{ fontSize: 'clamp(26px,4vw,36px)', color: '#0c0b14', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+              {firstName || '…'}
+            </h1>
+            <p className="text-sm" style={{ color: '#5a5672' }}>
+              Aperçu de la plateforme Woppy — données synchronisées en temps réel.
+            </p>
+          </motion.div>
+
+          {/* ════════════ KPI ROW ════════════ */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.08, duration: 0.35 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-px mb-12 rounded-xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,255,255,0.055)', background: 'rgba(255,255,255,0.055)' }}
+          >
+            {kpis.map((k, i) => (
               <motion.div
-                key={action.href}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-                whileHover={{ y: -4 }}
+                key={k.label}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 + i * 0.04 }}
+                className="flex flex-col justify-between p-5 cursor-default group transition-colors"
+                style={{ background: '#0c0b14' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#110f1f')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#0c0b14')}
               >
-                <Link
-                  href={action.href}
-                  className="group block h-full"
-                >
-                  <div className={`
-                    relative h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300
-                    bg-gradient-to-br ${action.color} p-6 border border-white/10
-                  `}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
-                    
-                    <div className="relative z-10">
-                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
-                        {action.icon}
-                      </div>
-                      
-                      <h3 className="text-white font-bold text-xl mb-1">
-                        {action.label}
-                      </h3>
-                      <p className="text-white/80 text-sm mb-4">
-                        {action.description}
-                      </p>
-                      
-                      <div className="flex items-center text-white/90 text-sm font-medium">
-                        <span className="group-hover:mr-2 transition-all">Accéder</span>
-                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Statistiques - Design moderne */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-[#8a6bfe]" />
-              Statistiques Woppy
-            </h2>
-            <span className="text-sm text-gray-500 flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              Données en temps réel
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {statsData.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 * index }}
-                whileHover={{ scale: 1.03, y: -4 }}
-                className="bg-white rounded-2xl p-6 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 relative overflow-hidden group"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#8a6bfe]/5 to-transparent rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                      {stat.icon}
-                    </div>
-                    <span className="text-green-600 text-xs font-semibold bg-green-50 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      {stat.change}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-1 font-medium">
-                    {stat.label}
-                  </p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] bg-clip-text text-transparent">
-                    {stat.value.toLocaleString('fr-BE')}
-                  </p>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-medium" style={{ color: '#4a4760' }}>{k.label}</span>
+                  <span className="text-xs font-semibold db-mono" style={{ color: '#34d399' }}>{k.delta}</span>
+                </div>
+                <div className="db-mono font-medium" style={{ fontSize: 28, color: '#eae8f8', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  {k.value.toLocaleString('fr-BE')}
                 </div>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Actions secondaires - Liste compacte */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Gift className="w-5 h-5 text-[#8a6bfe]" />
-            Plus d'options
-          </h2>
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 divide-y divide-gray-100">
-            {secondaryActions.map((action, index) => (
-              <motion.div
-                key={action.href}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 * index }}
+          {/* ════════════ BODY GRID ════════════ */}
+          <div className="grid lg:grid-cols-5 gap-5">
+
+            {/* ── LEFT 3/5 ── */}
+            <div className="lg:col-span-3 space-y-5">
+
+              {/* Primary actions */}
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.14 }}
               >
-                <Link
-                  href={action.href}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white shadow-sm">
-                      {action.icon}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
+                    Actions
+                  </span>
+                </div>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.055)' }}>
+                  {primaryActions.map((a, i) => (
+                    <Link key={a.href} href={a.href}
+                      className="group flex items-center justify-between px-5 py-3.5 transition-colors"
+                      style={{
+                        borderBottom: i < primaryActions.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        background: '#0e0c1c',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#131128')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#0e0c1c')}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                          style={{ background: 'rgba(124,95,230,0.08)', border: '1px solid rgba(124,95,230,0.14)', color: '#7c5fe6' }}>
+                          {a.icon}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium transition-colors" style={{ color: '#ccc8e8', letterSpacing: '-0.01em' }}>
+                            {a.label}
+                          </div>
+                          <div className="text-xs mt-0.5" style={{ color: '#3d3a56' }}>{a.sub}</div>
+                        </div>
+                      </div>
+                      <ChevronRight size={13} style={{ color: '#2e2b45' }} className="group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  ))}
+                </div>
+              </motion.section>
+
+              {/* Activity bars */}
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="rounded-xl p-5"
+                style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}
+              >
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
+                    Répartition
+                  </span>
+                  <span className="text-xs db-mono" style={{ color: '#3d3a56' }}>
+                    {stats.users} total
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Étudiants inscrits', value: stats.students, pct: Math.round((stats.students / Math.max(stats.users, 1)) * 100) },
+                    { label: 'Annonces actives',   value: stats.annonces, pct: Math.min(Math.round((stats.annonces / Math.max(stats.users, 1)) * 100), 100) },
+                    { label: 'Missions terminées', value: stats.jobs,     pct: Math.min(Math.round((stats.jobs     / Math.max(stats.users, 1)) * 100), 100) },
+                  ].map(bar => (
+                    <div key={bar.label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs" style={{ color: '#5a5672' }}>{bar.label}</span>
+                        <span className="text-xs db-mono font-medium" style={{ color: '#7c5fe6' }}>
+                          {bar.value.toLocaleString('fr-BE')}
+                          <span style={{ color: '#3d3a56' }}> · {bar.pct}%</span>
+                        </span>
+                      </div>
+                      <div className="h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${bar.pct}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          className="h-full rounded-full"
+                          style={{ background: 'linear-gradient(90deg, #7c5fe6, #a78bfa)' }}
+                        />
+                      </div>
                     </div>
-                    <span className="font-medium text-gray-900">
-                      {action.label}
-                    </span>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-[#8a6bfe] group-hover:translate-x-1 transition-all" />
-                </Link>
+                  ))}
+                </div>
+              </motion.section>
+
+              {/* Security row */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.26 }}
+                className="flex items-center gap-4 px-5 py-4 rounded-xl"
+                style={{ border: '1px solid rgba(124,95,230,0.12)', background: 'rgba(124,95,230,0.04)' }}
+              >
+                <ShieldCheck size={15} style={{ color: '#7c5fe6', flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium" style={{ color: '#9d82ff' }}>Plateforme sécurisée</span>
+                  <span className="text-xs ml-2" style={{ color: '#3d3a56' }}>
+                    Stripe · vérification manuelle · anti-spam
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs db-mono shrink-0" style={{ color: '#34d399' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Opérationnel
+                </div>
               </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Footer info - Design moderne */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-r from-[#7b5bef] to-[#8a6bfe] rounded-2xl p-8 text-white shadow-xl"
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-7 h-7" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-1">
-                  Plateforme sécurisée & fiable
-                </h3>
-                <p className="text-purple-100 text-sm">
-                  Paiements protégés, système anti-spam et support 24/7
-                </p>
-              </div>
             </div>
 
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                <span>Anti-spam actif</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Handshake className="w-5 h-5" />
-                <span>Communauté bienveillante</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+            {/* ── RIGHT 2/5 ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+              className="lg:col-span-2 space-y-5"
+            >
 
-        {/* Tips section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8"
-        >
-          <div className="bg-white rounded-2xl p-6 shadow-md border border-[#8a6bfe]/20 max-w-2xl mx-auto">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <p className="text-gray-900 font-semibold mb-1">
-                  Astuce du jour
+              {/* Account nav */}
+              <section>
+                <div className="mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
+                    Mon espace
+                  </span>
+                </div>
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.055)' }}>
+                  {accountLinks.map((a, i) => (
+                    <Link key={a.href} href={a.href}
+                      className="group flex items-center gap-3 px-4 py-3 transition-colors"
+                      style={{
+                        borderBottom: i < accountLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        background: '#0e0c1c',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#131128')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#0e0c1c')}
+                    >
+                      <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.04)', color: '#5a5672', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        {a.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate transition-colors"
+                          style={{ color: '#bbb8d6', letterSpacing: '-0.01em' }}>
+                          {a.label}
+                        </div>
+                        <div className="text-xs truncate mt-0.5" style={{ color: '#3a374f' }}>{a.desc}</div>
+                      </div>
+                      <ChevronRight size={12} style={{ color: '#2a2740', flexShrink: 0 }}
+                        className="group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              {/* Tip */}
+              <section className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Zap size={11} style={{ color: '#7c5fe6' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
+                    Conseil
+                  </span>
+                </div>
+                <p className="text-sm font-medium mb-1" style={{ color: '#bbb8d6', letterSpacing: '-0.01em' }}>
+                  Profil incomplet détecté
                 </p>
-                <p className="text-gray-600 text-sm">
-                  Complète ton profil pour recevoir plus d'opportunités et être mieux visible auprès des recruteurs
+                <p className="text-xs leading-relaxed mb-3" style={{ color: '#3d3a56' }}>
+                  Compléter ton profil augmente ta visibilité de 3× auprès des particuliers et recruteurs.
                 </p>
-              </div>
-            </div>
+                <Link href="/dashboard/profile"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+                  style={{ color: '#7c5fe6' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#7c5fe6')}
+                >
+                  Compléter le profil <ArrowRight size={11} />
+                </Link>
+              </section>
+
+              {/* Quick stat callout */}
+              <section className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}>
+                <div className="flex items-center gap-1.5 mb-4">
+                  <BarChart3 size={11} style={{ color: '#4a4760' }} />
+                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
+                    Plateforme
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Taux de réalisation', value: stats.jobs > 0 ? `${Math.round((stats.jobs / Math.max(stats.annonces, 1)) * 100)}%` : '—' },
+                    { label: 'Ratio étudiant/user', value: stats.users > 0 ? `${Math.round((stats.students / Math.max(stats.users, 1)) * 100)}%` : '—' },
+                  ].map(item => (
+                    <div key={item.label} className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div className="db-mono font-medium mb-1" style={{ fontSize: 20, color: '#eae8f8', letterSpacing: '-0.02em' }}>
+                        {item.value}
+                      </div>
+                      <div className="text-xs" style={{ color: '#3d3a56', lineHeight: 1.3 }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       </div>
-    </div>
+    </>
   );
-}
-
-// Import manquant pour Briefcase
-import { Briefcase } from 'lucide-react';
-
-function hasStudentProfile(user: any) {
-  throw new Error('Function not implemented.');
 }
