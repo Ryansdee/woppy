@@ -759,26 +759,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════════════════ FOOTER ══════════════════ */}
-      <footer className="border-t border-slate-100 bg-white py-10 px-5">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="font-sora font-bold text-white text-xs">W</span>
-            </div>
-            <span className="font-sora font-bold text-slate-800">woppy</span>
-            <span className="text-slate-300 mx-2">·</span>
-            <span className="text-xs text-slate-400">Louvain-la-Neuve, Belgique</span>
-          </div>
-          <div className="flex gap-6 text-xs text-slate-400">
-            <a href="#" className="hover:text-violet-600 transition-colors">Conditions</a>
-            <a href="#" className="hover:text-violet-600 transition-colors">Confidentialité</a>
-            <a href="#" className="hover:text-violet-600 transition-colors">Contact</a>
-          </div>
-          <span className="text-xs text-slate-400">© 2025 Woppy. Tous droits réservés.</span>
-        </div>
-      </footer>
-
     </main>
   );
 }
