@@ -89,10 +89,70 @@ export default function ActivityPage() {
         const mySnap = await getDocs(query(collection(db, "annonces"), where("userId", "==", uid)));
         setAnnoncesEnCours(mySnap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(a => a.acceptedUserId && a.statut !== "fini"));
 
+<<<<<<< HEAD
         const doneSnap = await getDocs(query(collection(db, "annonces"), where("userId", "==", uid), where("statut", "==", "fini")));
         setAnnoncesTerminees(doneSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
+=======
+        /* ---------------------------------------------------- */
+        /* 📌 3. Jobs terminés                                 */
+        /* ---------------------------------------------------- */
+        const finQ = query(
+          collection(db, "annonces"),
+          where("acceptedUserId", "==", uid),
+          where("statut", "==", "fini")
+        );
+        const finSnap = await getDocs(finQ);
+        setJobsTermines(finSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+        /* ---------------------------------------------------- */
+        /* 📌 4. Annonces publiées                             */
+        /* ---------------------------------------------------- */
+        const pubQ = query(
+          collection(db, "annonces"),
+          where("userId", "==", uid),
+          where("statut", "==", "ouverte")
+        );
+        const pubSnap = await getDocs(pubQ);
+        setAnnoncesPubliees(
+          pubSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        );
+
+        /* ---------------------------------------------------- */
+        /* 📌 5. Annonces en cours                             */
+        /* ---------------------------------------------------- */
+        const myAdsQ = query(
+          collection(db, "annonces"),
+          where("userId", "==", uid)
+        );
+
+        const myAdsSnap = await getDocs(myAdsQ);
+
+        const enCours = myAdsSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as any))
+          .filter((a) => a.acceptedUserId && a.statut !== "fini");
+
+        setAnnoncesEnCours(enCours);
+
+        /* ---------------------------------------------------- */
+        /* 📌 6. Annonces terminées                            */
+        /* ---------------------------------------------------- */
+        const doneQ = query(
+          collection(db, "annonces"),
+          where("userId", "==", uid),
+          where("statut", "==", "fini")
+        );
+        const doneSnap = await getDocs(doneQ);
+        setAnnoncesTerminees(
+          doneSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        );
+      } catch (error) {
+        console.error("Erreur chargement données:", error);
+      } finally {
+        setLoading(false);
+      }
+>>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
     }
     load();
   }, [user, isStudent]);
@@ -302,10 +362,28 @@ function Empty({ text, action }: { text: string; action?: { label: string; href:
   );
 }
 
+<<<<<<< HEAD
 /* ── Job card ── */
 function JobCard({ annonce, type, user, index }: {
   annonce: any; type: keyof typeof JOB_STATUS; user: any; index: number;
+=======
+function JobCard({
+  id,
+  titre,
+  date,
+  lieu,
+  type,
+  index,
+}: {
+  id: string;
+  titre: string;
+  date?: string;
+  lieu?: string;
+  type: 'pending' | 'selected' | 'done';
+  index: number;
+>>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 }) {
+
   const [loading, setLoading] = useState(false);
   const cfg = JOB_STATUS[type];
 
@@ -324,6 +402,7 @@ function JobCard({ annonce, type, user, index }: {
       className="group bg-white rounded-xl border border-slate-100 hover:border-violet-200
                  hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)] transition-all duration-200"
     >
+<<<<<<< HEAD
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 mr-3">
           <Link href={`/jobs/${annonce.id}`}>
@@ -334,6 +413,52 @@ function JobCard({ annonce, type, user, index }: {
           <div className="flex flex-wrap gap-3 text-xs text-slate-400">
             {annonce.lieu && (
               <span className="flex items-center gap-1"><MapPin size={11} />{annonce.lieu}</span>
+=======
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${currentConfig.gradient} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`} />
+      
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold">
+              {titre}
+            </h3>
+            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+              {lieu && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {lieu}
+                </span>
+              )}
+              {date && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {date}
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap ${currentConfig.badge}`}>
+            {currentConfig.label}
+          </span>
+        </div>
+
+        {type === "selected" && (
+          <button
+            onClick={handleMarkAsDone}
+            disabled={loading}
+            className="w-full mt-4 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Marquer comme terminé
+              </>
+>>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
             )}
             {annonce.date && (
               <span className="flex items-center gap-1"><Calendar size={11} />{annonce.date}</span>

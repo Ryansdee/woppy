@@ -3,8 +3,19 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+<<<<<<< HEAD
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+=======
+            <div>
+              <h4 className="font-bold text-white mb-4">Produit</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/#features" className="hover:text-white transition">Fonctionnalités</Link></li>
+                <li><Link href="/#pricing" className="hover:text-white transition">Tarifs</Link></li>
+                <li><Link href="/demo" className="hover:text-white transition">Démo</Link></li>
+              </ul>
+            </div>
+>>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 
   return (
     <footer className="bg-[#0c0b14] border-t text-white border-slate-100">
