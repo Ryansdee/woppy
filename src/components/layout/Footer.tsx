@@ -3,22 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-<<<<<<< HEAD
 export default function Footer() {
   const currentYear = new Date().getFullYear();
-=======
-            <div>
-              <h4 className="font-bold text-white mb-4">Produit</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/#features" className="hover:text-white transition">Fonctionnalités</Link></li>
-                <li><Link href="/#pricing" className="hover:text-white transition">Tarifs</Link></li>
-                <li><Link href="/demo" className="hover:text-white transition">Démo</Link></li>
-              </ul>
-            </div>
->>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 
   return (
-    <footer className="bg-[#0c0b14] border-t text-white border-slate-100">
+    <footer className="bg-white border-t border-slate-100">
 
       {/* ── Contenu principal ── */}
       <div className="max-w-7xl mx-auto px-6 py-14">
@@ -64,7 +53,7 @@ export default function Footer() {
 
           {/* Produit */}
           <div>
-            <h4 className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">
               Produit
             </h4>
             <ul className="space-y-2.5">
@@ -85,14 +74,13 @@ export default function Footer() {
 
           {/* Entreprise */}
           <div>
-            <h4 className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">
               Entreprise
             </h4>
             <ul className="space-y-2.5">
               {[
                 { label: 'Carrières', href: '/careers' },
                 { label: 'Contact', href: '/contact' },
-                { label: 'Status', href: '/status' },
               ].map(({ label, href }) => (
                 <li key={href}>
                   <Link href={href}
@@ -106,7 +94,7 @@ export default function Footer() {
 
           {/* Légal */}
           <div>
-            <h4 className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">
               Légal
             </h4>
             <ul className="space-y-2.5">

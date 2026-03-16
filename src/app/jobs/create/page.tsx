@@ -8,7 +8,6 @@ import {
   MapPin, Euro, Calendar, Clock, ImageIcon, Users,
   Loader2, X, ArrowLeft, CheckCircle, Info, Upload,
 } from "lucide-react";
-<<<<<<< HEAD
 import Link from "next/link";
 
 const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5";
@@ -22,9 +21,6 @@ const inputCls = `
 
 type DateMode = "exact" | "range";
 type RateMode = "hourly" | "fixed";
-=======
-import { user } from "firebase-functions/v1/auth";
->>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 
 export default function CreateAnnoncePage() {
   const [loading, setLoading]               = useState(false);
@@ -127,29 +123,10 @@ export default function CreateAnnoncePage() {
       if (!u) { alert("Vous devez être connecté."); setLoading(false); return; }
 
       const uploaded: string[] = [];
-<<<<<<< HEAD
       for (const file of photos) {
         const r = ref(storage, `annonceImages/${u.uid}/${Date.now()}_${file.name}`);
         await uploadBytes(r, file);
         uploaded.push(await getDownloadURL(r));
-=======
-
-      const u = auth.currentUser;
-      if (!u) {
-        alert("Vous devez être connecté.");
-        setLoading(false);
-        return;
-      }
-
-      for (const file of photos) {
-        const storageRef = ref(
-          storage,
-          `annonceImages/${u.uid}/${file.name}`
-        );
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        uploaded.push(url);
->>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
       }
 
       const dateValue = dateMode === "exact"

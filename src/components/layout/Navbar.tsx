@@ -75,7 +75,6 @@ export default function Navbar() {
           </span>
         </Link>
 
-<<<<<<< HEAD
         {/* ── Nav links desktop ── */}
         <div className="hidden md:flex items-center gap-1 flex-1">
           {links.map((link) => (
@@ -113,53 +112,6 @@ export default function Navbar() {
               <MessageSquare className="w-5 h-5" />
             </button>
           )}
-=======
-		  {/* === MESSAGES (icône uniquement) === */}
-		  {user && (
-			<button
-			  onClick={() => router.push('/messages')}
-			  className={`relative p-2 transition ${
-				pathname === '/messages'
-				  ? 'text-[#8a6bfe]'
-				  : 'text-gray-600 hover:text-[#8a6bfe]'
-			  }`}
-			  title="Messages"
-			>
-			  <MessageSquare className="w-6 h-6 cursor-pointer" />
-			</button>
-		  )}
-
-		  {/* === NOTIFS === */}
-		  {user && (
-			<button
-			  onClick={() => router.push('/notifications')}
-			  className="relative p-2 text-[#8a6bfe] hover:text-[#6e4bf5] transition"
-			  title="Notifications"
-			>
-			  <Bell className="w-6 h-6 cursor-pointer" />
-			  {notifCount > 0 && (
-				<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-				  {notifCount}
-				</span>
-			  )}
-			</button>
-		  )}
-
-		  {/* === DASHBOARD === */}
-		  {user && (
-			<button
-			  onClick={() => router.push('/dashboard')}
-			  className={`p-2 transition ${
-				pathname === '/dashboard'
-				  ? 'text-[#8a6bfe]'
-				  : 'text-gray-600 hover:text-[#8a6bfe]'
-			  }`}
-			  title="Tableau de bord"
-			>
-			  <LayoutDashboard className="w-6 h-6 cursor-pointer" />
-			</button>
-		  )}
->>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 
           {/* Notifications */}
           {user && (
@@ -217,7 +169,6 @@ export default function Navbar() {
                 <ChevronDown size={13} className={`text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
-<<<<<<< HEAD
               <AnimatePresence>
                 {userMenuOpen && (
                   <motion.div
@@ -278,32 +229,6 @@ export default function Navbar() {
           {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
-=======
-				<button
-				  onClick={() => {
-					router.push('/notifications');
-					setMenuOpen(false);
-				  }}
-				  className="flex items-center gap-2 text-[#8a6bfe] font-medium"
-				>
-				  <Bell className="w-5 h-5" /> Notifications
-				  {notifCount > 0 && (
-					<span className="bg-red-500 text-white cursor-pointer text-xs font-bold px-2 py-0.5 rounded-full">
-					  {notifCount}
-					</span>
-				  )}
-				</button>
-
-				<button
-				  onClick={() => {
-					router.push('/dashboard');
-					setMenuOpen(false);
-				  }}
-				  className="flex items-center gap-2 text-[#8a6bfe] cursor-pointer font-medium"
-				>
-				  <LayoutDashboard className="w-5 h-5 cursor-pointer" /> Tableau de bord
-				</button>
->>>>>>> fb6d96296a98b12427d98bea6fed32d1966906fd
 
       {/* ── Menu mobile ── */}
       <AnimatePresence>

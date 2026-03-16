@@ -13,9 +13,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 /* ── Config GitHub ── */
-const GITHUB_OWNER = 'Ryansdee';   // ← remplace par ton username GitHub
+const GITHUB_OWNER = 'ton-username';   // ← remplace par ton username GitHub
 const GITHUB_REPO  = 'woppy';          // ← remplace par ton repo
-const GITHUB_BRANCH = 'master';          // ← ou 'master' selon ton repo
+const GITHUB_BRANCH = 'main';          // ← ou 'master' selon ton repo
 
 const iconMap: Record<string, any> = {
   message:  MessageCircle,
@@ -53,7 +53,10 @@ export default function UpdatesPage() {
     setSyncStatus('idle');
     try {
       /* 1. Récupère le dernier commit GitHub */
-      const res = await fetch('/api/github-sync');
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`,
+        { headers: { Accept: 'application/vnd.github.v3+json' } }
+      );
       if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
       const commit = await res.json();
       setLatestCommit(commit);
