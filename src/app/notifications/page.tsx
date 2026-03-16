@@ -7,744 +7,340 @@ import Image from 'next/image';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  updateDoc,
-  doc,
-  writeBatch,
-  getDoc,
+  collection, query, where, orderBy, onSnapshot,
+  updateDoc, doc, writeBatch, getDoc,
 } from 'firebase/firestore';
-
 import {
-  Bell,
-  Loader2,
-  ArrowLeft,
-  CheckCircle,
-  Briefcase,
-  MessageSquare,
-  AlertCircle,
-  CheckCheck,
-  Trash2,
-  Star,
-  UserPlus,
-  DollarSign,
-  Clock,
-  ExternalLink,
+  Bell, Loader2, ArrowLeft, CheckCircle, Briefcase,
+  MessageSquare, AlertCircle, CheckCheck, Trash2,
+  Star, UserPlus, Euro, ChevronRight,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// ------------------------------------------------------------
-// TypeScript types
-// ------------------------------------------------------------
+/* ── types ── */
 interface UserProfile {
-  uid: string;
-  displayName?: string;
-  firstName?: string;
-  lastName?: string;
-  photoURL?: string;
+  uid: string; displayName?: string;
+  firstName?: string; lastName?: string; photoURL?: string;
 }
-
 interface Notification {
-  id: string;
-  message: string;
-  annonceId?: string;
-  chatId?: string;
-  fromUser?: string;
-  fromUserData?: UserProfile;
-  createdAt?: any;
-  read: boolean;
-  type?: 'job' | 'message' | 'system' | 'alert' | 'review' | 'application' | 'payment';
-  // Champs supplémentaires pour les messages
-  messagePreview?: string;
-  // Champs supplémentaires pour les jobs
-  jobTitle?: string;
-  // Champs supplémentaires pour les reviews
-  rating?: number;
+  id: string; message: string; annonceId?: string; chatId?: string;
+  fromUser?: string; fromUserData?: UserProfile; createdAt?: any;
+  read: boolean; type?: string; messagePreview?: string;
+  jobTitle?: string; rating?: number;
 }
 
-// ------------------------------------------------------------
-// Cache pour les profils utilisateurs
-// ------------------------------------------------------------
-const userProfileCache = new Map<string, UserProfile>();
-
-async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
+/* ── profile cache ── */
+const cache = new Map<string, UserProfile>();
+async function fetchProfile(uid: string): Promise<UserProfile | null> {
   if (!uid) return null;
-
-  // Vérifier le cache
-  if (userProfileCache.has(uid)) {
-    return userProfileCache.get(uid)!;
-  }
-
+  if (cache.has(uid)) return cache.get(uid)!;
   try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      const profile: UserProfile = {
-        uid,
-        displayName:
-          data.displayName ||
-          `${data.firstName || ''} ${data.lastName || ''}`.trim() ||
-          'Utilisateur',
-        firstName: data.firstName,
-        lastName: data.lastName,
-        photoURL:
-          data.photoURL ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            data.firstName || 'U'
-          )}&background=8a6bfe&color=fff`,
-      };
-      userProfileCache.set(uid, profile);
-      return profile;
-    }
-  } catch (err) {
-    console.error('Erreur fetch profil:', err);
-  }
-
-  return null;
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    const p: UserProfile = {
+      uid,
+      displayName: d.displayName || `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Utilisateur',
+      firstName: d.firstName, lastName: d.lastName,
+      photoURL: d.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.firstName || 'U')}&background=7c5fe6&color=fff`,
+    };
+    cache.set(uid, p);
+    return p;
+  } catch { return null; }
 }
 
-// ------------------------------------------------------------
-// Page
-// ------------------------------------------------------------
+/* ── type config ── */
+const TYPE_CFG: Record<string, { label: string; icon: React.ReactNode; dot: string; color: string; bg: string; border: string }> = {
+  message:     { label: 'Message',     icon: <MessageSquare size={13} />, dot: '#7c5fe6', color: '#5b21b6', bg: '#f5f3ff', border: '#ddd6fe' },
+  job:         { label: 'Annonce',     icon: <Briefcase size={13} />,     dot: '#3b82f6', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  application: { label: 'Candidature', icon: <UserPlus size={13} />,      dot: '#22c55e', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  review:      { label: 'Avis',        icon: <Star size={13} />,          dot: '#f59e0b', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  payment:     { label: 'Paiement',    icon: <Euro size={13} />,          dot: '#10b981', color: '#065f46', bg: '#ecfdf5', border: '#a7f3d0' },
+  alert:       { label: 'Alerte',      icon: <AlertCircle size={13} />,   dot: '#ef4444', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+  default:     { label: 'Notification',icon: <Bell size={13} />,          dot: '#94a3b8', color: '#475569', bg: '#f8fafc', border: '#e2e8f0' },
+};
+
+function getCfg(type?: string) { return TYPE_CFG[type ?? ''] ?? TYPE_CFG.default; }
+
+function fmtAgo(ts: any): string {
+  if (!ts?.seconds) return '';
+  const diff = (Date.now() - ts.seconds * 1000) / 1000;
+  if (diff < 60)   return "À l'instant";
+  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)}min`;
+  if (diff < 86400)return `Il y a ${Math.floor(diff / 3600)}h`;
+  if (diff < 604800)return `Il y a ${Math.floor(diff / 86400)}j`;
+  return new Date(ts.seconds * 1000).toLocaleDateString('fr-BE', { day: 'numeric', month: 'short' });
+}
+
+/* ══════════════════════════════════════════════════════════ */
 export default function NotificationsPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'messages' | 'jobs'>('all');
+  const [user, setUser]           = useState<any>(null);
+  const [loading, setLoading]     = useState(true);
+  const [notifs, setNotifs]       = useState<Notification[]>([]);
+  const [filter, setFilter]       = useState<'all' | 'unread' | 'messages' | 'jobs'>('all');
   const router = useRouter();
 
-  // AUTH
+  /* auth */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) router.push('/auth/login');
-      else setUser(u);
-    });
+    const unsub = onAuthStateChanged(auth, u => { if (!u) router.push('/auth/login'); else setUser(u); });
     return () => unsub();
   }, [router]);
 
-  // LOAD NOTIFICATIONS avec données utilisateur
+  /* load */
   useEffect(() => {
     if (!user) return;
-
-    const q = query(
-      collection(db, 'notifications'),
-      where('toUser', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsub = onSnapshot(q, async (snap) => {
-      const rawList: Notification[] = snap.docs
-        .map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-        .filter((n: any) => !n.deleted) as Notification[];
-
-      // Enrichir avec les données utilisateur pour les notifications de message
-      const enrichedList = await Promise.all(
-        rawList.map(async (n) => {
+    const unsub = onSnapshot(
+      query(collection(db, 'notifications'), where('toUser', '==', user.uid), orderBy('createdAt', 'desc')),
+      async snap => {
+        const raw = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((n: any) => !n.deleted) as Notification[];
+        const enriched = await Promise.all(raw.map(async n => {
           if (n.fromUser) {
-            const userData = await fetchUserProfile(n.fromUser);
-            return { ...n, fromUserData: userData || undefined };
+            const ud = await fetchProfile(n.fromUser);
+            return { ...n, fromUserData: ud ?? undefined };
           }
           return n;
-        })
-      );
-
-      // Dédupliquer par ID
-      const uniqueNotifications = Array.from(
-        new Map(enrichedList.map((n) => [n.id, n])).values()
-      );
-
-      setNotifications(uniqueNotifications);
-      setLoading(false);
-    });
-
+        }));
+        setNotifs(Array.from(new Map(enriched.map(n => [n.id, n])).values()));
+        setLoading(false);
+      }
+    );
     return () => unsub();
   }, [user]);
 
-  // Mark as read
-  async function markAsRead(id: string) {
-    try {
-      await updateDoc(doc(db, 'notifications', id), { read: true });
-    } catch (err) {
-      console.error('Erreur mise à jour notification :', err);
-    }
-  }
-
-  // Mark all as read
-  async function markAllAsRead() {
-    if (!user) return;
-
-    try {
-      const batch = writeBatch(db);
-      const unreadNotifs = notifications.filter((n) => !n.read);
-
-      unreadNotifs.forEach((n) => {
-        const notifRef = doc(db, 'notifications', n.id);
-        batch.update(notifRef, { read: true });
-      });
-
-      await batch.commit();
-    } catch (err) {
-      console.error('Erreur lors du marquage des notifications :', err);
-    }
-  }
-
-  // Delete notification
-  async function deleteNotification(id: string, e: React.MouseEvent) {
+  const markRead  = (id: string) => updateDoc(doc(db, 'notifications', id), { read: true }).catch(() => {});
+  const del = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    await updateDoc(doc(db, 'notifications', id), { deleted: true }).catch(() => {});
+  };
+  const markAllRead = async () => {
+    const batch = writeBatch(db);
+    notifs.filter(n => !n.read).forEach(n => batch.update(doc(db, 'notifications', n.id), { read: true }));
+    await batch.commit().catch(() => {});
+  };
 
-    if (!confirm('Supprimer cette notification ?')) return;
+  const onClick = (n: Notification) => {
+    markRead(n.id);
+    if (n.type === 'message' && n.chatId) router.push(`/messages?chatId=${n.chatId}`);
+    else if (n.annonceId) router.push(`/jobs/${n.annonceId}`);
+    else if (n.type === 'review' && n.fromUser) router.push(`/profile/${n.fromUser}`);
+  };
 
-    try {
-      await updateDoc(doc(db, 'notifications', id), { deleted: true });
-    } catch (err) {
-      console.error('Erreur suppression notification :', err);
-    }
-  }
-
-  // Handle notification click
-  function handleNotificationClick(n: Notification) {
-    markAsRead(n.id);
-
-    // Rediriger selon le type
-    if (n.type === 'message' && n.chatId) {
-      router.push(`/messages?chatId=${n.chatId}`);
-    } else if (n.annonceId) {
-      router.push(`/jobs/${n.annonceId}`);
-    } else if (n.type === 'review' && n.fromUser) {
-      router.push(`/profile/${n.fromUser}`);
-    }
-  }
-
-  // Get icon based on type
-  function getNotificationIcon(type?: string) {
-    switch (type) {
-      case 'job':
-        return <Briefcase className="w-5 h-5" />;
-      case 'message':
-        return <MessageSquare className="w-5 h-5" />;
-      case 'alert':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'review':
-        return <Star className="w-5 h-5" />;
-      case 'application':
-        return <UserPlus className="w-5 h-5" />;
-      case 'payment':
-        return <DollarSign className="w-5 h-5" />;
-      default:
-        return <Bell className="w-5 h-5" />;
-    }
-  }
-
-  // Get color based on type
-  function getNotificationColor(type?: string) {
-    switch (type) {
-      case 'job':
-        return 'from-blue-500 to-cyan-500';
-      case 'message':
-        return 'from-[#8a6bfe] to-[#6b4fd9]';
-      case 'alert':
-        return 'from-red-500 to-pink-500';
-      case 'review':
-        return 'from-yellow-500 to-orange-500';
-      case 'application':
-        return 'from-green-500 to-emerald-500';
-      case 'payment':
-        return 'from-emerald-500 to-teal-500';
-      default:
-        return 'from-gray-500 to-gray-600';
-    }
-  }
-
-  // Get type label
-  function getTypeLabel(type?: string) {
-    switch (type) {
-      case 'job':
-        return 'Annonce';
-      case 'message':
-        return 'Message';
-      case 'alert':
-        return 'Alerte';
-      case 'review':
-        return 'Avis';
-      case 'application':
-        return 'Candidature';
-      case 'payment':
-        return 'Paiement';
-      default:
-        return 'Notification';
-    }
-  }
-
-  // Filter notifications
-  const filteredNotifications = notifications.filter((n) => {
-    switch (filter) {
-      case 'unread':
-        return !n.read;
-      case 'messages':
-        return n.type === 'message';
-      case 'jobs':
-        return n.type === 'job' || n.type === 'application';
-      default:
-        return true;
-    }
+  const filtered = notifs.filter(n => {
+    if (filter === 'unread')   return !n.read;
+    if (filter === 'messages') return n.type === 'message';
+    if (filter === 'jobs')     return n.type === 'job' || n.type === 'application';
+    return true;
   });
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const messageCount = notifications.filter((n) => n.type === 'message').length;
-  const jobCount = notifications.filter(
-    (n) => n.type === 'job' || n.type === 'application'
-  ).length;
+  const unreadCount  = notifs.filter(n => !n.read).length;
+  const msgCount     = notifs.filter(n => n.type === 'message').length;
+  const jobCount     = notifs.filter(n => n.type === 'job' || n.type === 'application').length;
 
-  // Format time ago
-  function formatTimeAgo(timestamp: any): string {
-    if (!timestamp?.seconds) return '';
-
-    const now = new Date();
-    const date = new Date(timestamp.seconds * 1000);
-    const diffMs = now.getTime() - date.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-
-    if (diffSec < 60) return "À l'instant";
-    if (diffMin < 60) return `Il y a ${diffMin}min`;
-    if (diffHour < 24) return `Il y a ${diffHour}h`;
-    if (diffDay < 7) return `Il y a ${diffDay}j`;
-
-    return date.toLocaleDateString('fr-BE', {
-      day: 'numeric',
-      month: 'short',
-    });
-  }
-
-  // ------------------------------------------------------------
-  // LOADING
-  // ------------------------------------------------------------
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-        <Loader2 className="animate-spin w-12 h-12 mb-4 text-[#8a6bfe]" />
-        <p className="text-gray-600 font-medium">
-          Chargement des notifications...
-        </p>
-      </div>
-    );
-  }
-
-  // ------------------------------------------------------------
-  // RENDER PAGE
-  // ------------------------------------------------------------
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-      {/* Header avec gradient Woppy */}
-      <div className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl">
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-purple-100 hover:text-white mb-6 transition-colors"
-            >
-              <ArrowLeft size={18} />
-              Retour au tableau de bord
-            </Link>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <Bell className="w-7 h-7" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold">Notifications</h1>
-                  <p className="text-purple-100 mt-1">
-                    {unreadCount > 0 ? (
-                      <>
-                        <span className="font-semibold">{unreadCount}</span> non
-                        lue
-                        {unreadCount > 1 ? 's' : ''}
-                      </>
-                    ) : (
-                      'Tout est à jour'
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Stats rapides */}
-              <div className="hidden md:flex items-center gap-3">
-                {messageCount > 0 && (
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="font-medium">{messageCount}</span>
-                  </div>
-                )}
-                {jobCount > 0 && (
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-2">
-                    <Briefcase className="w-4 h-4" />
-                    <span className="font-medium">{jobCount}</span>
-                  </div>
-                )}
-                {unreadCount > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
-                  >
-                    <span className="text-2xl font-bold">{unreadCount}</span>
-                  </motion.div>
-                )}
-              </div>
-            </div>
-          </motion.div>
+  /* loader */
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+          <Bell size={18} className="text-white" />
         </div>
+        <p className="text-sm text-slate-500">Chargement…</p>
       </div>
+    </div>
+  );
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Actions bar */}
-        {notifications.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 mb-6"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    filter === 'all'
-                      ? 'bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Toutes ({notifications.length})
-                </button>
-                <button
-                  onClick={() => setFilter('unread')}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    filter === 'unread'
-                      ? 'bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Non lues ({unreadCount})
-                </button>
-                <button
-                  onClick={() => setFilter('messages')}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
-                    filter === 'messages'
-                      ? 'bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Messages ({messageCount})
-                </button>
-                <button
-                  onClick={() => setFilter('jobs')}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
-                    filter === 'jobs'
-                      ? 'bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Briefcase className="w-4 h-4" />
-                  Annonces ({jobCount})
-                </button>
-              </div>
+  return (
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
 
-              {/* Actions */}
+      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+
+        {/* ── Topbar ── */}
+        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+          <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+                <ArrowLeft size={16} />
+              </Link>
+              <div className="w-px h-4 bg-slate-200" />
+              <h1 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+                Notifications
+              </h1>
               {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors text-sm font-medium"
-                >
-                  <CheckCheck className="w-4 h-4" />
-                  Tout marquer comme lu
-                </button>
+                <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">
+                  {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+                </span>
               )}
             </div>
-          </motion.div>
-        )}
-
-        {/* EMPTY STATE */}
-        {filteredNotifications.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-md border border-gray-100 p-12 text-center"
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-              {filter === 'unread' ? (
-                <CheckCircle className="w-10 h-10 text-white" />
-              ) : filter === 'messages' ? (
-                <MessageSquare className="w-10 h-10 text-white" />
-              ) : filter === 'jobs' ? (
-                <Briefcase className="w-10 h-10 text-white" />
-              ) : (
-                <Bell className="w-10 h-10 text-white" />
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {filter === 'unread'
-                ? 'Tout est lu !'
-                : filter === 'messages'
-                ? 'Aucun message'
-                : filter === 'jobs'
-                ? 'Aucune notification d\'annonce'
-                : 'Aucune notification'}
-            </h3>
-            <p className="text-gray-600">
-              {filter === 'unread'
-                ? 'Vous avez lu toutes vos notifications'
-                : filter === 'messages'
-                ? 'Vous n\'avez pas de notification de message'
-                : filter === 'jobs'
-                ? 'Vous n\'avez pas de notification d\'annonce'
-                : 'Vous n\'avez aucune notification pour le moment'}
-            </p>
-            {filter !== 'all' && notifications.length > 0 && (
-              <button
-                onClick={() => setFilter('all')}
-                className="mt-6 px-6 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white rounded-xl hover:shadow-lg transition-all font-medium"
-              >
-                Voir toutes les notifications
+            {unreadCount > 0 && (
+              <button onClick={markAllRead}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-600 transition-colors">
+                <CheckCheck size={14} /> Tout marquer lu
               </button>
             )}
-          </motion.div>
-        )}
+          </div>
+        </div>
 
-        {/* LIST */}
-        <AnimatePresence mode="popLayout">
-          <div className="space-y-3">
-            {filteredNotifications.map((n, index) => (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ delay: index * 0.03 }}
-                whileHover={{ scale: 1.01, x: 4 }}
-                className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl border transition-all cursor-pointer overflow-hidden ${
-                  n.read
-                    ? 'border-gray-100'
-                    : 'border-[#8a6bfe] ring-2 ring-[#8a6bfe]/20'
-                }`}
-                onClick={() => handleNotificationClick(n)}
-              >
-                {/* Barre latérale colorée */}
-                <div
-                  className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${getNotificationColor(
-                    n.type
-                  )}`}
-                />
+        <div className="max-w-3xl mx-auto px-6 py-8">
 
-                <div className="p-5 pl-6">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar ou Icône */}
-                    {n.type === 'message' && n.fromUserData ? (
-                      <div className="relative flex-shrink-0">
-                        <Image
-                          src={n.fromUserData.photoURL || ''}
-                          alt={n.fromUserData.displayName || 'User'}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#8a6bfe]/30"
-                        />
-                        <div
-                          className={`absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br ${getNotificationColor(
-                            n.type
-                          )} rounded-lg flex items-center justify-center text-white shadow-md`}
-                        >
-                          <MessageSquare className="w-3 h-3" />
+          {/* ── Filters ── */}
+          {notifs.length > 0 && (
+            <div className="flex bg-slate-100 p-1 rounded-xl gap-1 mb-6 w-fit flex-wrap">
+              {([
+                ['all',      `Toutes (${notifs.length})`],
+                ['unread',   `Non lues (${unreadCount})`],
+                ['messages', `Messages (${msgCount})`],
+                ['jobs',     `Annonces (${jobCount})`],
+              ] as const).map(([key, label]) => (
+                <button key={key} onClick={() => setFilter(key)}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    filter === key ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Empty ── */}
+          {filtered.length === 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                {filter === 'unread' ? <CheckCircle size={20} className="text-slate-400" />
+                  : filter === 'messages' ? <MessageSquare size={20} className="text-slate-400" />
+                  : filter === 'jobs'     ? <Briefcase size={20} className="text-slate-400" />
+                  : <Bell size={20} className="text-slate-400" />}
+              </div>
+              <p className="text-sm font-semibold text-slate-700 mb-1">
+                {filter === 'unread' ? 'Tout est à jour' : 'Aucune notification'}
+              </p>
+              <p className="text-xs text-slate-400">
+                {filter === 'unread' ? 'Vous avez lu toutes vos notifications.' : 'Aucune notification dans cette catégorie.'}
+              </p>
+              {filter !== 'all' && notifs.length > 0 && (
+                <button onClick={() => setFilter('all')}
+                  className="mt-4 text-xs text-violet-600 hover:underline font-semibold">
+                  Voir toutes les notifications
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── List ── */}
+          <div className="space-y-2">
+            {filtered.map(n => {
+              const cfg = getCfg(n.type);
+              return (
+                <div key={n.id}
+                  onClick={() => onClick(n)}
+                  className={`group relative bg-white rounded-2xl border transition-all cursor-pointer
+                    hover:border-violet-200 hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)]
+                    ${!n.read ? 'border-violet-200' : 'border-slate-100'}`}>
+
+                  {/* Unread dot */}
+                  {!n.read && (
+                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-violet-500" />
+                  )}
+
+                  <div className="flex items-start gap-4 p-4 pr-8">
+
+                    {/* Avatar / Icon */}
+                    {n.type === 'message' && n.fromUserData?.photoURL ? (
+                      <div className="relative shrink-0">
+                        <Image src={n.fromUserData.photoURL} alt={n.fromUserData.displayName ?? ''}
+                          width={40} height={40}
+                          className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-lg flex items-center justify-center text-violet-600 bg-violet-50 border border-violet-200">
+                          <MessageSquare size={9} />
                         </div>
                       </div>
                     ) : (
-                      <div
-                        className={`flex-shrink-0 w-12 h-12 bg-gradient-to-br ${getNotificationColor(
-                          n.type
-                        )} rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}
-                      >
-                        {getNotificationIcon(n.type)}
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
+                        {cfg.icon}
                       </div>
                     )}
 
-                    {/* Contenu */}
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3 mb-1">
-                        {/* Type badge */}
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gradient-to-r ${getNotificationColor(
-                            n.type
-                          )} text-white`}
-                        >
-                          {getNotificationIcon(n.type)}
-                          {getTypeLabel(n.type)}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                          {cfg.label}
                         </span>
-
-                        <div className="flex items-center gap-2">
-                          {/* Temps */}
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatTimeAgo(n.createdAt)}
-                          </span>
-
-                          {!n.read && (
-                            <span className="flex-shrink-0 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-md">
-                              Nouveau
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-[11px] text-slate-400">{fmtAgo(n.createdAt)}</span>
                       </div>
 
-                      {/* Message principal */}
-                      <p
-                        className={`text-gray-800 leading-relaxed mb-2 ${
-                          n.read ? 'opacity-70' : 'font-medium'
-                        }`}
-                      >
+                      <p className={`text-sm leading-relaxed ${n.read ? 'text-slate-500' : 'text-slate-800 font-medium'}`}>
                         {n.message}
                       </p>
 
-                      {/* Détails supplémentaires pour les messages */}
-                      {n.type === 'message' && (
-                        <div className="bg-gray-50 rounded-xl p-3 mt-2">
+                      {/* Message preview */}
+                      {n.type === 'message' && (n.messagePreview || n.fromUserData) && (
+                        <div className="mt-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
                           {n.fromUserData && (
-                            <p className="text-sm text-gray-700 font-medium mb-1">
-                              De : {n.fromUserData.displayName}
-                            </p>
+                            <p className="text-xs font-semibold text-slate-700 mb-0.5">{n.fromUserData.displayName}</p>
                           )}
                           {n.messagePreview && (
-                            <p className="text-sm text-gray-600 italic line-clamp-2">
-                              "{n.messagePreview}"
-                            </p>
+                            <p className="text-xs text-slate-500 italic line-clamp-2">"{n.messagePreview}"</p>
                           )}
-                          <div className="flex items-center gap-2 mt-2 text-[#8a6bfe] text-sm font-medium">
-                            <ExternalLink className="w-4 h-4" />
-                            Ouvrir la conversation
-                          </div>
+                          <p className="text-xs text-violet-600 font-semibold mt-1.5 flex items-center gap-1">
+                            Ouvrir la conversation <ChevronRight size={10} />
+                          </p>
                         </div>
                       )}
 
-                      {/* Détails supplémentaires pour les jobs */}
-                      {(n.type === 'job' || n.type === 'application') &&
-                        n.jobTitle && (
-                          <div className="bg-blue-50 rounded-xl p-3 mt-2">
-                            <p className="text-sm text-blue-700 font-medium">
-                              📋 {n.jobTitle}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2 text-blue-600 text-sm font-medium">
-                              <ExternalLink className="w-4 h-4" />
-                              Voir l'annonce
-                            </div>
-                          </div>
-                        )}
+                      {/* Job title */}
+                      {(n.type === 'job' || n.type === 'application') && n.jobTitle && (
+                        <div className="mt-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                          <p className="text-xs font-semibold text-blue-700">{n.jobTitle}</p>
+                          <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1">
+                            Voir l'annonce <ChevronRight size={10} />
+                          </p>
+                        </div>
+                      )}
 
-                      {/* Détails supplémentaires pour les reviews */}
+                      {/* Review stars */}
                       {n.type === 'review' && n.rating && (
-                        <div className="bg-yellow-50 rounded-xl p-3 mt-2">
-                          <div className="flex items-center gap-1 mb-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`w-4 h-4 ${
-                                  star <= n.rating!
-                                    ? 'text-yellow-500 fill-yellow-500'
-                                    : 'text-gray-300'
-                                }`}
-                              />
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <div className="flex items-center gap-0.5">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} size={12}
+                                className={s <= n.rating! ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} />
                             ))}
-                            <span className="text-sm text-yellow-700 font-medium ml-2">
-                              {n.rating}/5
-                            </span>
                           </div>
+                          <span className="text-xs text-slate-500">{n.rating}/5</span>
                           {n.fromUserData && (
-                            <p className="text-sm text-yellow-700">
-                              Par {n.fromUserData.displayName}
-                            </p>
+                            <span className="text-xs text-slate-400">· par {n.fromUserData.displayName}</span>
                           )}
                         </div>
                       )}
-
-                      {/* Date complète + Actions */}
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-xs text-gray-500">
-                          {n.createdAt?.seconds && (
-                            <>
-                              {new Date(
-                                n.createdAt.seconds * 1000
-                              ).toLocaleDateString('fr-BE', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}{' '}
-                              à{' '}
-                              {new Date(
-                                n.createdAt.seconds * 1000
-                              ).toLocaleTimeString('fr-BE', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </>
-                          )}
-                        </p>
-
-                        {/* Actions au hover */}
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!n.read && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(n.id);
-                              }}
-                              className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
-                              title="Marquer comme lu"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => deleteNotification(n.id, e)}
-                            className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
 
-        {/* Info footer */}
-        {filteredNotifications.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-8 text-center"
-          >
-            <p className="text-sm text-gray-500">
-              💡 Cliquez sur une notification pour accéder au détail
+                  {/* Hover actions */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!n.read && (
+                      <button onClick={e => { e.stopPropagation(); markRead(n.id); }}
+                        className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-50 transition-colors" title="Marquer comme lu">
+                        <CheckCircle size={13} />
+                      </button>
+                    )}
+                    <button onClick={e => del(n.id, e)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Supprimer">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filtered.length > 0 && (
+            <p className="text-center text-xs text-slate-400 mt-8">
+              Cliquez sur une notification pour accéder au détail.
             </p>
-          </motion.div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

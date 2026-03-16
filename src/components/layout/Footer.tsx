@@ -81,6 +81,8 @@ export default function Footer() {
               {[
                 { label: 'Carrières', href: '/careers' },
                 { label: 'Contact', href: '/contact' },
+                { label: "Mise a jour de l'app", href: '/updates' },
+                { label: "Status", href: '/status' },
               ].map(({ label, href }) => (
                 <li key={href}>
                   <Link href={href}
