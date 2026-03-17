@@ -1,146 +1,228 @@
 "use client";
 import CareersList from "./CareerList";
-import { Rocket, Users, Heart, Zap } from "lucide-react";
+import { Rocket, Users, Heart, Zap, ArrowDown, Mail } from "lucide-react";
 
 export default function CareersPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section */}
-      <div className="max-w-5xl mx-auto px-6 pt-20 pb-12">
-        <div className="text-center mb-16">
-          {/* Badge animé */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-full mb-6 animate-bounce-slow">
-            <Rocket className="w-4 h-4 text-[#7b5bff]" />
-            <span className="text-xl font-bold text-[#7b5bff]">
-              On recrute !
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        .careers-page * { font-family: 'DM Sans', system-ui, sans-serif; box-sizing: border-box; }
+        .careers-page h1, .careers-page h2, .careers-page h3 { font-family: 'Sora', system-ui; }
+        body { background: #f9f8f5 !important; }
+
+        .val-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .val-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(138,107,254,0.10); }
+
+        .badge-pulse::before {
+          content: '';
+          display: inline-block;
+          width: 7px; height: 7px;
+          background: #8a6bfe;
+          border-radius: 50%;
+          margin-right: 8px;
+          animation: bpulse 2s ease-in-out infinite;
+        }
+        @keyframes bpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(0.7)} }
+
+        .hero-cta-primary { transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
+        .hero-cta-primary:hover { background: #7558f0 !important; box-shadow: 0 8px 24px rgba(138,107,254,0.35) !important; transform: translateY(-1px); }
+        .hero-cta-secondary { transition: border-color 0.15s, color 0.15s; }
+        .hero-cta-secondary:hover { border-color: #8a6bfe !important; color: #8a6bfe !important; }
+
+        .spontaneous-btn { transition: background 0.15s, transform 0.15s, box-shadow 0.15s; }
+        .spontaneous-btn:hover { background: #f0eeff !important; color: #8a6bfe !important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+      `}</style>
+
+      <main className="careers-page" style={{ minHeight: "100vh", background: "#f9f8f5" }}>
+
+        {/* ── Hero ── */}
+        <section style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px 64px" }}>
+
+          {/* Badge */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+            <span className="badge-pulse" style={{
+              display: "inline-flex", alignItems: "center",
+              padding: "7px 16px", borderRadius: 999,
+              background: "#f0eeff", border: "1px solid #d4c9fd",
+              fontSize: 13, fontWeight: 600, color: "#8a6bfe",
+            }}>
+              On recrute
             </span>
           </div>
 
-          {/* Titre principal */}
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent leading-tight">
-            Rejoins l'équipe Woppy
+          {/* Title */}
+          <h1 style={{
+            textAlign: "center",
+            fontSize: "clamp(2.4rem, 6vw, 4rem)",
+            fontWeight: 800,
+            color: "#1a1a2e",
+            lineHeight: 1.15,
+            letterSpacing: "-0.03em",
+            marginBottom: 20,
+          }}>
+            Rejoins l'équipe{" "}
+            <span style={{
+              background: "linear-gradient(135deg, #8a6bfe 0%, #b48aff 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>
+              Woppy
+            </span>
           </h1>
 
-          {/* Sous-titre */}
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Nous construisons la plateforme qui rend le travail flexible simple et accessible.
-            Découvre nos postes ouverts, mis à jour en temps réel.
+          {/* Subtitle */}
+          <p style={{
+            textAlign: "center",
+            fontSize: 17,
+            color: "#6b7280",
+            maxWidth: 520,
+            margin: "0 auto 36px",
+            lineHeight: 1.7,
+          }}>
+            Nous construisons la plateforme qui rend le travail flexible
+            simple et accessible. Découvre nos postes ouverts.
           </p>
 
-          {/* CTA secondaire */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="#postes"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#7b5bff] text-white font-bold rounded-xl hover:bg-[#7b5bff] transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            >
-              Voir les postes
-              <span className="text-lg">↓</span>
+          {/* CTAs */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <a href="#postes" className="hero-cta-primary" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 12,
+              background: "#8a6bfe", color: "#fff",
+              fontWeight: 700, fontSize: 14, textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(138,107,254,0.28)",
+            }}>
+              Voir les postes <ArrowDown style={{ width: 15, height: 15 }} />
             </a>
-            <a
-              href="#culture"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#7b5bff] font-bold rounded-xl hover:bg-gray-50 transition-all duration-300 border border-gray-200 hover:border-[#7b5bff]"
-            >
+            <a href="#culture" className="hero-cta-secondary" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 12,
+              background: "#fff", color: "#4b4b58",
+              fontWeight: 600, fontSize: 14, textDecoration: "none",
+              border: "1px solid #e2e0db",
+            }}>
               Notre culture
             </a>
           </div>
-        </div>
+        </section>
 
-        {/* Valeurs / Avantages */}
-        <div className="grid md:grid-cols-3 gap-6 mb-20">
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Users className="w-6 h-6 text-blue-600" />
+        {/* ── Valeurs ── */}
+        <section style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 72px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            {[
+              {
+                icon: <Users style={{ width: 18, height: 18, color: "#8a6bfe" }} />,
+                iconBg: "#f0eeff",
+                title: "Équipe passionnée",
+                desc: "Travaille avec des personnes talentueuses qui partagent ta vision.",
+              },
+              {
+                icon: <Zap style={{ width: 18, height: 18, color: "#f59e0b" }} />,
+                iconBg: "#fffbeb",
+                title: "Impact réel",
+                desc: "Tes contributions façonnent directement l'avenir du travail flexible.",
+              },
+              {
+                icon: <Heart style={{ width: 18, height: 18, color: "#ec4899" }} />,
+                iconBg: "#fdf2f8",
+                title: "Flexibilité totale",
+                desc: "Remote-first, horaires flexibles et un vrai équilibre vie pro/perso.",
+              },
+            ].map((v) => (
+              <div key={v.title} className="val-card" style={{
+                background: "#fff",
+                border: "1px solid #e8e6e1",
+                borderRadius: 16,
+                padding: "22px 24px",
+                display: "flex",
+                gap: 16,
+                alignItems: "flex-start",
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: v.iconBg, display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {v.icon}
+                </div>
+                <div>
+                  <p style={{ fontFamily: "'Sora',system-ui", fontWeight: 700, fontSize: 14, color: "#1a1a2e", marginBottom: 5 }}>
+                    {v.title}
+                  </p>
+                  <p style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.6 }}>
+                    {v.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Offres ── */}
+        <section id="postes" style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px 80px" }}>
+          {/* Section header */}
+          <div style={{
+            display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+            marginBottom: 28, flexWrap: "wrap", gap: 12,
+          }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#8a6bfe", marginBottom: 6 }}>
+                Postes ouverts
+              </p>
+              <h2 style={{ fontFamily: "'Sora',system-ui", fontWeight: 800, fontSize: 26, color: "#1a1a2e", letterSpacing: "-0.02em" }}>
+                Trouve ton rôle
+              </h2>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Équipe passionnée
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Travaille avec des personnes talentueuses qui partagent ta vision
-            </p>
+            {/* Live indicator */}
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", borderRadius: 999,
+              background: "#f0fdf4", border: "1px solid #bbf7d0",
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", animation: "bpulse 2s ease-in-out infinite" }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d" }}>Mis à jour en direct</span>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Zap className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Impact réel
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Tes contributions façonnent directement l'avenir du travail flexible
-            </p>
-          </div>
+          <CareersList />
+        </section>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Heart className="w-6 h-6 text-pink-600" />
+        {/* ── Candidature spontanée ── */}
+        <section id="culture" style={{ background: "#1a1a2e", padding: "72px 24px" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: "rgba(138,107,254,0.15)", border: "1px solid rgba(138,107,254,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 20px",
+            }}>
+              <Mail style={{ width: 20, height: 20, color: "#a78bfa" }} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Flexibilité totale
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Remote-first, horaires flexibles et équilibre vie pro/perso
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Section des postes */}
-      <div id="postes" className="max-w-5xl mx-auto px-6 pb-20">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Postes ouverts
+            <h2 style={{
+              fontFamily: "'Sora',system-ui", fontWeight: 800, fontSize: 26,
+              color: "#fff", marginBottom: 12, letterSpacing: "-0.02em",
+            }}>
+              Tu ne trouves pas ce que tu cherches ?
             </h2>
-            <p className="text-gray-600">
-              Trouve le rôle qui correspond à tes compétences et ambitions
+            <p style={{ fontSize: 15, color: "#9ca3af", marginBottom: 32, lineHeight: 1.7 }}>
+              Envoie-nous une candidature spontanée. Nous sommes toujours à la
+              recherche de talents exceptionnels qui partagent notre mission.
             </p>
+            <a href="mailto:careers@woppy.com" className="spontaneous-btn" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "13px 28px", borderRadius: 12,
+              background: "#fff", color: "#1a1a2e",
+              fontWeight: 700, fontSize: 14, textDecoration: "none",
+            }}>
+              Candidature spontanée
+              <Rocket style={{ width: 15, height: 15 }} />
+            </a>
           </div>
-          
-          {/* Indicateur en temps réel */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-green-700">
-              Mis à jour en direct
-            </span>
-          </div>
-        </div>
+        </section>
 
-        <CareersList />
-      </div>
-
-      {/* Section Culture (optionnelle) */}
-      <div id="culture" className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16 mt-20">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Tu ne trouves pas ce que tu cherches ?
-          </h2>
-          <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-            Envoie-nous une candidature spontanée. Nous sommes toujours à la recherche de talents exceptionnels.
-          </p>
-          <a
-            href="mailto:careers@woppy.com"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 font-semibold rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-          >
-            Candidature spontanée
-            <span className="text-lg">→</span>
-          </a>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes bounce-slow {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-5px);
-          }
-        }
-        .animate-bounce-slow {
-          animation: bounce-slow 2s ease-in-out infinite;
-        }
-      `}</style>
-    </main>
+      </main>
+    </>
   );
 }
