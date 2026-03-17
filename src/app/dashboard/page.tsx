@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const h = new Date().getHours();
-    setGreeting(h < 13 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir');
+    setGreeting(h < 13 ? 'Bonjour !' : h < 18 ? 'Bon après-midi !' : 'Bonsoir !');
   }, []);
 
   useEffect(() => {
