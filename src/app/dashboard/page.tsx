@@ -78,6 +78,7 @@ export default function DashboardPage() {
   if (role === 'admin') {
     accountLinks.push({ href: '/dashboard/jobs-career',  icon: <Briefcase size={14}/>, label: 'Postes internes',      desc: 'Créer des offres' });
     accountLinks.push({ href: '/dashboard/applications', icon: <ListChecks size={14}/>, label: 'Candidatures',        desc: 'Gérer les demandes' });
+    accountLinks.push({ href: '/contact/admin', icon: <MessageSquare size={14}/>, label: 'Support', desc: 'Gérer les tickets' });
   }
 
   const kpis = [
