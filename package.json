@@ -28,6 +28,7 @@
     "react-easy-crop": "^5.5.5",
     "react-firebase-hooks": "^5.1.1",
     "react-leaflet": "^5.0.0",
+    "recharts": "^3.8.1",
     "stripe": "^19.1.0"
   },
   "devDependencies": {

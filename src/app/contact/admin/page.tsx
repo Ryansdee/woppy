@@ -358,7 +358,7 @@ export default function ContactAdminPage() {
                                     {meta.label}
                                   </span>
                                   {c.ticketId && (
-                                    <span className="mono" style={{ fontSize: 9, color: '#c0bdb8' }}>{c.ticketId}</span>
+                                    <span className="mono" style={{ fontSize: 9, color: '#000000' }}>{c.ticketId}</span>
                                   )}
                                   {c.replies.length > 0 && (
                                     <span style={{ fontSize: 10, color: '#c0bdb8', display: 'flex', alignItems: 'center', gap: 3 }}>

@@ -3,28 +3,13 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '@/lib/firebase';
 import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  getDoc,
-  doc,
+  collection, query, orderBy, onSnapshot, getDoc, doc,
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
-  Flag,
-  Loader2,
-  CheckCircle,
-  ThumbsUp,
-  Ban,
-  ArrowLeft,
-  User,
-  Trash2,
-  Shield,
-  Calendar,
-  MessageSquare,
-  Filter,
+  Flag, Loader2, CheckCircle, ThumbsUp, Ban, ArrowLeft,
+  User, Trash2, Shield, Calendar, MessageSquare, Filter,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,30 +31,42 @@ interface UserData {
   displayName?: string;
 }
 
-/* =======================================================================================
-    PAGE : Historique des signalements (WOPPY STYLE PRO)
-======================================================================================= */
+const DECISION_CONFIG = {
+  not_offensive: {
+    icon: <ThumbsUp className="w-3.5 h-3.5" />,
+    label: 'Pas offensif',
+    badge: 'bg-green-50 text-green-600 border border-green-200',
+    hover: 'hover:border-green-200',
+  },
+  blocked: {
+    icon: <Ban className="w-3.5 h-3.5" />,
+    label: 'Utilisateur bloqué',
+    badge: 'bg-red-50 text-red-500 border border-red-200',
+    hover: 'hover:border-red-200',
+  },
+  deleted: {
+    icon: <Trash2 className="w-3.5 h-3.5" />,
+    label: 'Message supprimé',
+    badge: 'bg-stone-100 text-gray-600 border border-stone-300',
+    hover: 'hover:border-stone-300',
+  },
+} as const;
+
+type FilterType = 'all' | 'not_offensive' | 'blocked' | 'deleted';
+
 export default function ReportsResolvedPage() {
-  const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<ReportResolved[]>([]);
-  const [userCache, setUserCache] = useState<{ [uid: string]: UserData }>({});
+  const [loading, setLoading]     = useState(true);
+  const [reports, setReports]     = useState<ReportResolved[]>([]);
+  const [userCache, setUserCache] = useState<Record<string, UserData>>({});
   const [authorized, setAuthorized] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'not_offensive' | 'blocked' | 'deleted'>('all');
+  const [filter, setFilter]       = useState<FilterType>('all');
   const router = useRouter();
 
-  /* -------------------------------------------------------------------------- */
-  /*                           AUTH + ROLE CHECK                                 */
-  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-
+      if (!user) { router.push('/auth/login'); return; }
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role = snap.exists() ? snap.data()?.role : null;
-
       if (role === 'collaborator' || role === 'admin') {
         setAuthorized(true);
       } else {
@@ -77,400 +74,295 @@ export default function ReportsResolvedPage() {
       }
       setLoading(false);
     });
-
     return () => unsub();
   }, [router]);
 
-  /* -------------------------------------------------------------------------- */
-  /*                           FETCH REPORTS & USERS                             */
-  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     if (!authorized) return;
-
     const q = query(collection(db, 'reportsResolved'), orderBy('resolvedAt', 'desc'));
-
     const unsub = onSnapshot(q, async (snap) => {
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as ReportResolved[];
       setReports(list);
 
-      // Charger tous les utilisateurs mentionnés (reporter / sender / resolvedBy)
       const uids = new Set<string>();
-
       list.forEach((r) => {
         if (r.reporterId) uids.add(r.reporterId);
-        if (r.senderId) uids.add(r.senderId);
+        if (r.senderId)   uids.add(r.senderId);
         if (r.resolvedBy) uids.add(r.resolvedBy);
       });
 
       const updatedCache = { ...userCache };
-
-      await Promise.all(
-        Array.from(uids).map(async (uid) => {
-          if (!uid) return;
-
-          if (!updatedCache[uid]) {
-            const snap = await getDoc(doc(db, 'users', uid));
-
-            if (snap.exists()) {
-              const d = snap.data();
-              updatedCache[uid] = {
-                displayName:
-                  d.displayName ||
-                  `${d.firstName || ''} ${d.lastName || ''}`.trim() ||
-                  'Utilisateur',
-                firstName: d.firstName,
-                lastName: d.lastName,
-              };
-            } else {
-              updatedCache[uid] = { displayName: 'Utilisateur inconnu' };
-            }
-          }
-        })
-      );
+      await Promise.all(Array.from(uids).map(async (uid) => {
+        if (!uid || updatedCache[uid]) return;
+        const s = await getDoc(doc(db, 'users', uid));
+        if (s.exists()) {
+          const d = s.data();
+          updatedCache[uid] = {
+            displayName: d.displayName || `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Utilisateur',
+            firstName: d.firstName, lastName: d.lastName,
+          };
+        } else {
+          updatedCache[uid] = { displayName: 'Utilisateur inconnu' };
+        }
+      }));
 
       setUserCache(updatedCache);
       setLoading(false);
     });
-
     return () => unsub();
   }, [authorized]);
 
-  const nameOf = (uid: string): string =>
-    userCache[uid]?.displayName || 'Utilisateur inconnu';
+  const nameOf = (uid: string) => userCache[uid]?.displayName || 'Utilisateur inconnu';
 
-  // Filter reports
-  const filteredReports = reports.filter(r => {
-    if (filter === 'all') return true;
-    return r.decision === filter;
-  });
+  const filteredReports = filter === 'all' ? reports : reports.filter(r => r.decision === filter);
 
-  // Stats
   const stats = {
-    total: reports.length,
+    total:        reports.length,
     notOffensive: reports.filter(r => r.decision === 'not_offensive').length,
-    blocked: reports.filter(r => r.decision === 'blocked').length,
-    deleted: reports.filter(r => r.decision === 'deleted').length,
+    blocked:      reports.filter(r => r.decision === 'blocked').length,
+    deleted:      reports.filter(r => r.decision === 'deleted').length,
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                                 UI LOADING                                  */
-  /* -------------------------------------------------------------------------- */
-  if (loading)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-        <Loader2 className="w-12 h-12 animate-spin text-[#8a6bfe] mb-4" />
-        <p className="text-gray-600 font-medium">Chargement de l'historique...</p>
-      </div>
-    );
+  /* ── Loading ── */
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5]">
+      <Loader2 className="w-10 h-10 animate-spin text-violet-500 mb-4" />
+      <p className="font-['DM_Sans',system-ui] text-gray-400 font-medium">
+        Chargement de l'historique...
+      </p>
+    </div>
+  );
 
-  if (!authorized)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-        <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-3xl flex items-center justify-center mb-6 shadow-xl">
-          <Ban className="w-10 h-10 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h2>
-        <p className="text-gray-600 mb-6">Vous n'avez pas les permissions nécessaires.</p>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="px-6 py-3 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white rounded-xl hover:shadow-lg transition-all font-medium"
-        >
-          Retour au tableau de bord
-        </button>
+  if (!authorized) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5] px-5">
+      <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-5">
+        <Ban className="w-7 h-7 text-red-500" />
       </div>
-    );
+      <h2 className="font-['Sora',system-ui] font-bold text-xl text-[#1a1a2e] mb-2">Accès refusé</h2>
+      <p className="text-gray-400 text-sm mb-6 font-['DM_Sans',system-ui]">
+        Vous n'avez pas les permissions nécessaires.
+      </p>
+      <button
+        onClick={() => router.push('/dashboard')}
+        className="px-5 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-semibold hover:bg-violet-600 transition-colors"
+      >
+        Retour au tableau de bord
+      </button>
+    </div>
+  );
 
-  /* -------------------------------------------------------------------------- */
-  /*                                    UI                                       */
-  /* -------------------------------------------------------------------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-      {/* Header avec gradient Woppy */}
-      <div className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+      `}</style>
+
+      <main className="min-h-screen bg-[#f9f8f5] font-['DM_Sans',system-ui,sans-serif]">
+
+        {/* ── Hero ── */}
+        <section className="max-w-[960px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
+
+          {/* Retour */}
+          <div className="flex justify-center mb-6">
             <Link
               href="/dashboard/collaborateur"
-              className="inline-flex items-center gap-2 text-purple-100 hover:text-white mb-6 transition-colors"
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-400 hover:text-violet-500 transition-colors no-underline"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft className="w-3.5 h-3.5" />
               Retour à l'espace collaborateur
             </Link>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <Shield className="w-8 h-8" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">Historique des signalements</h1>
-                  <p className="text-purple-100">
-                    Consultez tous les signalements traités
-                  </p>
-                </div>
-              </div>
-
-              {/* Total count */}
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
-                <p className="text-3xl font-bold">{reports.length}</p>
-                <p className="text-xs text-purple-100">Signalements traités</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
-        >
-          <button
-            onClick={() => setFilter('all')}
-            className={`p-6 rounded-2xl shadow-md border transition-all text-left ${
-              filter === 'all'
-                ? 'bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] text-white border-[#8a6bfe] shadow-lg scale-105'
-                : 'bg-white border-gray-200 hover:shadow-lg'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Shield className={`w-6 h-6 ${filter === 'all' ? 'text-white' : 'text-[#8a6bfe]'}`} />
-              <span className={`text-2xl font-bold ${filter === 'all' ? 'text-white' : 'text-[#8a6bfe]'}`}>
-                {stats.total}
-              </span>
-            </div>
-            <p className={`text-sm font-medium ${filter === 'all' ? 'text-purple-100' : 'text-gray-600'}`}>
-              Total
-            </p>
-          </button>
-
-          <button
-            onClick={() => setFilter('not_offensive')}
-            className={`p-6 rounded-2xl shadow-md border transition-all text-left ${
-              filter === 'not_offensive'
-                ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white border-green-500 shadow-lg scale-105'
-                : 'bg-white border-gray-200 hover:shadow-lg'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <ThumbsUp className={`w-6 h-6 ${filter === 'not_offensive' ? 'text-white' : 'text-green-500'}`} />
-              <span className={`text-2xl font-bold ${filter === 'not_offensive' ? 'text-white' : 'text-green-500'}`}>
-                {stats.notOffensive}
-              </span>
-            </div>
-            <p className={`text-sm font-medium ${filter === 'not_offensive' ? 'text-green-100' : 'text-gray-600'}`}>
-              Pas offensif
-            </p>
-          </button>
-
-          <button
-            onClick={() => setFilter('blocked')}
-            className={`p-6 rounded-2xl shadow-md border transition-all text-left ${
-              filter === 'blocked'
-                ? 'bg-gradient-to-br from-red-500 to-pink-500 text-white border-red-500 shadow-lg scale-105'
-                : 'bg-white border-gray-200 hover:shadow-lg'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Ban className={`w-6 h-6 ${filter === 'blocked' ? 'text-white' : 'text-red-500'}`} />
-              <span className={`text-2xl font-bold ${filter === 'blocked' ? 'text-white' : 'text-red-500'}`}>
-                {stats.blocked}
-              </span>
-            </div>
-            <p className={`text-sm font-medium ${filter === 'blocked' ? 'text-red-100' : 'text-gray-600'}`}>
-              Bloqués
-            </p>
-          </button>
-
-          <button
-            onClick={() => setFilter('deleted')}
-            className={`p-6 rounded-2xl shadow-md border transition-all text-left ${
-              filter === 'deleted'
-                ? 'bg-gradient-to-br from-gray-700 to-gray-900 text-white border-gray-700 shadow-lg scale-105'
-                : 'bg-white border-gray-200 hover:shadow-lg'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Trash2 className={`w-6 h-6 ${filter === 'deleted' ? 'text-white' : 'text-gray-700'}`} />
-              <span className={`text-2xl font-bold ${filter === 'deleted' ? 'text-white' : 'text-gray-700'}`}>
-                {stats.deleted}
-              </span>
-            </div>
-            <p className={`text-sm font-medium ${filter === 'deleted' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Supprimés
-            </p>
-          </button>
-        </motion.div>
-
-        {/* Active filter badge */}
-        {filter !== 'all' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 mb-6"
-          >
-            <Filter className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-600">
-              Filtre actif :{' '}
-              <span className="font-semibold">
-                {filter === 'not_offensive' && 'Pas offensif'}
-                {filter === 'blocked' && 'Bloqués'}
-                {filter === 'deleted' && 'Supprimés'}
-              </span>
+          {/* Badge */}
+          <div className="flex justify-center mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-violet-50 border border-violet-200 text-[13px] font-semibold text-violet-500">
+              <Shield className="w-3.5 h-3.5" />
+              Historique
             </span>
-            <button
-              onClick={() => setFilter('all')}
-              className="text-sm text-[#8a6bfe] hover:underline font-medium"
-            >
-              Réinitialiser
-            </button>
-          </motion.div>
-        )}
+          </div>
 
-        {/* LISTE DES SIGNALEMENTS RÉSOLUS */}
-        {filteredReports.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-md border border-gray-100 p-12 text-center"
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-              <CheckCircle className="w-10 h-10 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Aucun résultat</h3>
-            <p className="text-gray-600">
-              {filter === 'all'
-                ? 'Aucun signalement résolu pour l\'instant.'
-                : 'Aucun signalement ne correspond à ce filtre.'}
-            </p>
-          </motion.div>
-        ) : (
-          <div className="space-y-4">
-            {filteredReports.map((r, index) => {
-              const config = {
-                not_offensive: {
-                  gradient: 'from-green-500 to-emerald-500',
-                  bgLight: 'from-green-50/50 to-emerald-50/50',
-                  border: 'border-green-200',
-                  icon: <ThumbsUp className="w-5 h-5" />,
-                  label: 'Pas offensif',
-                },
-                blocked: {
-                  gradient: 'from-red-500 to-pink-500',
-                  bgLight: 'from-red-50/50 to-pink-50/50',
-                  border: 'border-red-200',
-                  icon: <Ban className="w-5 h-5" />,
-                  label: 'Utilisateur bloqué',
-                },
-                deleted: {
-                  gradient: 'from-gray-700 to-gray-900',
-                  bgLight: 'from-gray-50/50 to-slate-50/50',
-                  border: 'border-gray-300',
-                  icon: <Trash2 className="w-5 h-5" />,
-                  label: 'Message supprimé',
-                },
-              }[r.decision as 'not_offensive' | 'blocked' | 'deleted'] || {
-                gradient: 'from-[#8a6bfe] to-[#6b4fd9]',
-                bgLight: 'from-purple-50/50 to-blue-50/50',
-                border: 'border-purple-200',
-                icon: <Flag className="w-5 h-5" />,
-                label: 'Traité',
-              };
+          <h1 className="font-['Sora',system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#1a1a2e] mb-4">
+            Signalements{" "}
+            <span className="bg-gradient-to-br from-violet-500 to-violet-300 bg-clip-text text-transparent">
+              résolus
+            </span>
+          </h1>
 
-              return (
-                <motion.div
-                  key={r.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.01 }}
-                  className={`bg-gradient-to-br ${config.bgLight} border-2 ${config.border} rounded-2xl p-6 hover:shadow-xl transition-all`}
+          <p className="text-center text-[14px] sm:text-[16px] text-gray-400 max-w-[440px] mx-auto mb-10 leading-[1.7]">
+            Consultez l'ensemble des signalements traités et les décisions prises par l'équipe.
+          </p>
+
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {([
+              { key: 'all',           label: 'Total',        value: stats.total,        icon: <Shield className="w-4 h-4" />,   color: 'text-violet-500', activeBg: 'bg-violet-500' },
+              { key: 'not_offensive', label: 'Pas offensif', value: stats.notOffensive, icon: <ThumbsUp className="w-4 h-4" />, color: 'text-green-500',  activeBg: 'bg-green-500'  },
+              { key: 'blocked',       label: 'Bloqués',      value: stats.blocked,      icon: <Ban className="w-4 h-4" />,      color: 'text-red-500',    activeBg: 'bg-red-500'    },
+              { key: 'deleted',       label: 'Supprimés',    value: stats.deleted,      icon: <Trash2 className="w-4 h-4" />,   color: 'text-gray-500',   activeBg: 'bg-[#1a1a2e]' },
+            ] as const).map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setFilter(s.key)}
+                className={`rounded-2xl p-4 text-left border transition-all duration-150
+                  ${filter === s.key
+                    ? `${s.activeBg} border-transparent shadow-md`
+                    : 'bg-white border-stone-200 hover:border-violet-200 hover:shadow-sm'
+                  }`}
+              >
+                <div className={`mb-2 ${filter === s.key ? 'text-white/80' : s.color}`}>
+                  {s.icon}
+                </div>
+                <p className={`font-['Sora',system-ui] font-bold text-xl ${filter === s.key ? 'text-white' : 'text-[#1a1a2e]'}`}>
+                  {s.value}
+                </p>
+                <p className={`text-[11px] font-medium mt-0.5 ${filter === s.key ? 'text-white/70' : 'text-gray-400'}`}>
+                  {s.label}
+                </p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="max-w-[960px] mx-auto px-5 pb-20">
+
+          {/* Filtre actif */}
+          <AnimatePresence>
+            {filter !== 'all' && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="flex items-center gap-2 mb-5"
+              >
+                <Filter className="w-3.5 h-3.5 text-gray-400" />
+                <span className="text-[13px] text-gray-400">
+                  Filtre actif :{" "}
+                  <span className="font-semibold text-[#1a1a2e]">
+                    {filter === 'not_offensive' && 'Pas offensif'}
+                    {filter === 'blocked'       && 'Bloqués'}
+                    {filter === 'deleted'       && 'Supprimés'}
+                  </span>
+                </span>
+                <button
+                  onClick={() => setFilter('all')}
+                  className="text-[13px] text-violet-500 font-semibold hover:text-violet-600 transition-colors"
                 >
-                  {/* Barre latérale colorée */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${config.gradient} rounded-l-2xl`} />
+                  Réinitialiser
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                  {/* Header */}
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-10 h-10 bg-gradient-to-br ${config.gradient} rounded-xl flex items-center justify-center text-white shadow-lg`}>
-                          <Flag className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            Signalé par{' '}
-                            <span className="text-[#8a6bfe]">{nameOf(r.reporterId)}</span>
-                          </p>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                            <User className="w-4 h-4" />
-                            <span>Expéditeur :</span>
-                            <span className="font-semibold text-gray-900">
-                              {nameOf(r.senderId)}
-                            </span>
+          {/* Empty */}
+          {filteredReports.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white border border-stone-200 rounded-2xl p-16 text-center"
+            >
+              <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-7 h-7 text-violet-400" />
+              </div>
+              <p className="font-['Sora',system-ui] font-bold text-[#1a1a2e] mb-1">
+                Aucun résultat
+              </p>
+              <p className="text-sm text-gray-400">
+                {filter === 'all'
+                  ? "Aucun signalement résolu pour l'instant."
+                  : 'Aucun signalement ne correspond à ce filtre.'}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredReports.map((r, index) => {
+                const cfg = DECISION_CONFIG[r.decision as keyof typeof DECISION_CONFIG] ?? {
+                  icon: <Flag className="w-3.5 h-3.5" />,
+                  label: 'Traité',
+                  badge: 'bg-violet-50 text-violet-500 border border-violet-200',
+                  hover: 'hover:border-violet-200',
+                };
+
+                return (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    className={`bg-white border border-stone-200 rounded-2xl p-5 transition-all duration-150 ${cfg.hover} hover:shadow-[0_2px_20px_rgba(0,0,0,0.06)]`}
+                  >
+                    {/* Top : qui + badge décision */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-violet-50 rounded-lg flex items-center justify-center shrink-0">
+                            <Flag className="w-3 h-3 text-violet-400" />
                           </div>
+                          <span className="text-[13px] font-semibold text-[#1a1a2e]">
+                            Signalé par{" "}
+                            <span className="text-violet-500">{nameOf(r.reporterId)}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 pl-8">
+                          <User className="w-3 h-3 text-gray-400" />
+                          <span className="text-[12px] text-gray-400">
+                            Expéditeur :{" "}
+                            <span className="font-semibold text-gray-600">{nameOf(r.senderId)}</span>
+                          </span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Badge décision */}
-                    <span className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${config.gradient} text-white rounded-xl font-semibold text-sm shadow-lg whitespace-nowrap`}>
-                      {config.icon}
-                      {config.label}
-                    </span>
-                  </div>
-
-                  {/* Contenu signalé */}
-                  <div className="bg-white border-2 border-gray-200 rounded-xl p-4 mb-4 shadow-inner">
-                    <div className="flex items-start gap-2 mb-2">
-                      <MessageSquare className="w-4 h-4 text-[#8a6bfe] mt-0.5 flex-shrink-0" />
-                      <p className="text-sm font-semibold text-gray-700">Contenu signalé :</p>
-                    </div>
-                    <p className="text-sm text-gray-900 leading-relaxed pl-6">
-                      {r.text}
-                    </p>
-                  </div>
-
-                  {/* Footer info */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <Shield className="w-4 h-4 text-[#8a6bfe]" />
-                      <span>
-                        Traité par{' '}
-                        <span className="font-semibold text-[#8a6bfe]">
-                          {nameOf(r.resolvedBy)}
-                        </span>
+                      {/* Badge décision */}
+                      <span className={`self-start inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${cfg.badge}`}>
+                        {cfg.icon}
+                        {cfg.label}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      {r.resolvedAt?.toDate &&
-                        new Date(r.resolvedAt.toDate()).toLocaleString('fr-BE', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                    {/* Message */}
+                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <MessageSquare className="w-3 h-3 text-gray-400" />
+                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                          Contenu signalé
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                        {r.text}
+                      </p>
                     </div>
-                  </div>
 
-                  {/* Chat ID */}
-                  <p className="text-xs text-gray-400 mt-2 font-mono bg-gray-100 inline-block px-2 py-1 rounded">
-                    Chat: {r.chatId}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+                    {/* Footer */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-stone-100">
+                      <div className="flex items-center gap-1.5">
+                        <Shield className="w-3 h-3 text-violet-400" />
+                        <span className="text-[12px] text-gray-400">
+                          Traité par{" "}
+                          <span className="font-semibold text-violet-500">{nameOf(r.resolvedBy)}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 text-gray-400" />
+                          <span className="text-[11px] text-gray-400">
+                            {r.resolvedAt?.toDate &&
+                              new Date(r.resolvedAt.toDate()).toLocaleString('fr-BE', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit',
+                              })}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-mono bg-stone-100 px-2 py-0.5 rounded-lg">
+                          {r.chatId}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

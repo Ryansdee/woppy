@@ -79,6 +79,7 @@ export default function DashboardPage() {
     accountLinks.push({ href: '/dashboard/jobs-career',  icon: <Briefcase size={14}/>, label: 'Postes internes',      desc: 'Créer des offres' });
     accountLinks.push({ href: '/dashboard/applications', icon: <ListChecks size={14}/>, label: 'Candidatures',        desc: 'Gérer les demandes' });
     accountLinks.push({ href: '/contact/admin', icon: <MessageSquare size={14}/>, label: 'Support', desc: 'Gérer les tickets' });
+    accountLinks.push({ href: '/dashboard/recap', icon: <TrendingUp size={14}/>, label: 'Récapitulatif', desc: 'Statistiques détaillées' });
   }
 
   const kpis = [
