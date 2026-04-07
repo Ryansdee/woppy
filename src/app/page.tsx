@@ -10,6 +10,8 @@ import {
   UserCheck, Search, FileCheck, BadgeCheck, TrendingUp,
   Building2, GraduationCap, Menu, X
 } from 'lucide-react';
+import { collection, getCountFromServer, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 /* ─────────────── DONNÉES STATIQUES ─────────────── */
 
@@ -190,12 +192,27 @@ function JobCard({ job, delay = 0 }: { job: typeof featuredJobs[0]; delay?: numb
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [stats, setStats]     = useState({ students: 0, users: 0, annonces: 0, jobs: 0 });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'student' | 'client'>('student');
 
   useEffect(() => {
     if (Cookies.get('woppy_user')) setIsLoggedIn(true);
   }, []);
+
+    useEffect(() => {
+      (async () => {
+        try {
+          const [sS, uS, aS, jS] = await Promise.all([
+            getCountFromServer(query(collection(db, 'users'), where('hasStudentProfile', '==', true))),
+            getCountFromServer(collection(db, 'users')),
+            getCountFromServer(collection(db, 'annonces')),
+            getCountFromServer(query(collection(db, 'annonces'), where('statut', '==', 'fini'))),
+          ]);
+          setStats({ students: sS.data().count, users: uS.data().count, annonces: aS.data().count, jobs: jS.data().count });
+        } catch {}
+      })();
+    }, []);
 
   return (
     <main className="min-h-screen bg-white text-slate-900 font-sans">
@@ -582,9 +599,9 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-5 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
             {[
-              { value: '1 200+', label: 'Utilisateurs inscrits' },
-              { value: '340+', label: 'Missions publiées' },
-              { value: '210+', label: 'Jobs réalisés' },
+              { value: stats.users, label: 'Utilisateurs inscrits' },
+              { value: stats.annonces, label: 'Missions publiées' },
+              { value: stats.jobs, label: 'Jobs réalisés' },
               { value: '4.8/5', label: 'Note moyenne' },
             ].map(stat => (
               <div key={stat.label}>
@@ -592,6 +609,9 @@ export default function HomePage() {
                 <div className="text-violet-200 text-sm font-medium">{stat.label}</div>
               </div>
             ))}
+          </div>
+          <div className="text-center mt-10 text-violet-100 italic">
+            Le début d'une grande aventure pour les jobs étudiants à Louvain-la-Neuve. <br /> Merci à tous les utilisateurs qui font vivre Woppy chaque jour !
           </div>
         </div>
       </section>

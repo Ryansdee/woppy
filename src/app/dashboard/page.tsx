@@ -83,10 +83,10 @@ export default function DashboardPage() {
   }
 
   const kpis = [
-    { label: 'Étudiants', value: stats.students, delta: '+12 %', icon: <Users size={13}/> },
-    { label: 'Annonces',  value: stats.annonces,  delta: '+8 %',  icon: <Megaphone size={13}/> },
-    { label: 'Missions terminées', value: stats.jobs, delta: '+15 %', icon: <Trophy size={13}/> },
-    { label: 'Utilisateurs', value: stats.users,  delta: '+10 %', icon: <Star size={13}/> },
+    { label: 'Étudiants', value: stats.students, delta: null, icon: <Users size={13}/> },
+    { label: 'Annonces',  value: stats.annonces,  delta: null,  icon: <Megaphone size={13}/> },
+    { label: 'Missions terminées', value: stats.jobs, delta: null, icon: <Trophy size={13}/> },
+    { label: 'Utilisateurs', value: stats.users,  delta: null, icon: <Star size={13}/> },
   ];
 
   const roleLabel = role === 'admin' ? 'Admin' : role === 'collaborator' ? 'Collaborateur' : null;
@@ -175,7 +175,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.08, duration: 0.35 }}
             className="grid grid-cols-2 lg:grid-cols-4 gap-px mb-12 rounded-xl overflow-hidden"
-            style={{ border: '1px solid rgba(255,255,255,0.055)', background: 'rgba(255,255,255,0.055)' }}
+            style={{ border: '1px solid rgba(255,255,255,0.055)', background: 'rgba(255, 255, 255, 0.06)' }}
           >
             {kpis.map((k, i) => (
               <motion.div
@@ -184,15 +184,15 @@ export default function DashboardPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.1 + i * 0.04 }}
                 className="flex flex-col justify-between p-5 cursor-default group transition-colors"
-                style={{ background: '#0c0b14' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#110f1f')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#0c0b14')}
+                style={{ background: '#ffffff' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f0f0f0')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xs font-medium" style={{ color: '#4a4760' }}>{k.label}</span>
                   <span className="text-xs font-semibold db-mono" style={{ color: '#34d399' }}>{k.delta}</span>
                 </div>
-                <div className="db-mono font-medium" style={{ fontSize: 28, color: '#eae8f8', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <div className="db-mono font-medium" style={{ fontSize: 28, color: '#636363', letterSpacing: '-0.03em', lineHeight: 1 }}>
                   {k.value.toLocaleString('fr-BE')}
                 </div>
               </motion.div>
@@ -222,10 +222,10 @@ export default function DashboardPage() {
                       className="group flex items-center justify-between px-5 py-3.5 transition-colors"
                       style={{
                         borderBottom: i < primaryActions.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                        background: '#0e0c1c',
+                        background: '#ffffff',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#131128')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '#0e0c1c')}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#e0e0e0')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
                     >
                       <div className="flex items-center gap-3.5">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
@@ -233,13 +233,13 @@ export default function DashboardPage() {
                           {a.icon}
                         </div>
                         <div>
-                          <div className="text-sm font-medium transition-colors" style={{ color: '#ccc8e8', letterSpacing: '-0.01em' }}>
+                          <div className="text-sm font-medium transition-colors" style={{ color: '#1d1d1d', letterSpacing: '-0.01em' }}>
                             {a.label}
                           </div>
-                          <div className="text-xs mt-0.5" style={{ color: '#3d3a56' }}>{a.sub}</div>
+                          <div className="text-xs mt-0.5" style={{ color: '#2f2f2f' }}>{a.sub}</div>
                         </div>
                       </div>
-                      <ChevronRight size={13} style={{ color: '#2e2b45' }} className="group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight size={13} style={{ color: '#252525' }} className="group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                   ))}
                 </div>
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="rounded-xl p-5"
-                style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}
+                style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#ffffff' }}
               >
                 <div className="flex items-center justify-between mb-5">
                   <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
@@ -332,10 +332,10 @@ export default function DashboardPage() {
                       className="group flex items-center gap-3 px-4 py-3 transition-colors"
                       style={{
                         borderBottom: i < accountLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                        background: '#0e0c1c',
+                        background: '#ffffff',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#131128')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '#0e0c1c')}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#e0e0e0')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
                     >
                       <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
                         style={{ background: 'rgba(255,255,255,0.04)', color: '#5a5672', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate transition-colors"
-                          style={{ color: '#bbb8d6', letterSpacing: '-0.01em' }}>
+                          style={{ color: '#4a4760', letterSpacing: '-0.01em' }}>
                           {a.label}
                         </div>
                         <div className="text-xs truncate mt-0.5" style={{ color: '#3a374f' }}>{a.desc}</div>
@@ -355,32 +355,8 @@ export default function DashboardPage() {
                 </div>
               </section>
 
-              {/* Tip */}
-              <section className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}>
-                <div className="flex items-center gap-1.5 mb-2.5">
-                  <Zap size={11} style={{ color: '#7c5fe6' }} />
-                  <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
-                    Conseil
-                  </span>
-                </div>
-                <p className="text-sm font-medium mb-1" style={{ color: '#bbb8d6', letterSpacing: '-0.01em' }}>
-                  Profil incomplet détecté
-                </p>
-                <p className="text-xs leading-relaxed mb-3" style={{ color: '#3d3a56' }}>
-                  Compléter ton profil augmente ta visibilité de 3× auprès des particuliers et recruteurs.
-                </p>
-                <Link href="/dashboard/profile"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
-                  style={{ color: '#7c5fe6' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#7c5fe6')}
-                >
-                  Compléter le profil <ArrowRight size={11} />
-                </Link>
-              </section>
-
               {/* Quick stat callout */}
-              <section className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#0e0c1c' }}>
+              <section className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.055)', background: '#ffffff' }}>
                 <div className="flex items-center gap-1.5 mb-4">
                   <BarChart3 size={11} style={{ color: '#4a4760' }} />
                   <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a4760' }}>
@@ -393,7 +369,7 @@ export default function DashboardPage() {
                     { label: 'Ratio étudiant/user', value: stats.users > 0 ? `${Math.round((stats.students / Math.max(stats.users, 1)) * 100)}%` : '—' },
                   ].map(item => (
                     <div key={item.label} className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                      <div className="db-mono font-medium mb-1" style={{ fontSize: 20, color: '#eae8f8', letterSpacing: '-0.02em' }}>
+                      <div className="db-mono font-medium mb-1" style={{ fontSize: 20, color: '#2f2c43', letterSpacing: '-0.02em' }}>
                         {item.value}
                       </div>
                       <div className="text-xs" style={{ color: '#3d3a56', lineHeight: 1.3 }}>{item.label}</div>
