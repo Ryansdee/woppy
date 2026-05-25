@@ -29,6 +29,7 @@ export default function Navbar() {
   const links = [
     { name: 'Annonces', href: '/jobs' },
     { name: 'Étudiants', href: '/students' },
+    { name: 'Avis', href: '/reviews' },
     { name: 'Mon Profil', href: '/dashboard/profile' },
     { name: 'Mon activité', href: '/dashboard/activity' },
   ];
