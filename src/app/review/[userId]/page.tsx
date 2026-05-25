@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft, Star, CheckCircle, AlertCircle, User } from 'lucide-react';
 
@@ -55,17 +55,28 @@ export default function ReviewPage() {
     if (!annonceId) { setError("Identifiant de mission manquant."); return; }
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'reviews'), {
-        annonceId,
-        reviewerId: user.uid,
-        reviewedId: userId,
-        rating,
-        comment: comment.trim(),
-        createdAt: serverTimestamp(),
+      const token = await user.getIdToken();
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: 'user',
+          annonceId,
+          reviewedId: userId,
+          rating,
+          comment: comment.trim(),
+        }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Erreur serveur');
+      }
       setSubmitted(true);
       setTimeout(() => router.push('/jobs'), 2800);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setError("Impossible d'envoyer l'évaluation. Vérifiez vos permissions.");
     } finally {

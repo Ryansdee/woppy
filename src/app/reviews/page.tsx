@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { getDocs, query, collection, orderBy } from 'firebase/firestore';
 import Link from 'next/link';
 import { ArrowLeft, Star, CheckCircle, AlertCircle, Briefcase, ChevronDown, User, MapPin } from 'lucide-react';
 
@@ -70,19 +70,27 @@ export default function ReviewsPage() {
     setSubmitting(true);
     try {
       const job = annonces.find((a) => a.id === selectedJob);
-      await addDoc(collection(db, 'reviews'), {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        annonceId: selectedJob,
-        annonceTitre: job?.titre || '',
-        annonceLieu: job?.lieu || '',
-        rating,
-        comment: comment.trim(),
-        createdAt: serverTimestamp(),
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'public',
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          annonceId: selectedJob,
+          annonceTitre: job?.titre || '',
+          annonceLieu: job?.lieu || '',
+          rating,
+          comment: comment.trim(),
+        }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Erreur serveur');
+      }
       setSubmitted(true);
       setTimeout(() => router.push('/jobs'), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setError("Impossible d'envoyer l'évaluation. Veuillez réessayer.");
     } finally {
