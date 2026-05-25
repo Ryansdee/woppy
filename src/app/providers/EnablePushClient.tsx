@@ -2,13 +2,14 @@
 'use client';
 
 import { useEffect } from "react";
-import { messaging, db, auth } from "@/lib/firebase";
+import { getMessagingIfSupported, db, auth } from "@/lib/firebase";
 import { getToken } from "firebase/messaging";
 import { updateDoc, doc } from "firebase/firestore";
 
 export default function EnablePushClient() {
   useEffect(() => {
     async function enablePush() {
+      const messaging = await getMessagingIfSupported();
       if (!messaging) return;
 
       const permission = await Notification.requestPermission();

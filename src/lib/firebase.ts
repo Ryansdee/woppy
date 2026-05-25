@@ -21,9 +21,8 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // ===== MESSAGING (important pour les push notifications) =====
-export const messaging =
-  typeof window !== "undefined"
-    ? await isSupported().then((supported) =>
-        supported ? getMessaging(app) : null
-      )
-    : null;
+export async function getMessagingIfSupported() {
+  if (typeof window === "undefined") return null;
+  if (!(await isSupported())) return null;
+  return getMessaging(app);
+}
