@@ -768,11 +768,6 @@ hover:bg-violet-50/30 transition-all group"
                   desc: "Publiez une annonce et recevez des candidatures rapidement, souvent le jour même.",
                 },
                 {
-                  icon: "💳",
-                  title: "Paiement sécurisé",
-                  desc: "Le règlement via Stripe n'est libéré qu'une fois la mission validée par vous.",
-                },
-                {
                   icon: "⭐",
                   title: "Système de notation",
                   desc: "Consultez les avis des autres particuliers avant de choisir votre étudiant.",
@@ -908,7 +903,6 @@ shadow-[0_4px_40px_rgba(0,0,0,0.04)]"
                 <div className="flex flex-col gap-3">
                   {[
                     "Vérification d'identité manuelle pour chaque étudiant",
-                    "Paiement escrow : libéré uniquement après validation",
                     "Système de notation transparent et public",
                     "Support disponible en cas de litige",
                   ].map((item) => (
@@ -930,11 +924,6 @@ shadow-[0_4px_40px_rgba(0,0,0,0.04)]"
                     icon: <Shield size={24} />,
                     label: "Vérification manuelle",
                     color: "violet",
-                  },
-                  {
-                    icon: <CreditCard size={24} />,
-                    label: "Paiement Stripe",
-                    color: "indigo",
                   },
                   {
                     icon: <BadgeCheck size={24} />,
@@ -1097,8 +1086,7 @@ border-2 border-violet-400 transition-all"
                 </Link>
               </div>
               <p className="text-violet-300 text-xs mt-5">
-                ✓ Gratuit · ✓ Vérification manuelle · ✓ Paiements Stripe
-                sécurisés
+                ✓ Gratuit · ✓ Vérification manuelle
               </p>
             </div>
           </div>

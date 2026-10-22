@@ -38,7 +38,7 @@ const sections = [
         </div>
         <p className="mt-4">Les services fournis par Woppy comprennent :</p>
         <ul className="mt-2 space-y-1.5 pl-4">
-          {["Publication d'annonces et gestion des candidatures", "Messagerie intégrée entre utilisateurs", "Paiement sécurisé via Stripe avec protection séquestre"].map(i => (
+          {["Publication d'annonces et gestion des candidatures", "Messagerie intégrée entre utilisateurs"].map(i => (
             <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
@@ -118,14 +118,14 @@ const sections = [
     title: "Paiements et transparence tarifaire",
     content: (
       <>
-        <p>Tous les paiements transitent exclusivement par <strong>Stripe</strong>. Le montant réglé par le Demandeur est bloqué en séquestre jusqu'à la validation mutuelle de la mission, puis reversé à l'étudiant dans les 2 à 5 jours ouvrables.</p>
-        <p className="mt-3">La structure tarifaire de Woppy est volontairement transparente et réduite :</p>
+        <p>La rémunération de chaque mission est fixée par le Demandeur et affichée dans l'annonce avant toute candidature.</p>
+        <p className="mt-3">Pendant la phase de lancement :</p>
         <ul className="mt-2 space-y-1.5 pl-4">
           {[
-            "Les frais de plateforme sont inférieurs à 10 % du montant de la transaction",
-            "Ce taux inclut les frais de traitement Stripe, la vérification des profils et la maintenance de la Plateforme",
-            "À titre de comparaison, les agences d'intérim prélèvent généralement entre 20 % et 35 %",
-            "Les paiements hors plateforme sont strictement interdits et entraînent la suspension du compte",
+            "Le paiement de la mission est réglé directement entre le Demandeur et l'étudiant, une fois la mission terminée",
+            "Woppy n'intervient pas dans cette transaction et ne prélève actuellement aucune commission",
+            "L'utilisation de la Plateforme est gratuite pour les Demandeurs comme pour les étudiants",
+            "Si Woppy introduit un système de paiement intégré ou des frais de service, les utilisateurs en seront informés avant leur entrée en vigueur",
           ].map(i => (
             <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
           ))}

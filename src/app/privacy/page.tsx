@@ -68,7 +68,6 @@ const sections = [
             "Création et gestion de votre compte utilisateur",
             "Mise en relation entre Demandeurs et Prestataires",
             "Vérification manuelle des cartes étudiantes",
-            "Traitement sécurisé des paiements via Stripe",
             "Envoi de notifications liées à votre activité sur la plateforme",
             "Amélioration de la Plateforme sur base d'analyses anonymisées et agrégées",
           ].map(i => (
@@ -89,7 +88,6 @@ const sections = [
         <p>Woppy ne vend, ne loue et ne cède jamais vos données personnelles. Nous partageons uniquement les informations nécessaires avec les sous-traitants techniques suivants :</p>
         <div className="mt-3 space-y-2">
           {[
-            { name: "Stripe", role: "Traitement sécurisé des paiements" },
             { name: "Google Firebase", role: "Authentification, base de données et stockage des fichiers" },
           ].map(p => (
             <div key={p.name} className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
