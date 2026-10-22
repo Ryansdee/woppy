@@ -152,7 +152,7 @@ const sections = [
         <p className="mt-3">La responsabilité de Woppy est en tout état de cause limitée au montant des frais de plateforme perçus sur la transaction concernée.</p>
         <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Avertissement fiscal important</p>
-          <p className="text-xs text-amber-700 leading-relaxed">Il appartient à chaque Prestataire de vérifier qu'il ne dépasse pas le plafond légal annuel du travail étudiant (7 460 € en 2025). Au-delà de ce seuil, des cotisations sociales ordinaires peuvent s'appliquer. Woppy ne peut pas être tenu responsable des conséquences d'un dépassement.</p>
+          <p className="text-xs text-amber-700 leading-relaxed">Les missions réalisées par des étudiants relèvent du régime belge du <strong>travail étudiant</strong> : chaque étudiant dispose d'un quota annuel de 650 heures soumises à une cotisation de solidarité réduite. Au-delà, les cotisations sociales ordinaires s'appliquent. Les revenus perçus peuvent également avoir un impact sur la fiscalité de l'étudiant et sur son statut de personne à charge. Il appartient à chaque étudiant de vérifier sa situation sur la plateforme officielle <a href="https://www.studentatwork.be/fr/quota-heures-et-impact.html" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">Student@Work</a>.</p>
         </div>
       </>
     ),
@@ -194,7 +194,7 @@ const sections = [
     content: (
       <div className="grid sm:grid-cols-2 gap-3">
         {[
-          { label: "Adresse", value: "Louvain-la-Neuve, Brabant wallon, Belgique" },
+          { label: "Adresse", value: "Brussels, Belgium" },
           { label: "Juridique", value: "legal@woppy.be", href: "mailto:legal@woppy.be" },
           { label: "Support", value: "support@woppy.be", href: "mailto:support@woppy.be" },
           { label: "Données personnelles", value: "privacy@woppy.be", href: "mailto:privacy@woppy.be" },
