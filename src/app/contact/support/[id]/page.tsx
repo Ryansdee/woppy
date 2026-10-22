@@ -84,7 +84,12 @@ export default function SupportTicketPage() {
         const ref  = doc(db, 'contacts', id)
         const snap = await getDoc(ref)
         if (!snap.exists()) { setNotFound(true); return }
-        setTicket(snap.data() as Ticket)
+        const data = snap.data()
+        setTicket({
+          ...data,
+          // Les anciens tickets n'ont pas de champ `replies` : on normalise en tableau vide
+          replies: Array.isArray(data.replies) ? data.replies : [],
+        } as Ticket)
       } catch {
         setNotFound(true)
       } finally {
@@ -103,9 +108,13 @@ export default function SupportTicketPage() {
     if (!reply.trim() || !ticket) return
     setSending(true)
     try {
+      // Firestore refuse toute valeur `undefined` : chaque champ a une valeur de repli
+      const currentStatus = ticket.status ?? 'open'
+      const nextStatus    = currentStatus === 'resolved' || currentStatus === 'closed' ? 'open' : currentStatus
+
       const newReply: Reply = {
         author:    'user',
-        name:      ticket.name,
+        name:      ticket.name || ticket.email || 'Utilisateur',
         message:   reply.trim(),
         createdAt: new Date().toISOString(),
       }
@@ -113,13 +122,12 @@ export default function SupportTicketPage() {
       await updateDoc(ref, {
         replies:   arrayUnion(newReply),
         updatedAt: serverTimestamp(),
-        // réouvrir si fermé/résolu
-        status: ticket.status === 'resolved' || ticket.status === 'closed' ? 'open' : ticket.status,
+        status:    nextStatus, // réouvre le ticket s'il était fermé ou résolu
       })
       setTicket(prev => prev ? {
         ...prev,
-        replies: [...prev.replies, newReply],
-        status:  prev.status === 'resolved' || prev.status === 'closed' ? 'open' : prev.status,
+        replies: [...(prev.replies ?? []), newReply],
+        status:  nextStatus,
       } : prev)
       setReply('')
     } catch (err) {
@@ -163,7 +171,7 @@ export default function SupportTicketPage() {
       createdAt: ticket.createdAt ? new Date(ticket.createdAt.seconds * 1000).toISOString() : null,
       isOriginal: true,
     },
-    ...ticket.replies.map(r => ({ ...r, isOriginal: false })),
+    ...(ticket.replies ?? []).map(r => ({ ...r, isOriginal: false })),
   ]
 
   return (

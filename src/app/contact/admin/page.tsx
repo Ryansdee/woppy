@@ -71,9 +71,32 @@ function timeAgo(ts?: Timestamp) {
   return ts.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
 function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('fr-FR', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   });
+}
+
+/* Les anciens tickets n'ont pas toujours tous les champs : on garantit des valeurs sûres */
+const isTimestamp = (v: unknown): v is Timestamp =>
+  typeof v === 'object' && v !== null && typeof (v as Timestamp).toDate === 'function';
+
+function normalizeContact(id: string, data: Record<string, unknown>): Contact {
+  const status = typeof data.status === 'string' && data.status in STATUS_META ? (data.status as Status) : 'open';
+  return {
+    ...(data as Omit<Contact, 'id'>),
+    id,
+    ticketId:  typeof data.ticketId === 'string' ? data.ticketId : '',
+    name:      typeof data.name === 'string' && data.name ? data.name : (typeof data.email === 'string' ? data.email : 'Utilisateur'),
+    email:     typeof data.email === 'string' ? data.email : '',
+    message:   typeof data.message === 'string' ? data.message : '',
+    status,
+    answered:  Boolean(data.answered),
+    replies:   Array.isArray(data.replies) ? (data.replies as ReplyEntry[]) : [],
+    createdAt: isTimestamp(data.createdAt) ? data.createdAt : undefined,
+    updatedAt: isTimestamp(data.updatedAt) ? data.updatedAt : undefined,
+  };
 }
 
 /* ─── Page ───────────────────────────────────────────────── */
@@ -98,13 +121,9 @@ export default function ContactAdminPage() {
     try {
       const q = query(collection(db, 'contacts'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
-      setContacts(snap.docs.map(d => ({
-        id: d.id,
-        ...(d.data() as Omit<Contact, 'id'>),
-        replies: (d.data().replies as ReplyEntry[]) ?? [],
-      })));
-      setLastRefresh(new Date());
-      setCountdown(REFRESH_INTERVAL / 1000);
+        setContacts(snap.docs.map(d => normalizeContact(d.id, d.data())));
+        setLastRefresh(new Date());
+        setCountdown(REFRESH_INTERVAL / 1000);
     } catch (err) { console.error(err); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -159,7 +178,7 @@ export default function ContactAdminPage() {
   const filtered = contacts.filter(c => {
     const q = search.toLowerCase();
     const matchS = !q || [c.name, c.email, c.message, c.subject ?? '', c.ticketId ?? '']
-      .some(s => s.toLowerCase().includes(q));
+            .some(s => (s ?? '').toLowerCase().includes(q));
     const matchF = filter === 'all' || c.status === filter;
     return matchS && matchF;
   });
