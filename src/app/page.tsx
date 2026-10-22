@@ -106,8 +106,8 @@ const steps = [
   },
   {
     step: "04",
-    title: "Soyez payé via Stripe",
-    desc: "Le paiement est sécurisé et libéré une fois la mission validée par les deux parties.",
+    title: "Réalisez la mission",
+    desc: "La rémunération est fixée dans l'annonce dès le départ. Pas de négociation, pas de surprise.",
     icon: <CreditCard size={22} />,
   },
 ];
@@ -270,10 +270,14 @@ export default function HomePage() {
           query(
             collection(db, "reviews"),
             orderBy("createdAt", "desc"),
-            limit(3),
+                        limit(15),
           ),
         );
-        const data: Review[] = snap.docs.map((doc, i) => {
+        // Les avis publics en attente de modération ne sont jamais affichés
+        const approved = snap.docs
+          .filter((doc) => doc.data().status !== "pending")
+          .slice(0, 3);
+        const data: Review[] = approved.map((doc, i) => {
           const d = doc.data();
           const fullName: string = [d.firstName, d.lastName].filter(Boolean).join(" ") || "Anonyme";
           const initials = fullName
@@ -446,7 +450,7 @@ shadow-violet-200"
 text-xs font-semibold px-4 py-2 rounded-full"
             >
               <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
-              Plateforme de jobs étudiants à Louvain-la-Neuve
+              Plateforme de jobs étudiants à Bruxelles
             </div>
           </motion.div>
 
@@ -469,7 +473,7 @@ tracking-tight text-slate-900 mb-6 max-w-4xl mx-auto"
             className="text-center text-slate-500 text-lg md:text-xl font-light max-w-xl mx-auto mb-10 leading-relaxed"
           >
             Woppy connecte étudiants vérifiés et particuliers pour des missions
-            locales, rapides et rémunérées autour de Louvain-la-Neuve.
+            locales, rapides et rémunérées autour de Bruxelles.
           </motion.p>
 
           {/* Dual CTA */}
@@ -509,7 +513,6 @@ w-full sm:w-auto justify-center"
             {[
               ["✓", "Inscription gratuite"],
               ["✓", "Étudiants vérifiés manuellement"],
-              ["✓", "Paiement sécurisé Stripe"],
               ["✓", "Sans CV requis"],
             ].map(([check, label]) => (
               <span

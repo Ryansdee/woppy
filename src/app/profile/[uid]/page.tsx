@@ -96,7 +96,9 @@ export default function UserProfilePage() {
     (async () => {
       try {
         const snap = await getDocs(query(collection(db, 'reviews'), where('reviewedId', '==', uid)));
-        const list: Review[] = snap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+          const list: Review[] = snap.docs
+          .filter(d => d.data().status !== 'pending')
+          .map(d => ({ id: d.id, ...d.data() as any }));
         setReviewsList(list);
         if (list.length > 0) setAvgRating(Number((list.reduce((s, r) => s + (Number(r.rating) || 0), 0) / list.length).toFixed(1)));
       } catch (e) { console.error(e); }

@@ -47,7 +47,6 @@ const sections = [
             { label: "Données d'inscription", detail: "nom, prénom, adresse e-mail, âge, ville. Votre mot de passe n'est jamais stocké en clair — il est géré exclusivement par Firebase Authentication (hachage sécurisé côté Google)." },
             { label: "Données de profil", detail: "photo de profil, bio, expériences, et pour les étudiants : carte d'identité étudiante transmise pour vérification manuelle uniquement." },
             { label: "Données d'utilisation", detail: "annonces publiées, candidatures, messages échangés, avis reçus et cookies de navigation." },
-            { label: "Données de paiement", detail: "intégralement traitées par Stripe. Woppy ne stocke à aucun moment vos coordonnées bancaires ou numéros de carte." },
           ].map(item => (
             <li key={item.label} className="flex items-start gap-2.5">
               <ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />

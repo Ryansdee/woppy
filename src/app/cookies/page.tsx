@@ -160,7 +160,6 @@ const sections = [
           {[
             { name: "Google Firebase", role: "Gestion de l'authentification et stockage des données", link: "https://firebase.google.com/support/privacy", linkLabel: "firebase.google.com/support/privacy" },
             { name: "Google Analytics", role: "Mesure d'audience anonymisée (si activé)", link: "https://policies.google.com/privacy", linkLabel: "policies.google.com/privacy" },
-            { name: "Stripe", role: "Traitement des paiements sécurisés", link: "https://stripe.com/privacy", linkLabel: "stripe.com/privacy" },
           ].map(p => (
             <div key={p.name} className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
               <div className="flex items-start justify-between gap-3 flex-wrap">

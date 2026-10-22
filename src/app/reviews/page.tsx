@@ -27,6 +27,7 @@ export default function ReviewsPage() {
   const [rating, setRating]           = useState(0);
   const [hovered, setHovered]         = useState(0);
   const [comment, setComment]         = useState('');
+  const [website, setWebsite]         = useState(''); // honeypot anti-bot
   const [submitting, setSubmitting]   = useState(false);
   const [submitted, setSubmitted]     = useState(false);
   const [error, setError]             = useState<string | null>(null);
@@ -42,7 +43,9 @@ export default function ReviewsPage() {
           orderBy('createdAt', 'desc')
         );
         const snap = await getDocs(q);
-        const list: Annonce[] = snap.docs.map((d) => ({
+        const list: Annonce[] = snap.docs
+          .filter((d) => d.data().statut === 'fini')
+          .map((d) => ({
           id: d.id,
           titre: d.data().titre || 'Mission sans titre',
           lieu: d.data().lieu || '',
@@ -65,7 +68,7 @@ export default function ReviewsPage() {
     if (!lastName.trim())  { setError('Veuillez saisir votre nom.'); return; }
     if (!selectedJob)      { setError('Veuillez sélectionner une mission.'); return; }
     if (!rating)           { setError('Veuillez sélectionner une note.'); return; }
-    if (!comment.trim())   { setError('Veuillez écrire un commentaire.'); return; }
+    if (comment.trim().length < 10) { setError('Votre commentaire doit faire au moins 10 caractères.'); return; }
 
     setSubmitting(true);
     try {
@@ -80,6 +83,7 @@ export default function ReviewsPage() {
           annonceId: selectedJob,
           annonceTitre: job?.titre || '',
           annonceLieu: job?.lieu || '',
+          website,
           rating,
           comment: comment.trim(),
         }),
@@ -372,6 +376,17 @@ export default function ReviewsPage() {
                   fontSize: 14, color: '#1a1a2e', outline: 'none',
                   resize: 'none', lineHeight: 1.65, transition: 'border-color 0.15s',
                 }}
+              />
+                            {/* Honeypot : invisible pour les humains, rempli par les bots */}
+              <input
+                type="text"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
               />
             </div>
 
