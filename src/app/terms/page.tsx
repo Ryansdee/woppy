@@ -27,7 +27,6 @@ const sections = [
           {[
             { label: "Montant facturé au Demandeur", value: "14 €/h", sub: "ex. pour une heure" },
             { label: "Montant perçu par l'étudiant", value: "13 €/h", sub: "≈ 93 % reversé" },
-            { label: "Frais de plateforme", value: "< 10 %", sub: "vs 20–30 % en intérim" },
           ].map(item => (
             <div key={item.label} className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
               <p className="text-xs text-slate-500 mb-1">{item.label}</p>

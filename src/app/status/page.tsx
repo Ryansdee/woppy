@@ -85,7 +85,7 @@ export default function StatusPage() {
         name: 'Services tiers',
         checks: [
           { id: 'nominatim',      name: 'Géolocalisation',        description: 'API Nominatim (OpenStreetMap)',       status: 'checking' },
-          { id: 'stripe-js',      name: 'Stripe',                 description: 'Chargement du SDK Stripe',           status: 'checking' },
+          /*{ id: 'stripe-js',      name: 'Stripe',                 description: 'Chargement du SDK Stripe',           status: 'checking' },*/
           { id: 'avatars',        name: 'Service avatars',        description: 'API ui-avatars.com',                 status: 'checking' },
         ],
       },
@@ -187,9 +187,9 @@ export default function StatusPage() {
       gs = updateCheck('nominatim', { status: 'outage', detail: e.message }, gs);
     }
     setGroups([...gs]);
-
+    
     /* ── Stripe JS ── */
-    try {
+    /*try {
       const { latency } = await measure(() =>
         fetch('https://js.stripe.com/v3/', { mode: 'no-cors' })
       );
@@ -198,6 +198,7 @@ export default function StatusPage() {
       gs = updateCheck('stripe-js', { status: 'outage', detail: e.message }, gs);
     }
     setGroups([...gs]);
+    */
 
     /* ── Avatars ── */
     try {
