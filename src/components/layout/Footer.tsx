@@ -59,8 +59,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {[
                 { label: 'Fonctionnalités', href: '/#features' },
-                { label: 'Tarifs', href: '/#pricing' },
-                { label: 'Démo', href: '/#demo' },
+                /*{ label: 'Tarifs', href: '/#pricing' },*/
               ].map(({ label, href }) => (
                 <li key={href}>
                   <Link href={href}
@@ -83,6 +82,7 @@ export default function Footer() {
                 { label: 'Contact', href: '/contact' },
                 { label: "Mise a jour de l'app", href: '/updates' },
                 { label: "Status", href: '/status' },
+                { label: 'À propos', href: '/a-propos' },
               ].map(({ label, href }) => (
                 <li key={href}>
                   <Link href={href}
@@ -123,7 +123,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-            Louvain-la-Neuve, Belgique
+            Bruxelles, Belgique
           </div>
         </div>
       </div>
