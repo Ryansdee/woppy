@@ -1,27 +1,94 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Identité Woppy ──
+   Papier chaud, encre profonde, violet du logo pour les actions,
+   citron pour les points d'attention. */
+@theme {
+  --color-paper: #fbfaf7;
+  --color-paper-2: #f3f1ec;
+  --color-ink: #15131f;
+  --color-ink-2: #3a3747;
+  --color-muted: #6e6a7c;
+  --color-line: #e7e3ec;
+  --color-brand: #7357f6;
+  --color-brand-dark: #5a3fe0;
+  --color-brand-soft: #efebff;
+  --color-lime: #d8f36a;
+  --color-lime-soft: #f4fbd6;
+  --color-success: #1f9d55;
+  --color-danger: #d93a3a;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  scroll-behavior: smooth;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+
+/* ── Composants partagés ── */
+@layer components {
+  .container-w {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold
+      transition-[background-color,color,border-color,transform] duration-150
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
+      disabled:pointer-events-none disabled:opacity-50 active:translate-y-px;
+  }
+  .btn-lg {
+    @apply px-6 py-3.5 text-base;
+  }
+  .btn-primary {
+    @apply bg-ink text-paper hover:bg-ink-2;
+  }
+  .btn-brand {
+    @apply bg-brand text-white hover:bg-brand-dark;
+  }
+  .btn-outline {
+    @apply border border-line bg-white text-ink hover:border-ink;
+  }
+  .btn-ghost {
+    @apply text-ink-2 hover:bg-paper-2 hover:text-ink;
+  }
+
+  .card {
+    @apply rounded-[var(--radius-card)] border border-line bg-white;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-ink-2;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted
+      transition-colors focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-2;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .display {
+    @apply font-display font-bold tracking-[-0.03em] text-ink;
+  }
 }

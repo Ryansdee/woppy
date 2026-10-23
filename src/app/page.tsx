@@ -1,29 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  MapPin,
-  Clock,
-  Star,
-  Shield,
-  CreditCard,
-  Users,
-  CheckCircle,
-  ChevronRight,
-  Zap,
-  UserCheck,
-  Search,
-  FileCheck,
+  ArrowUpRight,
   BadgeCheck,
-  TrendingUp,
-  Building2,
+  Clock,
+  Euro,
   GraduationCap,
-  Menu,
-  X,
+  Home,
+  MapPin,
+  MessageSquare,
+  Search,
+  ShieldCheck,
+  Star,
 } from "lucide-react";
 import {
   collection,
@@ -36,1059 +29,491 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-/* ─────────────── DONNÉES STATIQUES ─────────────── */
-
-const jobCategories = [
-  { label: "Déménagement", icon: "📦", count: "34 jobs" },
-  { label: "Jardinage", icon: "🌿", count: "21 jobs" },
-  { label: "Aide informatique", icon: "💻", count: "18 jobs" },
-  { label: "Cours particuliers", icon: "📚", count: "47 jobs" },
-  { label: "Livraison", icon: "🚴", count: "29 jobs" },
-  { label: "Nettoyage", icon: "🧹", count: "15 jobs" },
-  { label: "Bricolage", icon: "🔧", count: "22 jobs" },
-  { label: "Garde d'animaux", icon: "🐾", count: "11 jobs" },
-];
-
-const featuredJobs = [
-  {
-    title: "Aide pour déménagement",
-    category: "Transport",
-    rate: "16€/h",
-    duration: "5h",
-    location: "Louvain-la-Neuve",
-    rating: 4.9,
-    reviews: 12,
-    urgent: true,
-    date: "Samedi 22 mars",
-  },
-  {
-    title: "Cours de mathématiques",
-    category: "Tutorat",
-    rate: "18€/h",
-    duration: "2h",
-    location: "Ottignies",
-    rating: 5.0,
-    reviews: 8,
-    urgent: false,
-    date: "Flexible",
-  },
-  {
-    title: "Jardinage & taille haies",
-    category: "Jardinage",
-    rate: "14€/h",
-    duration: "4h",
-    location: "Wavre",
-    rating: 4.7,
-    reviews: 5,
-    urgent: false,
-    date: "Dimanche 23 mars",
-  },
-];
-
-const steps = [
-  {
-    step: "01",
-    title: "Créez votre profil",
-    desc: "Inscription gratuite en 2 minutes. Votre identité est vérifiée manuellement par notre équipe.",
-    icon: <UserCheck size={22} />,
-  },
-  {
-    step: "02",
-    title: "Trouvez une mission",
-    desc: "Parcourez les annonces près de chez vous. Filtrez par catégorie, tarif ou disponibilité.",
-    icon: <Search size={22} />,
-  },
-  {
-    step: "03",
-    title: "Postulez en un clic",
-    desc: "Envoyez votre candidature directement au particulier. Pas de CV requis.",
-    icon: <FileCheck size={22} />,
-  },
-  {
-    step: "04",
-    title: "Réalisez la mission",
-    desc: "La rémunération est fixée dans l'annonce dès le départ. Pas de négociation, pas de surprise.",
-    icon: <CreditCard size={22} />,
-  },
-];
-
-const AVATAR_COLORS = ["#8a6bfe", "#6a4fe0", "#b89fff", "#7c5cfc", "#a082fd"];
-
 /* ─────────────── TYPES ─────────────── */
 
+type Annonce = {
+  id: string;
+  titre: string;
+  description: string;
+  lieu: string;
+  remuneration: number | string;
+  duree?: number | string;
+  date?: string;
+  statut: string;
+};
+
 type Review = {
+  id: string;
   name: string;
   role: string;
   text: string;
   rating: number;
-  avatar: string;
-  color: string;
 };
+
+type RawReview = {
+  id: string;
+  status?: string;
+  rating?: number;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  text?: string;
+  comment?: string;
+};
+
+type Stats = { users: number; annonces: number; finished: number; students: number };
+
+/* ─────────────── CONTENU ─────────────── */
+
+const MIN_USERS_FOR_STATS = 50;
+
+const STEPS = [
+  {
+    title: "Créez votre compte",
+    desc: "Gratuit. Les étudiants complètent leur profil : études, disponibilités, expériences.",
+  },
+  {
+    title: "Publiez ou trouvez une mission",
+    desc: "Le particulier décrit la mission, le lieu, la date et la rémunération. Tout est clair dès le départ.",
+  },
+  {
+    title: "Discutez et choisissez",
+    desc: "L'étudiant postule, la messagerie s'ouvre, le particulier accepte la candidature qui lui convient.",
+  },
+  {
+    title: "Mission faite, avis laissé",
+    desc: "Une fois la mission terminée, chacun note l'autre. Les avis restent visibles sur les profils.",
+  },
+];
+
+const AUDIENCES = {
+  student: {
+    label: "Je suis étudiant",
+    icon: GraduationCap,
+    title: "Des jobs qui rentrent dans votre horaire",
+    points: [
+      "Des missions courtes, près de chez vous ou de votre campus",
+      "La rémunération est affichée dans l'annonce, sans négociation",
+      "Pas de CV : votre profil et vos avis parlent pour vous",
+      "Vous choisissez vos missions, quand vous êtes disponible",
+    ],
+    cta: { href: "/auth/register", label: "Créer mon profil étudiant" },
+  },
+  client: {
+    label: "Je cherche de l'aide",
+    icon: Home,
+    title: "Un coup de main, sans prise de tête",
+    points: [
+      "Publiez une annonce en quelques minutes",
+      "Consultez le profil de chaque candidat avant de choisir",
+      "Lisez les avis laissés après les missions précédentes",
+      "Échangez dans la messagerie avant de confirmer",
+    ],
+    cta: { href: "/jobs/create", label: "Publier une annonce" },
+  },
+} as const;
 
 /* ─────────────── COMPOSANTS ─────────────── */
 
-function StarRating({ rating }: { rating: number }) {
+function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-0.5" aria-label={`${rating} sur 5`}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star
           key={n}
-          size={13}
-          className={
-            n <= Math.round(rating)
-              ? "text-amber-400 fill-amber-400"
-              : "text-slate-200 fill-slate-200"
-          }
+          size={size}
+          className={n <= Math.round(rating) ? "fill-ink text-ink" : "fill-line text-line"}
         />
       ))}
     </div>
   );
 }
 
-function JobCard({
-  job,
-  delay = 0,
-}: {
-  job: (typeof featuredJobs)[0];
-  delay?: number;
-}) {
+function JobCard({ a }: { a: Annonce }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      className="group bg-white rounded-2xl border border-slate-100 hover:border-violet-200 p-6
-hover:shadow-[0_8px_40px_rgba(138,107,254,0.12)] transition-all duration-300 cursor-pointer"
+    <Link
+      href={`/jobs/${a.id}`}
+      className="card group flex h-full flex-col p-5 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-ink"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full">
-              {job.category}
-            </span>
-            {job.urgent && (
-              <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <Zap size={10} className="fill-orange-500" /> Urgent
-              </span>
-            )}
-          </div>
-          <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-violet-700 transition-colors">
-            {job.title}
-          </h3>
-        </div>
-        <div className="ml-4 text-right">
-          <div className="text-xl font-extrabold text-violet-600 font-sora">
-            {job.rate}
-          </div>
-        </div>
+      <div className="flex items-start justify-between gap-4">
+        <h3 className="font-display text-lg font-semibold leading-snug tracking-tight">{a.titre}</h3>
+        <ArrowUpRight size={18} className="shrink-0 text-muted transition-colors group-hover:text-ink" />
       </div>
-
-      {/* Meta */}
-      <div className="flex flex-wrap gap-3 text-sm text-slate-500 mb-5">
-        <span className="flex items-center gap-1.5">
-          <MapPin size={13} className="text-violet-400" /> {job.location}
+      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{a.description}</p>
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
+        <span className="chip !border-transparent !bg-lime-soft font-semibold !text-ink">
+          <Euro size={12} /> {a.remuneration} €/h
         </span>
-        <span className="flex items-center gap-1.5">
-          <Clock size={13} className="text-violet-400" /> {job.duration}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <TrendingUp size={13} className="text-violet-400" /> {job.date}
-        </span>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-        <div className="flex items-center gap-2">
-          <StarRating rating={job.rating} />
-          <span className="text-xs font-medium text-slate-600">
-            {job.rating} ({job.reviews} avis)
+        {a.lieu && (
+          <span className="chip">
+            <MapPin size={12} /> {a.lieu}
           </span>
-        </div>
-        <button
-          className="flex items-center gap-1 text-sm font-semibold text-violet-600
-group-hover:gap-2 transition-all duration-200"
-        >
-          Postuler <ArrowRight size={14} />
-        </button>
+        )}
+        {a.duree && (
+          <span className="chip">
+            <Clock size={12} /> {a.duree} h
+          </span>
+        )}
       </div>
-    </motion.div>
+    </Link>
   );
 }
 
-/* ─────────────── PAGE PRINCIPALE ─────────────── */
+/* ─────────────── PAGE ─────────────── */
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [stats, setStats] = useState({
-    students: 0,
-    users: 0,
-    annonces: 0,
-    jobs: 0,
-  });
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"student" | "client">("student");
-  const [testimonials, setTestimonials] = useState<Review[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [audience, setAudience] = useState<keyof typeof AUDIENCES>("student");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [annonces, setAnnonces] = useState<Annonce[] | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState<{ avg: number; count: number } | null>(null);
 
+  /* Chiffres réels */
   useEffect(() => {
-    if (Cookies.get("woppy_user")) setIsLoggedIn(true);
-  }, []);
-
-  /* ── Stats Firestore ── */
-  useEffect(() => {
-    (async () => {
-      try {
-        const [sS, uS, aS, jS] = await Promise.all([
-          getCountFromServer(
-            query(
-              collection(db, "users"),
-              where("hasStudentProfile", "==", true),
-            ),
-          ),
-          getCountFromServer(collection(db, "users")),
-          getCountFromServer(collection(db, "annonces")),
-          getCountFromServer(
-            query(collection(db, "annonces"), where("statut", "==", "fini")),
-          ),
-        ]);
+    Promise.all([
+      getCountFromServer(collection(db, "users")),
+      getCountFromServer(collection(db, "annonces")),
+      getCountFromServer(query(collection(db, "annonces"), where("statut", "==", "fini"))),
+      getCountFromServer(query(collection(db, "users"), where("hasStudentProfile", "==", true))),
+    ])
+      .then(([u, a, f, s]) =>
         setStats({
-          students: sS.data().count,
-          users: uS.data().count,
-          annonces: aS.data().count,
-          jobs: jS.data().count,
-        });
-      } catch {}
-    })();
+          users: u.data().count,
+          annonces: a.data().count,
+          finished: f.data().count,
+          students: s.data().count,
+        })
+      )
+      .catch(() => setStats(null));
   }, []);
 
-  /* ── Reviews Firestore ── */
+  /* Dernières annonces encore ouvertes */
   useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDocs(
-          query(
-            collection(db, "reviews"),
-            orderBy("createdAt", "desc"),
-                        limit(15),
-          ),
-        );
-        // Les avis publics en attente de modération ne sont jamais affichés
-        const approved = snap.docs
-          .filter((doc) => doc.data().status !== "pending")
-          .slice(0, 3);
-        const data: Review[] = approved.map((doc, i) => {
-          const d = doc.data();
-          const fullName: string = [d.firstName, d.lastName].filter(Boolean).join(" ") || "Anonyme";
-          const initials = fullName
-            .split(" ")
-            .map((n: string) => n[0] ?? "")
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
-          return {
-            name: fullName,
-            role: d.role ?? "",
-            text: d.text ?? d.comment ?? "",
-            rating: d.rating ?? 5,
-            avatar: initials,
-            color: AVATAR_COLORS[i % AVATAR_COLORS.length],
-          };
-        });
-        setTestimonials(data);
-      } catch (e) {
-        console.error("Erreur chargement reviews:", e);
-      } finally {
-        setReviewsLoading(false);
-      }
-    })();
+    getDocs(query(collection(db, "annonces"), orderBy("createdAt", "desc"), limit(20)))
+      .then((snap) =>
+        setAnnonces(
+          snap.docs
+            .map((d) => ({ id: d.id, ...(d.data() as Omit<Annonce, "id">) }))
+            .filter((a) => a.statut !== "fini" && a.titre)
+            .slice(0, 3)
+        )
+      )
+      .catch(() => setAnnonces([]));
   }, []);
+
+  /* Avis publiés (hors modération) et note moyenne calculée */
+  useEffect(() => {
+    getDocs(query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(50)))
+      .then((snap) => {
+        const published = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as RawReview)
+          .filter((d) => d.status !== "pending");
+        const rated = published.filter((d) => typeof d.rating === "number");
+        if (rated.length) {
+          setRating({
+            avg: rated.reduce((s, d) => s + (d.rating ?? 0), 0) / rated.length,
+            count: rated.length,
+          });
+        }
+        setReviews(
+          published
+            .map((d) => ({
+              id: d.id,
+              name: [d.firstName, d.lastName].filter(Boolean).join(" ") || "Anonyme",
+              role: d.role ?? "",
+              text: d.text ?? d.comment ?? "",
+              rating: d.rating ?? 5,
+            }))
+            .filter((r) => r.text)
+            .slice(0, 3)
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  const onSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = search.trim();
+    router.push(q ? `/jobs?q=${encodeURIComponent(q)}` : "/jobs");
+  };
+
+  const aud = AUDIENCES[audience];
+  /* Les chiffres ne s'affichent qu'à partir d'une communauté significative */
+  const statItems = stats && stats.users >= MIN_USERS_FOR_STATS
+    ? [
+        { value: stats.users, label: "membres inscrits" },
+        { value: stats.students, label: "profils étudiants" },
+        { value: stats.annonces, label: "missions publiées" },
+        { value: stats.finished, label: "missions terminées" },
+      ].filter((s) => s.value > 0)
+    : [];
 
   return (
-    <main className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* ══════════════════ FONTS ══════════════════ */}
-      <style>{`
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
-.font-sora { font-family: 'Sora', sans-serif; }
-body, .font-sans { font-family: 'Plus Jakarta Sans', sans-serif; }
-.gradient-text {
-background: linear-gradient(135deg, #8a6bfe 0%, #6a4fe0 100%);
--webkit-background-clip: text; -webkit-text-fill-color: transparent;
-background-clip: text;
-}
-.hero-grid {
-background-image: radial-gradient(circle, rgba(138,107,254,0.08) 1px, transparent 1px);
-background-size: 28px 28px;
-}
-@keyframes float {
-0%, 100% { transform: translateY(0px); }
-50% { transform: translateY(-8px); }
-}
-.float { animation: float 4s ease-in-out infinite; }
-.float-slow { animation: float 6s ease-in-out infinite 1s; }
-`}</style>
-
-      {/* ══════════════════ NAV ══════════════════ */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center">
-              <span className="font-sora font-bold text-white text-sm">W</span>
-            </div>
-            <span className="font-sora font-bold text-xl text-slate-900 tracking-tight">
-              woppy
+    <main className="overflow-x-hidden">
+      {/* ══════════ HERO ══════════ */}
+      <section className="container-w pb-16 pt-14 sm:pt-20">
+        <div className="grid items-end gap-10 lg:grid-cols-[1.25fr_1fr]">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <span className="chip">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" /> Petits jobs étudiants en Belgique
             </span>
-          </Link>
-
-          {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-7">
-            {[
-              ["#jobs", "Jobs disponibles"],
-              ["#comment", "Comment ça marche"],
-              ["#avis", "Avis"],
-            ].map(([href, label]) => (
-              <a
-                key={href}
-                href={href}
-                className="text-sm font-medium text-slate-600 hover:text-violet-600 transition-colors"
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white
-text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
-              >
-                Mon espace <ArrowRight size={15} />
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-sm font-semibold text-slate-600 hover:text-violet-600 px-4 py-2 transition-colors"
-                >
-                  Connexion
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white
-text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm
-shadow-violet-200"
-                >
-                  S'inscrire gratuitement
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile burger */}
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-slate-50 transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-slate-100 bg-white px-5 py-4 flex flex-col gap-4">
-            {[
-              ["#jobs", "Jobs disponibles"],
-              ["#comment", "Comment ça marche"],
-              ["#avis", "Avis"],
-            ].map(([href, label]) => (
-              <a
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-medium text-slate-700 py-1"
-              >
-                {label}
-              </a>
-            ))}
-            <hr className="border-slate-100" />
-            <Link
-              href="/auth/login"
-              className="text-sm font-medium text-slate-600 py-1"
-            >
-              Connexion
-            </Link>
-            <Link
-              href="/auth/register"
-              className="bg-violet-600 text-white text-sm font-semibold text-center py-3 rounded-xl"
-            >
-              S'inscrire gratuitement
-            </Link>
-          </div>
-        )}
-      </nav>
-
-      {/* ══════════════════ HERO ══════════════════ */}
-      <section className="pt-24 pb-0 relative overflow-hidden">
-        {/* Grid background */}
-        <div className="absolute inset-0 hero-grid opacity-60" />
-        {/* Gradient overlay */}
-        <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-white to-transparent z-10" />
-
-        <div className="max-w-6xl mx-auto px-5 relative z-10">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mb-8 pt-8"
-          >
-            <div
-              className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 text-violet-700
-text-xs font-semibold px-4 py-2 rounded-full"
-            >
-              <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
-              Plateforme de jobs étudiants à Bruxelles
-            </div>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="font-sora font-extrabold text-center text-5xl md:text-[68px] leading-[1.07]
-tracking-tight text-slate-900 mb-6 max-w-4xl mx-auto"
-          >
-            Le job étudiant,{" "}
-            <span className="gradient-text">simple et sécurisé</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-center text-slate-500 text-lg md:text-xl font-light max-w-xl mx-auto mb-10 leading-relaxed"
-          >
-            Woppy connecte étudiants vérifiés et particuliers pour des missions
-            locales, rapides et rémunérées autour de Bruxelles.
-          </motion.p>
-
-          {/* Dual CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6"
-          >
-            <Link
-              href="/auth/register?role=student"
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white
-font-sora font-semibold text-base px-7 py-4 rounded-2xl transition-all
-shadow-lg shadow-violet-200 hover:shadow-violet-300 hover:-translate-y-0.5
-w-full sm:w-auto justify-center"
-            >
-              <GraduationCap size={18} /> Je suis étudiant
-            </Link>
-            <Link
-              href="/auth/register?role=client"
-              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800
-font-sora font-semibold text-base px-7 py-4 rounded-2xl transition-all
-border-2 border-slate-200 hover:border-violet-300 hover:-translate-y-0.5
-w-full sm:w-auto justify-center"
-            >
-              <Building2 size={18} /> Je cherche de l'aide
-            </Link>
-          </motion.div>
-
-          {/* Trust bar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex items-center justify-center gap-6 flex-wrap text-sm text-slate-500 mb-14"
-          >
-            {[
-              ["✓", "Inscription gratuite"],
-              ["✓", "Étudiants vérifiés manuellement"],
-              ["✓", "Sans CV requis"],
-            ].map(([check, label]) => (
-              <span
-                key={label}
-                className="flex items-center gap-1.5 font-medium"
-              >
-                <span className="text-violet-500 font-bold">{check}</span>{" "}
-                {label}
-              </span>
-            ))}
-          </motion.div>
-
-          {/* Hero card mockup */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="relative max-w-3xl mx-auto"
-          >
-            {/* Main bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_20px_80px_rgba(138,107,254,0.15)] p-3 flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                <Search size={16} className="text-slate-400 shrink-0" />
-                <span className="text-sm text-slate-400">
-                  Rechercher un job ou une mission…
-                </span>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-4 py-3">
-                <MapPin size={14} className="text-violet-500 shrink-0" />
-                <span className="text-sm font-medium text-slate-600">
-                  Louvain-la-Neuve
-                </span>
-              </div>
-              <button
-                className="bg-violet-600 text-white text-sm font-semibold px-5 py-3 rounded-xl
-hover:bg-violet-700 transition-colors shrink-0"
-              >
-                Rechercher
-              </button>
-            </div>
-
-            {/* Floating stat chips */}
-            <div
-              className="float absolute -left-4 top-[-28px] bg-white rounded-2xl border border-slate-100
-shadow-lg px-4 py-3 flex items-center gap-2.5 text-sm font-semibold text-slate-800"
-            >
-              <span className="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center text-base">
-                🟢
-              </span>
-              <div>
-                <div className="text-xs text-slate-400 font-normal">
-                  Disponibles
-                </div>
-                <div className="font-bold text-slate-800">142 missions</div>
-              </div>
-            </div>
-            <div
-              className="float-slow absolute -right-4 top-[-28px] bg-white rounded-2xl border border-slate-100
-shadow-lg px-4 py-3 flex items-center gap-2.5 text-sm font-semibold text-slate-800
-hidden sm:flex"
-            >
-              <span className="w-8 h-8 bg-violet-50 rounded-xl flex items-center justify-center text-base">
-                ⭐
-              </span>
-              <div>
-                <div className="text-xs text-slate-400 font-normal">
-                  Note moyenne
-                </div>
-                <div className="font-bold text-slate-800">4.8 / 5</div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ══════════════════ CATÉGORIES ══════════════════ */}
-      <section className="pt-20 pb-16 bg-white">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-sora font-bold text-2xl text-slate-900">
-              Parcourir par catégorie
-            </h2>
-            <a
-              href="#jobs"
-              className="text-sm font-semibold text-violet-600 flex items-center gap-1 hover:gap-2 transition-all"
-            >
-              Voir tout <ChevronRight size={15} />
-            </a>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {jobCategories.map((cat, i) => (
-              <motion.button
-                key={cat.label}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                className="group flex flex-col items-center gap-2 bg-slate-50 hover:bg-violet-50
-border border-slate-100 hover:border-violet-200 rounded-2xl p-4
-transition-all duration-200 cursor-pointer"
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="text-xs font-semibold text-slate-700 group-hover:text-violet-700 text-center leading-tight">
-                  {cat.label}
-                </span>
-                <span className="text-[10px] text-slate-400">{cat.count}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ JOBS ══════════════════ */}
-      <section id="jobs" className="py-16 bg-slate-50/60">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
-            <div>
-              <div className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-1">
-                En ce moment
-              </div>
-              <h2 className="font-sora font-bold text-3xl text-slate-900">
-                Missions disponibles
-              </h2>
-            </div>
-            <div className="flex gap-2">
-              {["Tous", "Urgent", "Bien noté", "Proche"].map((f) => (
-                <button
-                  key={f}
-                  className="text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200
-bg-white hover:border-violet-300 hover:text-violet-600 transition-colors text-slate-600"
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-5 mb-10">
-            {featuredJobs.map((job, i) => (
-              <JobCard key={job.title} job={job} delay={i * 0.1} />
-            ))}
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/auth/register"
-              className="inline-flex items-center gap-2 bg-white border-2 border-violet-200 text-violet-700
-font-sora font-semibold text-sm px-7 py-3.5 rounded-2xl hover:border-violet-400
-hover:bg-violet-50 transition-all"
-            >
-              Voir toutes les missions <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ DUAL VALUE PROP ══════════════════ */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-12">
-            <div className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2">
-              Pour tout le monde
-            </div>
-            <h2 className="font-sora font-extrabold text-4xl md:text-5xl text-slate-900 leading-tight">
-              Woppy s'adapte
-              <br />à votre situation
-            </h2>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex justify-center mb-10">
-            <div className="bg-slate-100 p-1 rounded-2xl flex gap-1">
-              <button
-                onClick={() => setActiveTab("student")}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all
-${activeTab === "student" ? "bg-white shadow-sm text-violet-700" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                <GraduationCap size={16} /> Je suis étudiant
-              </button>
-              <button
-                onClick={() => setActiveTab("client")}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all
-${activeTab === "client" ? "bg-white shadow-sm text-violet-700" : "text-slate-500 hover:text-slate-700"}`}
-              >
-                <Building2 size={16} /> Je cherche de l'aide
-              </button>
-            </div>
-          </div>
-
-          {activeTab === "student" && (
-            <motion.div
-              key="student"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto"
-            >
-              {[
-                {
-                  icon: "💸",
-                  title: "Gagnez jusqu'à 18€/h",
-                  desc: "Des missions bien rémunérées, sans intermédiaire. Votre tarif, votre rythme.",
-                },
-                {
-                  icon: "📍",
-                  title: "Missions près de chez vous",
-                  desc: "Trouvez des jobs dans votre quartier ou campus. Pas de trajet inutile.",
-                },
-                {
-                  icon: "🗓️",
-                  title: "Horaires flexibles",
-                  desc: "Choisissez les missions qui correspondent à votre emploi du temps étudiant.",
-                },
-                {
-                  icon: "🛡️",
-                  title: "Profil vérifié = confiance",
-                  desc: "Votre vérification manuelle rassure les clients et vous donne un avantage.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="flex gap-4 p-6 rounded-2xl border border-slate-100 hover:border-violet-200
-hover:bg-violet-50/30 transition-all group"
-                >
-                  <span className="text-3xl shrink-0">{item.icon}</span>
-                  <div>
-                    <h3 className="font-sora font-bold text-slate-900 mb-1 group-hover:text-violet-800">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-
-          {activeTab === "client" && (
-            <motion.div
-              key="client"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto"
-            >
-              {[
-                {
-                  icon: "✅",
-                  title: "Profils vérifiés manuellement",
-                  desc: "Chaque étudiant est contrôlé par notre équipe. Vous êtes entre de bonnes mains.",
-                },
-                {
-                  icon: "⚡",
-                  title: "Trouvez quelqu'un en 2h",
-                  desc: "Publiez une annonce et recevez des candidatures rapidement, souvent le jour même.",
-                },
-                {
-                  icon: "⭐",
-                  title: "Système de notation",
-                  desc: "Consultez les avis des autres particuliers avant de choisir votre étudiant.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="flex gap-4 p-6 rounded-2xl border border-slate-100 hover:border-violet-200
-hover:bg-violet-50/30 transition-all group"
-                >
-                  <span className="text-3xl shrink-0">{item.icon}</span>
-                  <div>
-                    <h3 className="font-sora font-bold text-slate-900 mb-1 group-hover:text-violet-800">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════ STATS ══════════════════ */}
-      <section className="py-16 bg-violet-600 relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, white 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        <div className="max-w-6xl mx-auto px-5 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
-            {[
-              { value: stats.users, label: "Utilisateurs inscrits" },
-              { value: stats.annonces, label: "Missions publiées" },
-              { value: stats.jobs, label: "Jobs réalisés" },
-              { value: "4.8/5", label: "Note moyenne" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="font-sora font-extrabold text-4xl md:text-5xl mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-violet-200 text-sm font-medium">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-10 text-violet-100 italic">
-            Le début d'une grande aventure pour les jobs étudiants à
-            Louvain-la-Neuve. <br /> Merci à tous les utilisateurs qui font
-            vivre Woppy chaque jour !
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ COMMENT ÇA MARCHE ══════════════════ */}
-      <section id="comment" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-14">
-            <div className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2">
-              Simple & rapide
-            </div>
-            <h2 className="font-sora font-extrabold text-4xl md:text-5xl text-slate-900">
-              Comment ça marche ?
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-6 relative">
-            {/* Connector line */}
-            <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-slate-100 z-0" />
-            <div
-              className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] h-px
-bg-gradient-to-r from-violet-300 to-transparent z-0"
-            />
-
-            {steps.map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.12 }}
-                className="relative z-10 text-center"
-              >
-                <div
-                  className="w-20 h-20 rounded-2xl bg-violet-50 border-2 border-violet-100 flex items-center
-justify-center mx-auto mb-5 group-hover:border-violet-300 transition-colors"
-                >
-                  <div className="text-violet-600">{s.icon}</div>
-                </div>
-                <div className="font-sora font-black text-violet-200 text-sm mb-1">
-                  {s.step}
-                </div>
-                <h3 className="font-sora font-bold text-slate-900 text-base mb-2">
-                  {s.title}
-                </h3>
-                <p className="text-sm text-slate-500 leading-relaxed max-w-[180px] mx-auto">
-                  {s.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SÉCURITÉ ══════════════════ */}
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-5">
-          <div
-            className="bg-white rounded-3xl border border-slate-100 p-8 md:p-12
-shadow-[0_4px_40px_rgba(0,0,0,0.04)]"
-          >
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <div className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-3">
-                  Votre sécurité, notre priorité
-                </div>
-                <h2 className="font-sora font-extrabold text-3xl md:text-4xl text-slate-900 mb-4 leading-tight">
-                  Une plateforme en qui vous pouvez avoir confiance
-                </h2>
-                <p className="text-slate-500 leading-relaxed mb-8">
-                  Chaque étudiant est vérifié manuellement par notre équipe
-                  avant de pouvoir postuler. Les paiements transitent par
-                  Stripe, jamais en cash. Votre expérience est protégée de bout
-                  en bout.
-                </p>
-                <div className="flex flex-col gap-3">
-                  {[
-                    "Vérification d'identité manuelle pour chaque étudiant",
-                    "Système de notation transparent et public",
-                    "Support disponible en cas de litige",
-                  ].map((item) => (
-                    <div key={item} className="flex items-start gap-3">
-                      <CheckCircle
-                        size={17}
-                        className="text-violet-500 shrink-0 mt-0.5"
-                      />
-                      <span className="text-sm text-slate-700 font-medium">
-                        {item}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  {
-                    icon: <Shield size={24} />,
-                    label: "Vérification manuelle",
-                    color: "violet",
-                  },
-                  {
-                    icon: <BadgeCheck size={24} />,
-                    label: "Avis certifiés",
-                    color: "purple",
-                  },
-                  {
-                    icon: <Users size={24} />,
-                    label: "Communauté locale",
-                    color: "violet",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="bg-slate-50 rounded-2xl p-6 flex flex-col gap-3 border border-slate-100
-hover:border-violet-200 hover:bg-violet-50/30 transition-all"
-                  >
-                    <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center text-violet-600">
-                      {item.icon}
-                    </div>
-                    <span className="text-sm font-bold text-slate-800">
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ AVIS ══════════════════ */}
-      <section id="avis" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-12">
-            <div className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2">
-              Avis vérifiés
-            </div>
-            <h2 className="font-sora font-extrabold text-4xl md:text-5xl text-slate-900 mb-3">
-              Ils font confiance à Woppy
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-              <StarRating rating={5} />
-              <span className="text-sm font-semibold text-slate-600">
-                4.8/5 · Basé sur{" "}
-                {testimonials.length > 0 ? `${testimonials.length}` : "200+"}{" "}
-                avis vérifiés
-              </span>
-            </div>
-          </div>
-
-          {/* États de chargement / vide / données */}
-          {reviewsLoading ? (
-            <div className="grid md:grid-cols-3 gap-6">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="bg-slate-50 rounded-2xl border border-slate-100 p-7 animate-pulse"
-                >
-                  <div className="flex gap-0.5 mb-4">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <div
-                        key={n}
-                        className="w-3 h-3 bg-slate-200 rounded-full"
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-2 mb-6">
-                    <div className="h-3 bg-slate-200 rounded w-full" />
-                    <div className="h-3 bg-slate-200 rounded w-5/6" />
-                    <div className="h-3 bg-slate-200 rounded w-4/6" />
-                  </div>
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-                    <div className="w-10 h-10 bg-slate-200 rounded-xl" />
-                    <div className="space-y-1.5">
-                      <div className="h-3 bg-slate-200 rounded w-20" />
-                      <div className="h-2.5 bg-slate-200 rounded w-28" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : testimonials.length === 0 ? (
-            <p className="text-center text-slate-400 text-sm py-8">
-              Aucun avis pour le moment. Soyez le premier à partager votre
-              expérience !
+            <h1 className="display mt-6 text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-7xl">
+              Un coup de main,
+              <br />
+              <span className="relative inline-block">
+                <span className="relative z-10">un étudiant</span>
+                <span className="absolute inset-x-[-0.1em] bottom-[0.08em] z-0 h-[0.38em] -rotate-1 rounded-sm bg-lime" />
+              </span>{" "}
+              du coin.
+            </h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-2">
+              Woppy met en relation des particuliers qui ont besoin d&apos;aide et des étudiants qui
+              cherchent des missions courtes et rémunérées.
             </p>
-          ) : (
-            <div className="grid md:grid-cols-3 gap-6">
-              {testimonials.map((t, i) => (
-                <motion.div
-                  key={t.name + i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white rounded-2xl border border-slate-100 hover:border-violet-200 p-7
-hover:shadow-[0_8px_40px_rgba(138,107,254,0.1)] transition-all duration-300"
-                >
-                  <StarRating rating={t.rating} />
-                  <p className="text-slate-600 text-sm leading-relaxed mt-4 mb-6">
-                    "{t.text}"
-                  </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-50">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold"
-                      style={{ background: t.color }}
-                    >
-                      {t.avatar}
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">
-                        {t.name}
-                      </div>
-                      <div className="text-xs text-slate-400">{t.role}</div>
-                    </div>
-                    <BadgeCheck size={16} className="text-violet-400 ml-auto" />
-                  </div>
-                </motion.div>
-              ))}
+
+            <form onSubmit={onSearch} className="mt-8 flex max-w-lg gap-2 rounded-full border border-line bg-white p-1.5 shadow-sm">
+              <label className="flex flex-1 items-center gap-2 pl-3">
+                <Search size={18} className="shrink-0 text-muted" />
+                <span className="sr-only">Rechercher une mission</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Déménagement, cours, jardin…"
+                  className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted"
+                />
+              </label>
+              <button type="submit" className="btn btn-primary">
+                Chercher
+              </button>
+            </form>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="grid gap-3"
+          >
+            <Link
+              href="/auth/register"
+              className="group flex items-center justify-between rounded-[var(--radius-card)] bg-ink p-6 text-paper transition-transform hover:-translate-y-0.5"
+            >
+              <div>
+                <GraduationCap size={22} className="text-lime" />
+                <p className="mt-4 font-display text-2xl font-semibold tracking-tight">Je suis étudiant</p>
+                <p className="mt-1 text-sm text-paper/70">Trouver des missions près de chez moi</p>
+              </div>
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/jobs/create"
+              className="group flex items-center justify-between rounded-[var(--radius-card)] bg-brand p-6 text-white transition-transform hover:-translate-y-0.5"
+            >
+              <div>
+                <Home size={22} />
+                <p className="mt-4 font-display text-2xl font-semibold tracking-tight">Je cherche de l&apos;aide</p>
+                <p className="mt-1 text-sm text-white/75">Publier une annonce gratuitement</p>
+              </div>
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Chiffres réels, affichés seulement s'ils sont disponibles */}
+        {statItems.length > 0 && (
+          <dl className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-4">
+            {statItems.map((s) => (
+              <div key={s.label} className="bg-paper px-5 py-5">
+                <dt className="text-sm text-muted">{s.label}</dt>
+                <dd className="display mt-1 text-3xl">{s.value.toLocaleString("fr-BE")}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
+
+      {/* ══════════ ANNONCES RÉCENTES ══════════ */}
+      <section id="jobs" className="border-y border-line bg-white py-20">
+        <div className="container-w">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">En ce moment</p>
+              <h2 className="display mt-2 text-3xl sm:text-4xl">Dernières missions publiées</h2>
+            </div>
+            <Link href="/jobs" className="btn btn-outline">
+              Toutes les annonces <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {annonces === null &&
+              [0, 1, 2].map((i) => <div key={i} className="card h-48 animate-pulse bg-paper-2" />)}
+            {annonces?.map((a) => <JobCard key={a.id} a={a} />)}
+          </div>
+
+          {annonces?.length === 0 && (
+            <div className="card mt-2 flex flex-col items-center gap-4 px-6 py-12 text-center">
+              <p className="text-ink-2">Aucune mission ouverte pour l&apos;instant.</p>
+              <Link href="/jobs/create" className="btn btn-brand">
+                Publier la première
+              </Link>
             </div>
           )}
         </div>
       </section>
 
-      {/* ══════════════════ CTA FINAL ══════════════════ */}
-      <section className="py-20 px-5">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-violet-600 rounded-3xl p-10 md:p-16 text-center relative overflow-hidden">
-            <div
-              className="absolute inset-0 opacity-10"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle, white 1px, transparent 1px)",
-                backgroundSize: "20px 20px",
-              }}
-            />
-            <div className="relative z-10">
-              <h2 className="font-sora font-extrabold text-4xl md:text-5xl text-white mb-4 leading-tight">
-                Prêt à commencer ?
-              </h2>
-              <p className="text-violet-200 text-lg mb-8 max-w-md mx-auto">
-                Rejoignez des centaines d'étudiants et de particuliers à
-                Louvain-la-Neuve. C'est gratuit.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/auth/register?role=student"
-                  className="flex items-center justify-center gap-2 bg-white text-violet-700
-font-sora font-bold text-base px-8 py-4 rounded-2xl hover:bg-violet-50 transition-all"
+      {/* ══════════ POUR QUI ══════════ */}
+      <section className="container-w py-20">
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-full border border-line bg-white p-1" role="tablist">
+            {(Object.keys(AUDIENCES) as (keyof typeof AUDIENCES)[]).map((key) => {
+              const Icon = AUDIENCES[key].icon;
+              return (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={audience === key}
+                  onClick={() => setAudience(key)}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 ${
+                    audience === key ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"
+                  }`}
                 >
-                  <GraduationCap size={18} /> Je suis étudiant
-                </Link>
-                <Link
-                  href="/auth/register?role=client"
-                  className="flex items-center justify-center gap-2 bg-violet-500 text-white
-font-sora font-bold text-base px-8 py-4 rounded-2xl hover:bg-violet-400
-border-2 border-violet-400 transition-all"
-                >
-                  <Building2 size={18} /> Je cherche de l'aide
-                </Link>
-              </div>
-              <p className="text-violet-300 text-xs mt-5">
-                ✓ Gratuit · ✓ Vérification manuelle
-              </p>
+                  <Icon size={16} /> {AUDIENCES[key].label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <motion.div
+          key={audience}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mt-10 grid max-w-5xl items-center gap-10 md:grid-cols-2"
+        >
+          <div>
+            <h2 className="display text-4xl leading-tight sm:text-5xl">{aud.title}</h2>
+            <Link href={aud.cta.href} className="btn btn-primary btn-lg mt-8">
+              {aud.cta.label} <ArrowRight size={18} />
+            </Link>
+          </div>
+          <ul className="grid gap-3">
+            {aud.points.map((p, i) => (
+              <li key={p} className="card flex items-start gap-4 p-5">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-bold">
+                  {i + 1}
+                </span>
+                <span className="pt-0.5 text-ink-2">{p}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+      </section>
+
+      {/* ══════════ COMMENT ÇA MARCHE ══════════ */}
+      <section id="comment" className="bg-ink py-20 text-paper">
+        <div className="container-w">
+          <p className="eyebrow !text-paper/60">Comment ça marche</p>
+          <h2 className="display mt-2 max-w-xl text-4xl !text-paper sm:text-5xl">Quatre étapes, pas une de plus.</h2>
+          <ol className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] bg-paper/10 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="bg-ink p-6">
+                <span className="font-display text-5xl font-bold text-lime">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-paper/70">{s.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ══════════ CONFIANCE ══════════ */}
+      <section className="container-w py-20">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              icon: BadgeCheck,
+              title: "Profils et avis publics",
+              desc: "Études, expériences et avis reçus : vous savez à qui vous avez affaire.",
+            },
+            {
+              icon: MessageSquare,
+              title: "Messagerie intégrée",
+              desc: "Posez vos questions et fixez les détails sans partager votre numéro.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Signalement et support",
+              desc: "Un problème ? Signalez un message ou ouvrez un ticket, l'équipe vous répond.",
+            },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="card p-6">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-soft text-brand">
+                <Icon size={20} />
+              </span>
+              <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{desc}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════ AVIS ══════════ */}
+      {reviews.length > 0 && (
+        <section id="avis" className="border-t border-line bg-white py-20">
+          <div className="container-w">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow">Avis</p>
+                <h2 className="display mt-2 text-3xl sm:text-4xl">Ce qu&apos;en disent les membres</h2>
+              </div>
+              {rating && (
+                <div className="flex items-center gap-3">
+                  <span className="display text-3xl">{rating.avg.toFixed(1).replace(".", ",")}</span>
+                  <div>
+                    <Stars rating={rating.avg} />
+                    <p className="mt-1 text-xs text-muted">
+                      sur {rating.count} avis
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {reviews.map((r) => (
+                <figure key={r.id} className="card flex flex-col p-6">
+                  <Stars rating={r.rating} />
+                  <blockquote className="mt-4 flex-1 leading-relaxed text-ink-2">« {r.text} »</blockquote>
+                  <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-4">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand">
+                      {r.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">{r.name}</p>
+                      {r.role && <p className="text-xs text-muted">{r.role}</p>}
+                    </div>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══════════ CTA ══════════ */}
+      <section className="container-w py-20">
+        <div className="relative overflow-hidden rounded-[2rem] bg-lime px-6 py-14 text-center sm:px-12 sm:py-20">
+          <h2 className="display mx-auto max-w-2xl text-4xl leading-tight sm:text-6xl">On s&apos;y met ?</h2>
+          <p className="mx-auto mt-4 max-w-md text-ink-2">L&apos;inscription est gratuite, pour les étudiants comme pour les particuliers.</p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/auth/register" className="btn btn-primary btn-lg">
+              Créer un compte <ArrowRight size={18} />
+            </Link>
+            <Link href="/jobs" className="btn btn-lg border border-ink/20 bg-transparent hover:border-ink">
+              Voir les annonces
+            </Link>
           </div>
         </div>
       </section>

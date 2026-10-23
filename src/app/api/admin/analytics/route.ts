@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
-
-/* ── Init Admin SDK (singleton) ── */
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-
-const adminDb = admin.firestore();
+import { getAdminDb, getAdminAuth } from '@/lib/firebaseAdmin';
 
 /* ── Serialize (Timestamp → ms) ── */
 function serialize(snap: admin.firestore.QuerySnapshot) {
@@ -27,6 +15,7 @@ function serialize(snap: admin.firestore.QuerySnapshot) {
 
 /* ── GET /api/admin/analytics ── */
 export async function GET(req: NextRequest) {
+  const adminDb = getAdminDb();
   /* 1. Vérif token */
   const token = req.headers.get('authorization')?.split('Bearer ')[1];
   if (!token) {
@@ -35,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   try {
     /* 2. Vérifie que c'est bien un admin/collaborator */
-    const decoded  = await admin.auth().verifyIdToken(token);
+    const decoded  = await getAdminAuth().verifyIdToken(token);
     const userSnap = await adminDb.collection('users').doc(decoded.uid).get();
     const role     = userSnap.data()?.role;
 

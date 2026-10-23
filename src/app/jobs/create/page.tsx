@@ -10,12 +10,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5";
+const labelCls = "block text-xs font-bold text-muted uppercase tracking-widest mb-1.5";
 const inputCls = `
   w-full px-4 py-2.5 text-sm rounded-xl
-  border border-slate-200 bg-white text-slate-800
-  placeholder:text-slate-400
-  focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400
+  border border-line bg-white text-ink
+  placeholder:text-muted
+  focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
   transition-all
 `;
 
@@ -165,31 +165,31 @@ export default function CreateAnnoncePage() {
 
   /* ── success screen ── */
   if (success) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
       <div className="text-center">
         <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
           <CheckCircle size={24} className="text-emerald-500" />
         </div>
-        <h2 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Sora, system-ui' }}>Annonce publiée</h2>
-        <p className="text-sm text-slate-500">Redirection en cours…</p>
+        <h2 className="text-base font-bold text-ink mb-1" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>Annonce publiée</h2>
+        <p className="text-sm text-muted">Redirection en cours…</p>
       </div>
     </div>
   );
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-paper-2">
 
         {/* ── Topbar ── */}
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-30">
+        <div className="bg-white border-b border-line sticky top-0 z-30">
           <div className="max-w-2xl mx-auto px-6 h-14 flex items-center gap-3">
-            <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+            <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted hover:text-ink-2 transition-colors">
               <ArrowLeft size={16} />
             </Link>
-            <div className="w-px h-4 bg-slate-200" />
-            <h1 className="text-sm font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+            <div className="w-px h-4 bg-line" />
+            <h1 className="text-sm font-bold text-ink tracking-tight" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               Publier une annonce
             </h1>
           </div>
@@ -198,10 +198,10 @@ export default function CreateAnnoncePage() {
         <div className="max-w-2xl mx-auto px-6 py-10">
 
           {/* ── Info banner ── */}
-          <div className="flex items-start gap-3 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 mb-8">
-            <Info size={14} className="text-violet-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-violet-700 leading-relaxed">
-              Ton annonce sera visible par tous les étudiants vérifiés sur Woppy.
+          <div className="flex items-start gap-3 bg-brand-soft border border-brand-soft rounded-xl px-4 py-3 mb-8">
+            <Info size={14} className="text-brand shrink-0 mt-0.5" />
+            <p className="text-xs text-brand-dark leading-relaxed">
+              Ton annonce sera visible par tous les étudiants inscrits sur Woppy.
               Sois précis dans ta description pour attirer les meilleurs candidats.
             </p>
           </div>
@@ -228,11 +228,11 @@ export default function CreateAnnoncePage() {
               <Section label="Quand">
                 <div>
                   <label className={labelCls}>Type de disponibilité</label>
-                  <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                  <div className="flex bg-paper-2 p-1 rounded-xl gap-1">
                     {(["exact", "range"] as DateMode[]).map((m, i) => (
                       <button key={m} type="button" onClick={() => setDateMode(m)}
                         className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg transition-all ${
-                          dateMode === m ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                          dateMode === m ? "bg-white text-brand-dark shadow-sm" : "text-muted hover:text-ink-2"
                         }`}>
                         <Calendar size={12} /> {m === "exact" ? "Date précise" : "Intervalle"}
                       </button>
@@ -268,9 +268,9 @@ export default function CreateAnnoncePage() {
                       <input type="number" min={0.5} step={0.5} className={inputCls} value={form.duree} onChange={set("duree")} placeholder="3" required />
                     </div>
                     {form.dateFrom && form.dateTo && (
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-50 border border-violet-100 rounded-xl">
-                        <Calendar size={12} className="text-violet-500 shrink-0" />
-                        <span className="text-xs text-violet-700">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-brand-soft border border-brand-soft rounded-xl">
+                        <Calendar size={12} className="text-brand shrink-0" />
+                        <span className="text-xs text-brand-dark">
                           Du <strong>{new Date(form.dateFrom).toLocaleDateString("fr-BE", { day: "numeric", month: "long" })}</strong>
                           {" "}au <strong>{new Date(form.dateTo).toLocaleDateString("fr-BE", { day: "numeric", month: "long", year: "numeric" })}</strong>
                         </span>
@@ -287,13 +287,13 @@ export default function CreateAnnoncePage() {
                   <div className="relative">
                     <input className={inputCls} value={form.lieu} onChange={set("lieu")}
                       placeholder="Louvain-la-Neuve, Rue de…" required />
-                    {isLoadingAddress && <Loader2 size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
+                    {isLoadingAddress && <Loader2 size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-muted" />}
                   </div>
                   {suggestions.length > 0 && (
-                    <div className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-lg overflow-hidden">
+                    <div className="absolute z-20 w-full bg-white border border-line rounded-xl mt-1 shadow-lg overflow-hidden">
                       {suggestions.map((s, i) => (
                         <button type="button" key={i} onClick={() => selectAddress(s)}
-                          className={`w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors ${i < suggestions.length - 1 ? "border-b border-slate-100" : ""}`}>
+                          className={`w-full text-left px-4 py-2.5 text-xs text-ink-2 hover:bg-paper-2 transition-colors ${i < suggestions.length - 1 ? "border-b border-line" : ""}`}>
                           {s.display_name}
                         </button>
                       ))}
@@ -313,23 +313,23 @@ export default function CreateAnnoncePage() {
                 {/* Toggle tarif horaire / fixe */}
                 <div>
                   <label className={labelCls}>Type de tarif</label>
-                  <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                  <div className="flex bg-paper-2 p-1 rounded-xl gap-1">
                     <button type="button" onClick={() => handleRateModeChange("hourly")}
                       className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg transition-all ${
-                        rateMode === "hourly" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        rateMode === "hourly" ? "bg-white text-brand-dark shadow-sm" : "text-muted hover:text-ink-2"
                       }`}>
                       <Clock size={12} /> Tarif horaire
                     </button>
                     <button type="button" onClick={() => handleRateModeChange("fixed")}
                       className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg transition-all ${
-                        rateMode === "fixed" ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        rateMode === "fixed" ? "bg-white text-brand-dark shadow-sm" : "text-muted hover:text-ink-2"
                       }`}>
                       <Euro size={12} /> Tarif fixe
                     </button>
                   </div>
 
                   {/* Explication contextuelle */}
-                  <p className="mt-2 text-[11px] text-slate-400">
+                  <p className="mt-2 text-[11px] text-muted">
                     {rateMode === "hourly"
                       ? "Ex : 15 €/h · La rémunération totale est calculée selon la durée de la mission."
                       : "Ex : 30 € pour monter un meuble · Le montant est fixe quelle que soit la durée."
@@ -351,7 +351,7 @@ export default function CreateAnnoncePage() {
                         onChange={handleRateChange}
                         placeholder={rateMode === "hourly" ? "14" : "30"}
                         required />
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 whitespace-nowrap">
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted whitespace-nowrap">
                         {rateMode === "hourly" ? "€/h" : "€ fixe"}
                       </span>
                     </div>
@@ -359,10 +359,10 @@ export default function CreateAnnoncePage() {
                       <p className="mt-1.5 text-[11px] text-red-500">Le tarif minimum légal est de 12 €/h</p>
                     )}
                     {rateMode === "hourly" && !rateError && (
-                      <p className="mt-1.5 text-[11px] text-slate-400">Minimum légal : 12 €/h</p>
+                      <p className="mt-1.5 text-[11px] text-muted">Minimum légal : 12 €/h</p>
                     )}
                     {rateMode === "fixed" && (
-                      <p className="mt-1.5 text-[11px] text-slate-400">Montant total versé à l'étudiant</p>
+                      <p className="mt-1.5 text-[11px] text-muted">Montant total versé à l'étudiant</p>
                     )}
                   </div>
                   <div>
@@ -375,17 +375,17 @@ export default function CreateAnnoncePage() {
 
                 {/* Cost estimate */}
                 {cost !== null && !rateError && (
-                  <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between px-4 py-3 bg-paper-2 border border-line rounded-xl">
+                    <span className="text-xs text-muted">
                       Coût estimé total
                       {rateMode === "hourly" && form.duree && (
-                        <span className="text-slate-400"> ({form.duree}h × {form.remuneration} €{form.maxApplicants > 1 ? ` × ${form.maxApplicants} étudiants` : ""})</span>
+                        <span className="text-muted"> ({form.duree}h × {form.remuneration} €{form.maxApplicants > 1 ? ` × ${form.maxApplicants} étudiants` : ""})</span>
                       )}
                       {rateMode === "fixed" && form.maxApplicants > 1 && (
-                        <span className="text-slate-400"> ({form.remuneration} € × {form.maxApplicants} étudiants)</span>
+                        <span className="text-muted"> ({form.remuneration} € × {form.maxApplicants} étudiants)</span>
                       )}
                     </span>
-                    <span className="font-bold text-sm text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+                    <span className="font-bold text-sm text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                       {cost.toLocaleString("fr-BE")} €
                     </span>
                   </div>
@@ -394,33 +394,33 @@ export default function CreateAnnoncePage() {
 
               {/* ── Photos du service ── */}
               <Section label="Photos du service (optionnel)">
-                <p className="text-xs text-slate-400 -mt-1 mb-1">Ajoute des photos pour aider les étudiants à mieux comprendre la mission.</p>
+                <p className="text-xs text-muted -mt-1 mb-1">Ajoute des photos pour aider les étudiants à mieux comprendre la mission.</p>
                 <label className="flex flex-col items-center justify-center gap-3 w-full py-8 rounded-xl
-                                   border-2 border-dashed border-slate-200 bg-slate-50
-                                   hover:border-violet-300 hover:bg-violet-50/30 transition-all cursor-pointer group">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-violet-100 flex items-center justify-center transition-colors">
-                    <Upload size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors" />
+                                   border-2 border-dashed border-line bg-paper-2
+                                   hover:border-brand/50 hover:bg-brand-soft/30 transition-all cursor-pointer group">
+                  <div className="w-10 h-10 rounded-xl bg-paper-2 group-hover:bg-brand-soft flex items-center justify-center transition-colors">
+                    <Upload size={18} className="text-muted group-hover:text-brand transition-colors" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-slate-600 group-hover:text-violet-600 transition-colors">Cliquer pour ajouter des photos</p>
-                    <p className="text-xs text-slate-400 mt-0.5">PNG, JPG, WEBP — plusieurs fichiers acceptés</p>
+                    <p className="text-sm font-semibold text-ink-2 group-hover:text-brand transition-colors">Cliquer pour ajouter des photos</p>
+                    <p className="text-xs text-muted mt-0.5">PNG, JPG, WEBP — plusieurs fichiers acceptés</p>
                   </div>
                   <input type="file" accept="image/*" multiple onChange={handleSelectPhotos} className="hidden" />
                 </label>
                 {preview.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 mt-1">
                     {preview.map((url, i) => (
-                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 group">
+                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-paper-2 group">
                         <img src={url} className="w-full h-full object-cover" alt={`preview ${i}`} />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors" />
                         <button type="button" onClick={() => removePhoto(i)}
-                          className="absolute top-1.5 right-1.5 w-5 h-5 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-red-500">
+                          className="absolute top-1.5 right-1.5 w-5 h-5 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-ink-2 hover:text-red-500">
                           <X size={11} />
                         </button>
                       </div>
                     ))}
-                    <label className="relative aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/30 flex items-center justify-center cursor-pointer transition-all group">
-                      <Upload size={14} className="text-slate-400 group-hover:text-violet-400 transition-colors" />
+                    <label className="relative aspect-square rounded-xl border-2 border-dashed border-line bg-paper-2 hover:border-brand/50 hover:bg-brand-soft/30 flex items-center justify-center cursor-pointer transition-all group">
+                      <Upload size={14} className="text-muted group-hover:text-brand transition-colors" />
                       <input type="file" accept="image/*" multiple onChange={handleSelectPhotos} className="hidden" />
                     </label>
                   </div>
@@ -429,10 +429,10 @@ export default function CreateAnnoncePage() {
 
               {/* ── Submit ── */}
               <button type="submit" disabled={loading || rateError}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold
-                           rounded-xl transition-all shadow-sm shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed
+                className="w-full py-3 bg-ink hover:bg-ink-2 text-white text-sm font-bold
+                           rounded-xl transition-all shadow-sm shadow-brand/30 disabled:opacity-50 disabled:cursor-not-allowed
                            flex items-center justify-center gap-2"
-                style={{ fontFamily: 'Sora, system-ui' }}>
+                style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Publication en cours…</> : "Publier l'annonce"}
               </button>
             </div>
@@ -445,9 +445,9 @@ export default function CreateAnnoncePage() {
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      <div className="px-5 py-3 border-b border-slate-50">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+    <div className="bg-white rounded-2xl border border-line overflow-hidden">
+      <div className="px-5 py-3 border-b border-line">
+        <span className="text-xs font-bold text-muted uppercase tracking-widest">{label}</span>
       </div>
       <div className="px-5 py-5 space-y-4">{children}</div>
     </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { JSX, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Mail, Lock, MapPin, Camera, Calendar,
@@ -14,14 +13,14 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 /* ── shared styles ── */
-const inputCls = "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition";
+const inputCls = "w-full px-3 py-2.5 border border-line rounded-xl text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition";
 const inputWithIconCls = `${inputCls} pl-10`;
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-        {label}{required && <span className="text-violet-500 ml-0.5">*</span>}
+      <label className="block text-sm font-semibold text-ink-2 mb-1.5">
+        {label}{required && <span className="text-brand ml-0.5">*</span>}
       </label>
       {children}
     </div>
@@ -93,7 +92,7 @@ function CityField({ value, onChange }: CityFieldProps) {
   return (
     <Field label="Ville" required>
       <div className="relative" ref={containerRef}>
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none" size={16} />
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted z-10 pointer-events-none" size={16} />
         <input
           value={value}
           onChange={(e) => { onChange(e.target.value); if (e.target.value.length >= 2) setOpen(true); }}
@@ -102,20 +101,20 @@ function CityField({ value, onChange }: CityFieldProps) {
           autoComplete="off"
         />
         {loading && (
-          <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400 pointer-events-none" />
+          <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted pointer-events-none" />
         )}
         {open && suggestions.length > 0 && (
-          <div className="absolute z-30 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-lg overflow-hidden">
+          <div className="absolute z-30 w-full bg-white border border-line rounded-xl mt-1 shadow-lg overflow-hidden">
             {suggestions.map((s, i) => (
               <button
                 type="button"
                 key={i}
                 onClick={() => select(s)}
-                className={`w-full text-left px-4 py-2.5 hover:bg-violet-50 transition-colors flex items-center justify-between
-                            ${i < suggestions.length - 1 ? 'border-b border-slate-100' : ''}`}
+                className={`w-full text-left px-4 py-2.5 hover:bg-brand-soft transition-colors flex items-center justify-between
+                            ${i < suggestions.length - 1 ? 'border-b border-line' : ''}`}
               >
-                <span className="text-sm font-medium text-slate-800">{s._name}</span>
-                {s._region && <span className="text-xs text-slate-400 ml-2 shrink-0">{s._region}</span>}
+                <span className="text-sm font-medium text-ink">{s._name}</span>
+                {s._region && <span className="text-xs text-muted ml-2 shrink-0">{s._region}</span>}
               </button>
             ))}
           </div>
@@ -197,13 +196,13 @@ export default function RegistrationWizard() {
 
   const NavButtons = ({ onNext, nextLabel = 'Continuer', isSubmit = false }:
     { onNext?: () => void; nextLabel?: string; isSubmit?: boolean }) => (
-    <div className="flex justify-between pt-6 border-t border-slate-100 mt-6">
+    <div className="flex justify-between pt-6 border-t border-line mt-6">
       {step > 0
-        ? <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">Retour</button>
+        ? <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-line text-ink-2 text-sm font-semibold hover:bg-paper-2 transition">Retour</button>
         : <div />
       }
       <button onClick={onNext ?? goNext} disabled={isSubmit && loading}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition disabled:opacity-50 shadow-sm shadow-violet-200">
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-ink hover:bg-ink-2 text-white text-sm font-semibold transition disabled:opacity-50 shadow-sm shadow-brand/30">
         {isSubmit && loading
           ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Création...</>
           : <>{nextLabel}{isSubmit && <Check size={15} />}</>
@@ -214,8 +213,8 @@ export default function RegistrationWizard() {
 
   const StepHeader = ({ title, desc }: { title: string; desc: string }) => (
     <div className="mb-6">
-      <h2 className="text-lg font-extrabold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{title}</h2>
-      <p className="text-sm text-slate-500">{desc}</p>
+      <h2 className="text-lg font-extrabold text-ink mb-1" style={{ fontFamily: 'var(--font-bricolage), sans-serif' }}>{title}</h2>
+      <p className="text-sm text-muted">{desc}</p>
     </div>
   );
 
@@ -226,20 +225,20 @@ export default function RegistrationWizard() {
       <StepHeader title="Quel est ton profil ?" desc="Choisis comment tu veux utiliser Woppy." />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { student: true,  Icon: GraduationCap, title: 'Étudiant',   desc: "Postule aux missions, gagne jusqu'à 18€/h et développe ton réseau." },
+          { student: true,  Icon: GraduationCap, title: 'Étudiant',   desc: "Postule aux missions près de chez toi, quand tu es disponible." },
           { student: false, Icon: Building2,     title: 'Particulier', desc: "Publie des annonces et trouve de l'aide pour tes missions du quotidien." },
         ].map(({ student, Icon, title, desc }) => (
           <motion.button key={title} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             onClick={() => { setWantsStudentProfile(student); setStep(1); }}
-            className="group relative flex flex-col items-start gap-3 p-5 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50/40 transition-all text-left">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${student ? 'bg-violet-100 text-violet-600 group-hover:bg-violet-200' : 'bg-slate-100 text-slate-600 group-hover:bg-violet-100 group-hover:text-violet-600'}`}>
+            className="group relative flex flex-col items-start gap-3 p-5 rounded-2xl border-2 border-line hover:border-brand hover:bg-brand-soft/40 transition-all text-left">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${student ? 'bg-brand-soft text-brand group-hover:bg-brand/30' : 'bg-paper-2 text-ink-2 group-hover:bg-brand-soft group-hover:text-brand'}`}>
               <Icon size={20} />
             </div>
             <div>
-              <div className="font-bold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>{title}</div>
-              <div className="text-xs text-slate-500 leading-relaxed">{desc}</div>
+              <div className="font-bold text-ink mb-1" style={{ fontFamily: 'var(--font-bricolage), sans-serif' }}>{title}</div>
+              <div className="text-xs text-muted leading-relaxed">{desc}</div>
             </div>
-            <div className="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-violet-500 transition" />
+            <div className="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-line group-hover:border-brand transition" />
           </motion.button>
         ))}
       </div>
@@ -252,15 +251,15 @@ export default function RegistrationWizard() {
 
       <Field label="Photo de profil" required={wantsStudentProfile === true}>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
-            {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" alt="preview" /> : <Camera className="text-slate-400" size={22} />}
+          <div className="w-16 h-16 rounded-2xl bg-paper-2 overflow-hidden flex items-center justify-center border border-line shrink-0">
+            {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" alt="preview" /> : <Camera className="text-muted" size={22} />}
           </div>
           <div>
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl cursor-pointer transition">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-paper-2 hover:bg-line text-ink-2 text-sm font-semibold rounded-xl cursor-pointer transition">
               <Camera size={14} /> Choisir une photo
               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
             </label>
-            <p className="text-xs text-slate-400 mt-1.5">
+            <p className="text-xs text-muted mt-1.5">
               {wantsStudentProfile ? 'Obligatoire — améliore ta visibilité auprès des clients.' : "Optionnelle — tu pourras l'ajouter plus tard depuis ton profil."}
             </p>
           </div>
@@ -270,13 +269,13 @@ export default function RegistrationWizard() {
       <div className="grid grid-cols-2 gap-4">
         <Field label="Prénom" required>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="firstName" value={formData.firstName} onChange={handleInput} className={inputWithIconCls} placeholder="Jean" />
           </div>
         </Field>
         <Field label="Nom" required>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="lastName" value={formData.lastName} onChange={handleInput} className={inputWithIconCls} placeholder="Dupont" />
           </div>
         </Field>
@@ -284,7 +283,7 @@ export default function RegistrationWizard() {
 
       <Field label="Email" required>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
           <input name="email" type="email" value={formData.email} onChange={handleInput} className={inputWithIconCls} placeholder="jean@example.com" />
         </div>
       </Field>
@@ -292,13 +291,13 @@ export default function RegistrationWizard() {
       <div className="grid grid-cols-2 gap-4">
         <Field label="Mot de passe" required>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="password" type="password" value={formData.password} onChange={handleInput} className={inputWithIconCls} placeholder="••••••••" />
           </div>
         </Field>
         <Field label="Confirmer" required>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInput} className={inputWithIconCls} placeholder="••••••••" />
           </div>
         </Field>
@@ -327,13 +326,13 @@ export default function RegistrationWizard() {
       <div className="grid grid-cols-2 gap-4">
         <Field label="Âge" required>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="age" type="number" value={studentData.age} onChange={handleStudentInput} className={inputWithIconCls} placeholder="20" />
           </div>
         </Field>
         <Field label="Tarif souhaité (€/h)">
           <div className="relative">
-            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
             <input name="hourlyRate" type="number" step="0.5" min={0} max={100} value={studentData.hourlyRate} onChange={handleStudentInput} className={inputWithIconCls} placeholder="15.00" />
           </div>
         </Field>
@@ -353,13 +352,13 @@ export default function RegistrationWizard() {
     <div className="space-y-4">
       <StepHeader title="Disponibilités" desc="Active les jours où tu es disponible et ajoute tes créneaux." />
       {days.map((day) => (
-        <div key={day} className="border border-slate-200 rounded-xl overflow-hidden">
-          <div className="flex justify-between items-center px-4 py-3 bg-slate-50">
-            <span className="text-sm font-semibold text-slate-800">{day}</span>
+        <div key={day} className="border border-line rounded-xl overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-3 bg-paper-2">
+            <span className="text-sm font-semibold text-ink">{day}</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={availability[day].enabled}
                 onChange={(e) => { const u = { ...availability }; u[day].enabled = e.target.checked; setAvailability(u); }} />
-              <div className="w-9 h-5 bg-slate-200 peer-checked:bg-violet-600 rounded-full transition
+              <div className="w-9 h-5 bg-line peer-checked:bg-ink rounded-full transition
                               after:content-[''] after:absolute after:top-0.5 after:left-0.5
                               after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4" />
             </label>
@@ -369,14 +368,14 @@ export default function RegistrationWizard() {
               {availability[day].slots.map((slot, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input type="time" value={slot.start} onChange={(e) => updateSlot(day, i, 'start', e.target.value)}
-                    className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  <span className="text-slate-400 text-sm">→</span>
+                    className="border border-line rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+                  <span className="text-muted text-sm">→</span>
                   <input type="time" value={slot.end} onChange={(e) => updateSlot(day, i, 'end', e.target.value)}
-                    className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
-                  <button onClick={() => removeSlot(day, i)} className="ml-auto text-slate-400 hover:text-red-500 transition"><X size={16} /></button>
+                    className="border border-line rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+                  <button onClick={() => removeSlot(day, i)} className="ml-auto text-muted hover:text-red-500 transition"><X size={16} /></button>
                 </div>
               ))}
-              <button onClick={() => addSlot(day)} className="flex items-center gap-1.5 text-violet-600 text-sm font-semibold hover:text-violet-700 transition">
+              <button onClick={() => addSlot(day)} className="flex items-center gap-1.5 text-brand text-sm font-semibold hover:text-brand-dark transition">
                 <Plus size={15} /> Ajouter un créneau
               </button>
             </div>
@@ -393,21 +392,21 @@ export default function RegistrationWizard() {
       {experiences.length > 0 && (
         <div className="space-y-2">
           {experiences.map((exp) => (
-            <div key={exp.id} className="flex justify-between items-start bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+            <div key={exp.id} className="flex justify-between items-start bg-brand-soft border border-brand-soft rounded-xl px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">{exp.title}</p>
-                {exp.description && <p className="text-xs text-slate-500 mt-0.5">{exp.description}</p>}
+                <p className="text-sm font-semibold text-ink">{exp.title}</p>
+                {exp.description && <p className="text-xs text-muted mt-0.5">{exp.description}</p>}
               </div>
-              <button onClick={() => setExperiences(e => e.filter(ex => ex.id !== exp.id))} className="text-slate-400 hover:text-red-500 transition ml-3 shrink-0"><X size={15} /></button>
+              <button onClick={() => setExperiences(e => e.filter(ex => ex.id !== exp.id))} className="text-muted hover:text-red-500 transition ml-3 shrink-0"><X size={15} /></button>
             </div>
           ))}
         </div>
       )}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+      <div className="bg-paper-2 border border-line rounded-xl p-4 space-y-3">
         <input type="text" value={newExperience.title} onChange={(e) => setNewExperience(n => ({ ...n, title: e.target.value }))} className={inputCls} placeholder="Titre de l'expérience" />
         <textarea rows={2} value={newExperience.description} onChange={(e) => setNewExperience(n => ({ ...n, description: e.target.value }))} className={inputCls} placeholder="Description (optionnel)" />
         <button onClick={() => { if (!newExperience.title.trim()) return; setExperiences(e => [...e, { id: Date.now().toString(), ...newExperience }]); setNewExperience({ title: '', description: '' }); }}
-          className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold py-2.5 rounded-xl transition">
+          className="w-full flex items-center justify-center gap-2 bg-ink hover:bg-ink-2 text-white text-sm font-semibold py-2.5 rounded-xl transition">
           <Plus size={15} /> Ajouter
         </button>
       </div>
@@ -463,8 +462,8 @@ export default function RegistrationWizard() {
         <div className="flex items-start gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0"><Check size={20} /></div>
           <div>
-            <h2 className="font-bold text-slate-900 mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>Tout est prêt !</h2>
-            <p className="text-sm text-slate-600">Tes informations sont complètes. Tu pourras ajouter un profil étudiant à tout moment depuis ton tableau de bord.</p>
+            <h2 className="font-bold text-ink mb-1" style={{ fontFamily: 'var(--font-bricolage), sans-serif' }}>Tout est prêt !</h2>
+            <p className="text-sm text-ink-2">Tes informations sont complètes. Tu pourras ajouter un profil étudiant à tout moment depuis ton tableau de bord.</p>
           </div>
         </div>
         <NavButtons onNext={handleSubmitFinal} nextLabel="Créer mon compte" isSubmit />
@@ -478,20 +477,20 @@ export default function RegistrationWizard() {
   };
 
   return (
-    <div className="w-full text-slate-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+    <div className="w-full text-ink" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
       <div className="mb-8">
-        <div className="h-1.5 bg-slate-100 rounded-full mb-5 overflow-hidden">
-          <motion.div className="h-full bg-violet-600 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.35 }} />
+        <div className="h-1.5 bg-paper-2 rounded-full mb-5 overflow-hidden">
+          <motion.div className="h-full bg-ink rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.35 }} />
         </div>
         <div className="flex items-start justify-between">
           {titles.map((title, i) => (
             <div key={i} className="flex flex-col items-center gap-1" style={{ flex: 1 }}>
               <motion.div animate={step === i ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.35 }}
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors
-                  ${step > i ? 'bg-violet-600 text-white' : step === i ? 'bg-violet-600 text-white ring-4 ring-violet-100' : 'bg-slate-100 text-slate-400'}`}>
+                  ${step > i ? 'bg-ink text-white' : step === i ? 'bg-ink text-white ring-4 ring-brand-soft' : 'bg-paper-2 text-muted'}`}>
                 {step > i ? <Check size={12} /> : i + 1}
               </motion.div>
-              <span className={`text-[11px] font-medium text-center ${step >= i ? 'text-slate-700' : 'text-slate-400'}`}>{title}</span>
+              <span className={`text-[11px] font-medium text-center ${step >= i ? 'text-ink-2' : 'text-muted'}`}>{title}</span>
             </div>
           ))}
         </div>
@@ -507,10 +506,6 @@ export default function RegistrationWizard() {
 
       {renderCurrentStep()}
 
-      <p className="text-center text-sm text-slate-500 mt-8">
-        Tu as déjà un compte ?{' '}
-        <Link href="/auth/login" className="text-violet-600 hover:text-violet-700 font-semibold">Se connecter</Link>
-      </p>
     </div>
   );
 }

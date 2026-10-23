@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Bell,
   LogOut,
@@ -12,31 +12,35 @@ import {
   MessageSquare,
   LayoutDashboard,
   ChevronDown,
+  UserRound,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const PUBLIC_LINKS = [
+  { name: 'Annonces', href: '/jobs' },
+  { name: 'Étudiants', href: '/students' },
+  { name: 'À propos', href: '/a-propos' },
+];
+
+const USER_LINKS = [
+  { name: 'Annonces', href: '/jobs' },
+  { name: 'Étudiants', href: '/students' },
+  { name: 'Mon activité', href: '/dashboard/activity' },
+];
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [notifCount, setNotifCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const links = [
-    { name: 'Annonces', href: '/jobs' },
-    { name: 'Étudiants', href: '/students' },
-    { name: 'Mon Profil', href: '/dashboard/profile' },
-    { name: 'Mon activité', href: '/dashboard/activity' },
-  ];
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u || null));
-    return () => unsub();
-  }, []);
+  useEffect(() => onAuthStateChanged(auth, (u) => setUser(u)), []);
 
   useEffect(() => {
     if (!user) return;
@@ -45,275 +49,215 @@ export default function Navbar() {
       where('toUser', '==', user.uid),
       where('read', '==', false)
     );
-    const unsub = onSnapshot(q, (snap) => setNotifCount(snap.size));
-    return () => unsub();
+    return onSnapshot(q, (snap) => setNotifCount(snap.size));
   }, [user]);
+
+  /* Ferme le menu utilisateur au clic extérieur */
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!userMenuRef.current?.contains(e.target as Node)) setUserMenuOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [userMenuOpen]);
+
+  /* Ferme les menus quand on clique sur un lien */
+  const closeOnLink = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('a')) {
+      setMenuOpen(false);
+      setUserMenuOpen(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/auth/login');
   };
 
-  const isActive = (href: string) => pathname === href;
+  const links = user ? USER_LINKS : PUBLIC_LINKS;
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const initial =
+    user?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U';
+
+  const iconLink = (href: string, label: string, icon: React.ReactNode, badge = 0) => (
+    <Link
+      href={href}
+      title={label}
+      aria-label={label}
+      className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
+        isActive(href) ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-paper-2 hover:text-ink'
+      }`}
+    >
+      {icon}
+      {badge > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-lime px-1 text-[10px] font-bold text-ink ring-2 ring-paper">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </Link>
+  );
 
   return (
-    <nav className="w-full sticky top-0 z-50 bg-white border-b border-slate-100 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-      <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-6">
-
-        {/* ── Logo ── */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <Image
-            src="/images/logo.png"
-            alt="Logo Woppy"
-            width={32}
-            height={32}
-            className="rounded-xl"
-          />
-          <span className="font-bold text-xl text-violet-600 tracking-tight"
-            style={{ fontFamily: 'Sora, sans-serif' }}>
-            woppy
-          </span>
+    <nav className="sticky top-0 z-50 w-full border-b border-line/80 bg-paper/85 backdrop-blur-md">
+      <div className="container-w flex h-16 items-center justify-between gap-6">
+        {/* Logo */}
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          <Image src="/images/logo.png" alt="" width={30} height={30} priority />
+          <span className="font-display text-xl font-bold tracking-tight text-ink">woppy</span>
         </Link>
 
-        {/* ── Nav links desktop ── */}
-        <div className="hidden md:flex items-center gap-1 flex-1">
+        {/* Liens desktop */}
+        <div className="hidden flex-1 items-center gap-1 md:flex">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`relative text-sm font-medium px-3.5 py-2 rounded-lg transition-colors ${
-                isActive(link.href)
-                  ? 'text-violet-700 bg-violet-50'
-                  : 'text-slate-600 hover:text-violet-600 hover:bg-slate-50'
+              className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                isActive(link.href) ? 'bg-paper-2 text-ink' : 'text-ink-2 hover:text-ink'
               }`}
             >
               {link.name}
-              {isActive(link.href) && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-violet-600 rounded-full" />
-              )}
             </Link>
           ))}
         </div>
 
-        {/* ── Right actions desktop ── */}
-        <div className="hidden md:flex items-center gap-1">
-
-          {/* Messages */}
-          {user && (
-            <button
-              onClick={() => router.push('/messages')}
-              title="Messages"
-              className={`relative p-2.5 rounded-lg transition-colors ${
-                isActive('/messages')
-                  ? 'text-violet-700 bg-violet-50'
-                  : 'text-slate-500 hover:text-violet-600 hover:bg-slate-50'
-              }`}
-            >
-              <MessageSquare className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Notifications */}
-          {user && (
-            <button
-              onClick={() => router.push('/notifications')}
-              title="Notifications"
-              className={`relative p-2.5 rounded-lg transition-colors ${
-                isActive('/notifications')
-                  ? 'text-violet-700 bg-violet-50'
-                  : 'text-slate-500 hover:text-violet-600 hover:bg-slate-50'
-              }`}
-            >
-              <Bell className="w-5 h-5" />
-              {notifCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white
-                                 text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {notifCount > 9 ? '9+' : notifCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Dashboard */}
-          {user && (
-            <button
-              onClick={() => router.push('/dashboard')}
-              title="Tableau de bord"
-              className={`p-2.5 rounded-lg transition-colors ${
-                isActive('/dashboard')
-                  ? 'text-violet-700 bg-violet-50'
-                  : 'text-slate-500 hover:text-violet-600 hover:bg-slate-50'
-              }`}
-            >
-              <LayoutDashboard className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Divider */}
-          {user && <div className="w-px h-5 bg-slate-200 mx-1" />}
-
-          {/* User menu */}
+        {/* Actions desktop */}
+        <div className="hidden items-center gap-1 md:flex">
           {user ? (
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-50
-                           border border-transparent hover:border-slate-200 transition-all"
-              >
-                <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                  {user.displayName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
-                <span className="text-sm font-medium text-slate-700 max-w-[100px] truncate">
-                  {user.displayName?.split(' ')[0] || 'Mon compte'}
-                </span>
-                <ChevronDown size={13} className={`text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
+            <>
+              {iconLink('/messages', 'Messages', <MessageSquare size={18} />)}
+              {iconLink('/notifications', 'Notifications', <Bell size={18} />, notifCount)}
 
-              <AnimatePresence>
-                {userMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl border border-slate-100
-                               shadow-lg shadow-slate-200/60 py-1.5 z-50"
-                  >
-                    <button
-                      onClick={() => { router.push('/dashboard'); setUserMenuOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700
-                                 hover:bg-slate-50 hover:text-violet-600 transition-colors"
+              <div className="relative ml-2" ref={userMenuRef} onClick={closeOnLink}>
+                <button
+                  onClick={() => setUserMenuOpen((o) => !o)}
+                  aria-expanded={userMenuOpen}
+                  className="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-3 transition-colors hover:border-ink"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-brand text-xs font-bold text-white">
+                    {initial}
+                  </span>
+                  <span className="max-w-[110px] truncate text-sm font-medium">
+                    {user.displayName?.split(' ')[0] || 'Mon compte'}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-muted transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.12 }}
+                      className="card absolute right-0 top-full mt-2 w-52 p-1.5 shadow-xl shadow-ink/5"
                     >
-                      <LayoutDashboard size={14} /> Tableau de bord
-                    </button>
-                    <button
-                      onClick={() => { router.push('/dashboard/profile'); setUserMenuOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-700
-                                 hover:bg-slate-50 hover:text-violet-600 transition-colors"
-                    >
-                      <span className="w-3.5 h-3.5 rounded-full bg-violet-200 shrink-0" /> Mon profil
-                    </button>
-                    <div className="my-1 border-t border-slate-100" />
-                    <button
-                      onClick={() => { handleLogout(); setUserMenuOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-500
-                                 hover:bg-red-50 transition-colors"
-                    >
-                      <LogOut size={14} /> Déconnexion
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                      <Link href="/dashboard" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-paper-2">
+                        <LayoutDashboard size={15} /> Tableau de bord
+                      </Link>
+                      <Link href="/dashboard/profile" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-paper-2">
+                        <UserRound size={15} /> Mon profil
+                      </Link>
+                      <div className="my-1 border-t border-line" />
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-danger hover:bg-red-50"
+                      >
+                        <LogOut size={15} /> Déconnexion
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/auth/login"
-                className="text-sm font-medium text-slate-600 hover:text-violet-600 px-3 py-2 transition-colors">
+            <>
+              <Link href="/auth/login" className="btn btn-ghost">
                 Connexion
               </Link>
-              <Link href="/auth/register"
-                className="text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white
-                           px-4 py-2 rounded-xl transition-colors shadow-sm shadow-violet-200">
-                S'inscrire
+              <Link href="/auth/register" className="btn btn-primary">
+                S&apos;inscrire
               </Link>
-            </div>
+            </>
           )}
         </div>
 
-        {/* ── Burger mobile ── */}
+        {/* Burger mobile */}
         <button
-          className="md:hidden p-2 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Menu"
+          className="relative grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-paper-2 md:hidden"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={menuOpen}
         >
-          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          {!menuOpen && notifCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-paper" />
+          )}
         </button>
       </div>
 
-      {/* ── Menu mobile ── */}
+      {/* Menu mobile */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden overflow-hidden border-t border-slate-100 bg-white"
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden border-t border-line bg-paper md:hidden"
           >
-            <div className="px-5 py-4 flex flex-col gap-1">
-
-              {/* Nav links */}
+            <div className="container-w flex flex-col gap-1 py-4" onClick={closeOnLink}>
               {links.map((link) => (
-                <button
+                <Link
                   key={link.href}
-                  onClick={() => { router.push(link.href); setMenuOpen(false); }}
-                  className={`flex items-center text-sm font-medium px-3 py-2.5 rounded-lg transition-colors text-left ${
-                    isActive(link.href)
-                      ? 'text-violet-700 bg-violet-50'
-                      : 'text-slate-700 hover:text-violet-600 hover:bg-slate-50'
+                  href={link.href}
+                  className={`rounded-xl px-3 py-3 text-base font-medium ${
+                    isActive(link.href) ? 'bg-paper-2 text-ink' : 'text-ink-2'
                   }`}
                 >
                   {link.name}
-                </button>
+                </Link>
               ))}
 
-              {user && (
+              {user ? (
                 <>
-                  <div className="my-2 border-t border-slate-100" />
-
-                  <button
-                    onClick={() => { router.push('/messages'); setMenuOpen(false); }}
-                    className={`flex items-center gap-2.5 text-sm font-medium px-3 py-2.5 rounded-lg transition-colors ${
-                      isActive('/messages') ? 'text-violet-700 bg-violet-50' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <MessageSquare className="w-4 h-4" /> Messages
-                  </button>
-
-                  <button
-                    onClick={() => { router.push('/notifications'); setMenuOpen(false); }}
-                    className={`flex items-center gap-2.5 text-sm font-medium px-3 py-2.5 rounded-lg transition-colors ${
-                      isActive('/notifications') ? 'text-violet-700 bg-violet-50' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Bell className="w-4 h-4" /> Notifications
+                  <div className="my-2 border-t border-line" />
+                  <Link href="/messages" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                    <MessageSquare size={18} /> Messages
+                  </Link>
+                  <Link href="/notifications" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                    <Bell size={18} /> Notifications
                     {notifCount > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <span className="ml-auto rounded-full bg-lime px-2 py-0.5 text-xs font-bold text-ink">
                         {notifCount}
                       </span>
                     )}
-                  </button>
-
+                  </Link>
+                  <Link href="/dashboard" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                    <LayoutDashboard size={18} /> Tableau de bord
+                  </Link>
+                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                    <UserRound size={18} /> Mon profil
+                  </Link>
+                  <div className="my-2 border-t border-line" />
                   <button
-                    onClick={() => { router.push('/dashboard'); setMenuOpen(false); }}
-                    className={`flex items-center gap-2.5 text-sm font-medium px-3 py-2.5 rounded-lg transition-colors ${
-                      isActive('/dashboard') ? 'text-violet-700 bg-violet-50' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-medium text-danger"
                   >
-                    <LayoutDashboard className="w-4 h-4" /> Tableau de bord
-                  </button>
-
-                  <div className="my-2 border-t border-slate-100" />
-
-                  <button
-                    onClick={() => { handleLogout(); setMenuOpen(false); }}
-                    className="flex items-center gap-2.5 text-sm font-medium px-3 py-2.5 rounded-lg
-                               text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" /> Déconnexion
+                    <LogOut size={18} /> Déconnexion
                   </button>
                 </>
-              )}
-
-              {!user && (
-                <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-slate-100">
-                  <Link href="/auth/login" onClick={() => setMenuOpen(false)}
-                    className="text-sm font-medium text-slate-700 text-center py-2.5 rounded-lg hover:bg-slate-50 transition-colors">
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-line pt-4">
+                  <Link href="/auth/login" className="btn btn-outline">
                     Connexion
                   </Link>
-                  <Link href="/auth/register" onClick={() => setMenuOpen(false)}
-                    className="text-sm font-semibold bg-violet-600 text-white text-center py-2.5 rounded-xl hover:bg-violet-700 transition-colors">
-                    S'inscrire gratuitement
+                  <Link href="/auth/register" className="btn btn-primary">
+                    S&apos;inscrire
                   </Link>
                 </div>
               )}

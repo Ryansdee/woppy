@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId:   process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-
-const adminDb = admin.firestore();
+import { getAdminDb, getAdminAuth } from '@/lib/firebaseAdmin';
 
 /* ── Limites ── */
 const MAX_NAME    = 50;
@@ -26,6 +15,7 @@ const clean = (v: unknown, max: number) =>
 
 /* ── POST /api/reviews ── */
 export async function POST(req: NextRequest) {
+  const adminDb = getAdminDb();
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
@@ -71,7 +61,7 @@ export async function POST(req: NextRequest) {
       if (!token) {
         return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
       }
-      const decoded    = await admin.auth().verifyIdToken(token);
+      const decoded    = await getAdminAuth().verifyIdToken(token);
       const reviewedId = clean(body.reviewedId, 128);
 
       if (!reviewedId || reviewedId === decoded.uid) {

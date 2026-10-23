@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import cityMapJson from "../../../public/data/city-abbreviations.json";
 const cityMap: Record<string, string> = cityMapJson;
@@ -64,17 +64,26 @@ const STATUS = {
 /* ── input style ── */
 const inputCls = `
   w-full px-4 py-2.5 text-sm rounded-xl
-  border border-slate-200 bg-white text-slate-800
-  placeholder:text-slate-400
-  focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400
+  border border-line bg-white text-ink
+  placeholder:text-muted
+  focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
   transition-all
 `;
 
 export default function AnnoncesPage() {
+  return (
+    <Suspense>
+      <AnnoncesContent />
+    </Suspense>
+  );
+}
+
+function AnnoncesContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [annonces, setAnnonces]     = useState<Annonce[]>([]);
   const [loading, setLoading]       = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [filterCity, setFilterCity] = useState("");
   const [filterMinRate, setFilterMinRate] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "ouverte" | "en cours" | "fini">("all");
@@ -137,12 +146,12 @@ export default function AnnoncesPage() {
   const isNew = (a: Annonce) => a.createdAt && Date.now() - new Date(a.createdAt?.toDate?.() || a.createdAt).getTime() < 24 * 3600 * 1000;
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
+    <div className="flex items-center justify-center min-h-screen bg-paper-2">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
           <Briefcase size={18} className="text-white" />
         </div>
-        <p className="text-sm text-slate-500 font-medium">Chargement…</p>
+        <p className="text-sm text-muted font-medium">Chargement…</p>
       </div>
     </div>
   );
@@ -150,27 +159,27 @@ export default function AnnoncesPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');
+        
         .jobs-root { font-family: system-ui, -apple-system, sans-serif; }
-        .jobs-title { font-family: 'Sora', system-ui, sans-serif; }
+        .jobs-title { font-family: var(--font-bricolage),system-ui, sans-serif; }
         .drawer-in { animation: drawerSlide .28s cubic-bezier(.22,1,.36,1); }
         @keyframes drawerSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
       `}</style>
 
-      <div className="jobs-root min-h-screen bg-slate-50 text-slate-900">
+      <div className="jobs-root min-h-screen bg-paper-2 text-ink">
 
         {/* ════════ TOPBAR ════════ */}
-        <div className="sticky top-0 z-40 bg-white border-b border-slate-100"
+        <div className="sticky top-0 z-40 bg-white border-b border-line"
           style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.05)' }}>
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
 
             {/* Search */}
             <div className="relative flex-1 max-w-sm">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
               <input
-                className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50
-                           placeholder:text-slate-400 text-slate-800
-                           focus:outline-none focus:ring-2 focus:ring-violet-400/25 focus:border-violet-400
+                className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-line bg-paper-2
+                           placeholder:text-muted text-ink
+                           focus:outline-none focus:ring-2 focus:ring-brand/25 focus:border-brand
                            focus:bg-white transition-all"
                 placeholder="Titre, ville, mission…"
                 value={searchQuery}
@@ -178,7 +187,7 @@ export default function AnnoncesPage() {
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink-2 transition">
                   <X size={13} />
                 </button>
               )}
@@ -186,9 +195,9 @@ export default function AnnoncesPage() {
 
             {/* Sort */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <TrendingUp size={13} className="text-slate-400" />
+              <TrendingUp size={13} className="text-muted" />
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="text-sm text-slate-600 bg-transparent focus:outline-none cursor-pointer">
+                className="text-sm text-ink-2 bg-transparent focus:outline-none cursor-pointer">
                 <option value="recent">Récentes</option>
                 <option value="price-high">Prix ↓</option>
                 <option value="price-low">Prix ↑</option>
@@ -199,24 +208,24 @@ export default function AnnoncesPage() {
               {/* Filters button */}
               <button onClick={() => setShowFilters(true)}
                 className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-xl
-                           border border-slate-200 bg-white text-slate-600
-                           hover:border-violet-300 hover:text-violet-600 transition-all">
+                           border border-line bg-white text-ink-2
+                           hover:border-brand/50 hover:text-brand transition-all">
                 <SlidersHorizontal size={14} />
                 <span className="hidden sm:inline">Filtres</span>
                 {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-ink text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                     {activeFiltersCount}
                   </span>
                 )}
               </button>
 
               {/* View toggle */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl">
+              <div className="flex bg-paper-2 p-0.5 rounded-xl">
                 {([["list", <LayoutGrid size={14} />], ["map", <MapIcon size={14} />]] as const).map(([mode, icon]) => (
                   <button key={mode} onClick={() => setViewMode(mode)}
                     className={`p-2 rounded-lg transition-all ${viewMode === mode
-                      ? "bg-white shadow-sm text-violet-600"
-                      : "text-slate-400 hover:text-slate-600"}`}>
+                      ? "bg-white shadow-sm text-brand"
+                      : "text-muted hover:text-ink-2"}`}>
                     {icon}
                   </button>
                 ))}
@@ -226,17 +235,17 @@ export default function AnnoncesPage() {
         </div>
 
         {/* ════════ PAGE HEADER ════════ */}
-        <div className="bg-white border-b border-slate-100">
+        <div className="bg-white border-b border-line">
           <div className="max-w-6xl mx-auto px-6 py-8">
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="jobs-title font-bold text-2xl text-slate-900 tracking-tight mb-1">
+                <h1 className="jobs-title font-bold text-2xl text-ink tracking-tight mb-1">
                   Annonces disponibles
                 </h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted">
                   {filtered.length} mission{filtered.length !== 1 ? "s" : ""} ouverte{filtered.length !== 1 ? "s" : ""}
                   {activeFiltersCount > 0 && (
-                    <button onClick={resetFilters} className="ml-2 text-violet-600 hover:text-violet-700 font-medium transition-colors">
+                    <button onClick={resetFilters} className="ml-2 text-brand hover:text-brand-dark font-medium transition-colors">
                       · Réinitialiser les filtres
                     </button>
                   )}
@@ -247,24 +256,24 @@ export default function AnnoncesPage() {
               {activeFiltersCount > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {filterCity && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 text-violet-700
-                                     border border-violet-200 px-2.5 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
+                                     border border-brand/30 px-2.5 py-1 rounded-full">
                       <MapPin size={10} /> {filterCity}
-                      <button onClick={() => setFilterCity("")} className="hover:text-violet-900 transition"><X size={10} /></button>
+                      <button onClick={() => setFilterCity("")} className="hover:text-brand-dark transition"><X size={10} /></button>
                     </span>
                   )}
                   {filterMinRate && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 text-violet-700
-                                     border border-violet-200 px-2.5 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
+                                     border border-brand/30 px-2.5 py-1 rounded-full">
                       ≥{filterMinRate}€/h
-                      <button onClick={() => setFilterMinRate("")} className="hover:text-violet-900 transition"><X size={10} /></button>
+                      <button onClick={() => setFilterMinRate("")} className="hover:text-brand-dark transition"><X size={10} /></button>
                     </span>
                   )}
                   {filterStatus !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-violet-50 text-violet-700
-                                     border border-violet-200 px-2.5 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
+                                     border border-brand/30 px-2.5 py-1 rounded-full">
                       {STATUS[filterStatus]?.label}
-                      <button onClick={() => setFilterStatus("all")} className="hover:text-violet-900 transition"><X size={10} /></button>
+                      <button onClick={() => setFilterStatus("all")} className="hover:text-brand-dark transition"><X size={10} /></button>
                     </span>
                   )}
                 </div>
@@ -283,30 +292,30 @@ export default function AnnoncesPage() {
                   return (
                     <Link key={a.id} href={`/jobs/${a.id}`}
                       className="group relative bg-white rounded-2xl flex flex-col overflow-hidden
-                                 border border-slate-100 hover:border-violet-200
+                                 border border-line hover:border-brand/30
                                  hover:shadow-[0_8px_32px_rgba(124,95,230,0.1)]
                                  transition-all duration-200">
 
                       {/* Photo or placeholder */}
                       {a.photos?.length > 0 ? (
-                        <div className="relative h-36 overflow-hidden bg-slate-100">
+                        <div className="relative h-36 overflow-hidden bg-paper-2">
                           <img src={a.photos[0]} alt={a.titre}
                             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                           {isNew(a) && (
-                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-violet-600 text-white
+                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-ink text-white
                                              px-2 py-0.5 rounded-full">
                               Nouveau
                             </span>
                           )}
                         </div>
                       ) : (
-                        <div className="relative h-24 bg-slate-50 border-b border-slate-100 flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center">
-                            <Briefcase size={18} className="text-violet-400" />
+                        <div className="relative h-24 bg-paper-2 border-b border-line flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-brand-soft border border-brand-soft flex items-center justify-center">
+                            <Briefcase size={18} className="text-brand" />
                           </div>
                           {isNew(a) && (
-                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-violet-600 text-white
+                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-ink text-white
                                              px-2 py-0.5 rounded-full">
                               Nouveau
                             </span>
@@ -322,43 +331,43 @@ export default function AnnoncesPage() {
                             <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
                             {cfg.label}
                           </span>
-                          <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <span className="text-xs text-muted flex items-center gap-1">
                             <Clock size={11} /> {a.duree}h
                           </span>
                         </div>
 
                         {/* Title */}
-                        <h3 className="jobs-title font-semibold text-sm text-slate-900 mb-1 line-clamp-1
-                                       group-hover:text-violet-700 transition-colors tracking-tight">
+                        <h3 className="jobs-title font-semibold text-sm text-ink mb-1 line-clamp-1
+                                       group-hover:text-brand-dark transition-colors tracking-tight">
                           {a.titre}
                         </h3>
 
                         {/* Description */}
-                        <p className="text-xs text-slate-500 line-clamp-2 mb-3 flex-1 leading-relaxed">
+                        <p className="text-xs text-muted line-clamp-2 mb-3 flex-1 leading-relaxed">
                           {a.description}
                         </p>
 
                         {/* Meta */}
-                        <div className="flex flex-col gap-1 text-[11px] text-slate-400 mb-3">
+                        <div className="flex flex-col gap-1 text-[11px] text-muted mb-3">
                           <span className="flex items-center gap-1.5">
-                            <MapPin size={11} className="text-violet-400 shrink-0" />
+                            <MapPin size={11} className="text-brand shrink-0" />
                             <span className="truncate">{a.lieu || "—"}</span>
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Calendar size={11} className="text-violet-400 shrink-0" />
+                            <Calendar size={11} className="text-brand shrink-0" />
                             {a.date}
                           </span>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                        <div className="flex items-center justify-between pt-3 border-t border-line">
                           <div className="flex items-baseline gap-1">
-                            <span className="jobs-title font-bold text-xl text-slate-900 tracking-tight">
+                            <span className="jobs-title font-bold text-xl text-ink tracking-tight">
                               {a.remuneration}
                             </span>
-                            <span className="text-xs font-medium text-slate-400">€/h</span>
+                            <span className="text-xs font-medium text-muted">€/h</span>
                           </div>
-                          <div className="flex items-center gap-1 text-xs font-semibold text-violet-600
+                          <div className="flex items-center gap-1 text-xs font-semibold text-brand
                                           opacity-0 group-hover:opacity-100 transition-all">
                             Voir <ArrowUpRight size={12} />
                           </div>
@@ -370,21 +379,21 @@ export default function AnnoncesPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-32 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <AlertCircle size={22} className="text-slate-400" />
+                <div className="w-14 h-14 rounded-2xl bg-paper-2 flex items-center justify-center mb-4">
+                  <AlertCircle size={22} className="text-muted" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 mb-1">Aucune annonce trouvée</h3>
-                <p className="text-sm text-slate-400 mb-5">Modifie ta recherche ou réinitialise les filtres.</p>
+                <h3 className="text-base font-semibold text-ink mb-1">Aucune annonce trouvée</h3>
+                <p className="text-sm text-muted mb-5">Modifie ta recherche ou réinitialise les filtres.</p>
                 {activeFiltersCount > 0 && (
                   <button onClick={resetFilters}
-                    className="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition">
+                    className="px-4 py-2 bg-ink text-white rounded-xl text-sm font-semibold hover:bg-ink-2 transition">
                     Réinitialiser
                   </button>
                 )}
               </div>
             )
           ) : (
-            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm"
+            <div className="rounded-2xl overflow-hidden border border-line shadow-sm"
               style={{ height: "calc(100vh - 280px)", minHeight: 500 }}>
               <AnnoncesMap annonces={filtered} />
             </div>
@@ -399,17 +408,17 @@ export default function AnnoncesPage() {
             <div className="drawer-in absolute right-0 top-0 w-full sm:w-[380px] h-full bg-white flex flex-col shadow-2xl">
 
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-line">
                 <div>
-                  <h2 className="jobs-title font-bold text-base text-slate-900">Filtres</h2>
+                  <h2 className="jobs-title font-bold text-base text-ink">Filtres</h2>
                   {activeFiltersCount > 0 && (
-                    <p className="text-xs text-violet-600 font-medium mt-0.5">
+                    <p className="text-xs text-brand font-medium mt-0.5">
                       {activeFiltersCount} actif{activeFiltersCount > 1 ? "s" : ""}
                     </p>
                   )}
                 </div>
                 <button onClick={() => setShowFilters(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition text-slate-500">
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-paper-2 transition text-muted">
                   <X size={16} />
                 </button>
               </div>
@@ -419,7 +428,7 @@ export default function AnnoncesPage() {
 
                 {/* City */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ville</label>
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">Ville</label>
                   <input className={inputCls} placeholder="Bruxelles, Louvain-la-Neuve…"
                     value={filterCity} onChange={(e) => setFilterCity(e.target.value)} />
                 </div>
@@ -427,33 +436,33 @@ export default function AnnoncesPage() {
                 {/* Radius */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rayon</label>
-                    <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full">
+                    <label className="text-xs font-bold text-muted uppercase tracking-widest">Rayon</label>
+                    <span className="text-xs font-semibold text-brand bg-brand-soft border border-brand-soft px-2 py-0.5 rounded-full">
                       {filterRadius} km
                     </span>
                   </div>
-                  <input type="range" min={2} max={50} className="w-full accent-violet-600"
+                  <input type="range" min={2} max={50} className="w-full accent-brand"
                     value={filterRadius} onChange={(e) => setFilterRadius(Number(e.target.value))} />
-                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                  <div className="flex justify-between text-[10px] text-muted mt-1">
                     <span>2 km</span><span>50 km</span>
                   </div>
                 </div>
 
                 {/* Rate */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
                     Rémunération minimum
                   </label>
                   <div className="relative">
                     <input type="number" className={inputCls + " pr-12"} placeholder="12"
                       value={filterMinRate} onChange={(e) => setFilterMinRate(e.target.value)} />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">€/h</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">€/h</span>
                   </div>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2.5">Statut</label>
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2.5">Statut</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { value: "all",      label: "Tous" },
@@ -464,8 +473,8 @@ export default function AnnoncesPage() {
                       <button key={opt.value} onClick={() => setFilterStatus(opt.value as typeof filterStatus)}
                         className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                           filterStatus === opt.value
-                            ? "bg-violet-600 text-white border-violet-600"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-violet-300"
+                            ? "bg-ink text-white border-brand"
+                            : "bg-white text-ink-2 border-line hover:border-brand/50"
                         }`}>
                         {opt.label}
                       </button>
@@ -475,7 +484,7 @@ export default function AnnoncesPage() {
 
                 {/* Sort */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2.5">Trier par</label>
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2.5">Trier par</label>
                   <div className="space-y-1.5">
                     {[
                       { value: "recent",     label: "Plus récentes" },
@@ -486,11 +495,11 @@ export default function AnnoncesPage() {
                         className={`w-full px-4 py-2.5 rounded-xl text-sm font-medium border text-left
                                     flex items-center justify-between transition-all ${
                           sortBy === opt.value
-                            ? "bg-violet-50 text-violet-700 border-violet-200"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                            ? "bg-brand-soft text-brand-dark border-brand/30"
+                            : "bg-white text-ink-2 border-line hover:border-line"
                         }`}>
                         {opt.label}
-                        {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />}
+                        {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
                       </button>
                     ))}
                   </div>
@@ -498,15 +507,15 @@ export default function AnnoncesPage() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+              <div className="px-6 py-4 border-t border-line flex gap-3">
                 <button onClick={resetFilters}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold
-                             text-slate-600 hover:bg-slate-50 transition">
+                  className="flex-1 py-2.5 rounded-xl border border-line text-sm font-semibold
+                             text-ink-2 hover:bg-paper-2 transition">
                   Réinitialiser
                 </button>
                 <button onClick={() => setShowFilters(false)}
-                  className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl
-                             text-sm font-semibold transition shadow-sm shadow-violet-200">
+                  className="flex-1 py-2.5 bg-ink hover:bg-ink-2 text-white rounded-xl
+                             text-sm font-semibold transition shadow-sm shadow-brand/30">
                   Appliquer
                 </button>
               </div>

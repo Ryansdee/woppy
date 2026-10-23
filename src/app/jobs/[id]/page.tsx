@@ -120,23 +120,23 @@ export default function JobDetailPage() {
   }, [user, annonce]);
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
           <Briefcase size={18} className="text-white" />
         </div>
-        <p className="text-sm text-slate-500">Chargement…</p>
+        <p className="text-sm text-muted">Chargement…</p>
       </div>
     </div>
   );
 
   if (!annonce) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
-        <AlertCircle size={20} className="text-slate-400" />
+    <div className="min-h-screen bg-paper-2 flex flex-col items-center justify-center gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-paper-2 flex items-center justify-center">
+        <AlertCircle size={20} className="text-muted" />
       </div>
-      <p className="text-sm font-medium text-slate-600">Annonce introuvable.</p>
-      <Link href="/jobs" className="text-xs text-violet-600 hover:underline">Retour aux annonces</Link>
+      <p className="text-sm font-medium text-ink-2">Annonce introuvable.</p>
+      <Link href="/jobs" className="text-xs text-brand hover:underline">Retour aux annonces</Link>
     </div>
   );
 
@@ -147,18 +147,18 @@ export default function JobDetailPage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* Topbar */}
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div className="bg-white border-b border-line sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-            <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors shrink-0">
+            <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted transition-colors shrink-0">
               <ChevronLeft size={18} />
             </Link>
-            <div className="w-px h-4 bg-slate-200 shrink-0" />
-            <span className="text-sm font-semibold text-slate-900 truncate flex-1" style={{ fontFamily: 'Sora, system-ui' }}>
+            <div className="w-px h-4 bg-line shrink-0" />
+            <span className="text-sm font-semibold text-ink truncate flex-1" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               {annonce.titre}
             </span>
             <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
@@ -182,7 +182,7 @@ export default function JobDetailPage() {
                 <div className={`grid gap-2 ${annonce.photos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {annonce.photos.map((p, i) => (
                     <div key={i}
-                      className={`relative overflow-hidden rounded-xl bg-slate-100
+                      className={`relative overflow-hidden rounded-xl bg-paper-2
                         ${i === 0 && annonce.photos.length > 1 ? 'col-span-2' : ''}`}
                       style={{ height: i === 0 && annonce.photos.length > 1 ? 200 : 120 }}>
                       <Image src={p} alt="" fill className="object-cover" />
@@ -192,12 +192,12 @@ export default function JobDetailPage() {
               )}
 
               {/* Titre */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 tracking-tight"
-                  style={{ fontFamily: 'Sora, system-ui' }}>
+              <div className="bg-white rounded-2xl border border-line p-5">
+                <h1 className="text-xl sm:text-2xl font-bold text-ink mb-1 tracking-tight"
+                  style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                   {annonce.titre}
                 </h1>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted">
                   {annonce.createdAt?.seconds
                     ? new Date(annonce.createdAt.seconds * 1000).toLocaleDateString("fr-BE", {
                         day: "numeric", month: "long", year: "numeric"
@@ -207,8 +207,8 @@ export default function JobDetailPage() {
               </div>
 
               {/* Détails — visible sur mobile ici, caché sur desktop (sidebar) */}
-              <div className="lg:hidden bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Détails</h2>
+              <div className="lg:hidden bg-white rounded-2xl border border-line p-5 space-y-3">
+                <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Détails</h2>
                 {[
                   { icon: <Euro size={13} />, label: "Rémunération", value: `${annonce.remuneration} €/h`, bold: true },
                   { icon: <MapPin size={13} />, label: "Lieu", value: annonce.lieu },
@@ -216,12 +216,12 @@ export default function JobDetailPage() {
                   { icon: <Clock size={13} />, label: "Durée", value: `${annonce.duree} heure${annonce.duree > 1 ? 's' : ''}` },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-paper-2 border border-line flex items-center justify-center text-muted shrink-0">
                       {item.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{item.label}</p>
-                      <p className={`text-sm truncate ${item.bold ? 'font-bold text-violet-700' : 'font-medium text-slate-800'}`}>
+                      <p className="text-[10px] text-muted font-medium uppercase tracking-wide">{item.label}</p>
+                      <p className={`text-sm truncate ${item.bold ? 'font-bold text-brand-dark' : 'font-medium text-ink'}`}>
                         {item.value}
                       </p>
                     </div>
@@ -252,24 +252,24 @@ export default function JobDetailPage() {
               )}
 
               {/* Description */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Description</h2>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{annonce.description}</p>
+              <div className="bg-white rounded-2xl border border-line p-5">
+                <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Description</h2>
+                <p className="text-sm text-ink-2 leading-relaxed whitespace-pre-line">{annonce.description}</p>
               </div>
 
               {/* Auteur — mobile */}
               {auteur && (
-                <div className="lg:hidden bg-white rounded-2xl border border-slate-100 p-5">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Publié par</h2>
+                <div className="lg:hidden bg-white rounded-2xl border border-line p-5">
+                  <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Publié par</h2>
                   <div className="flex items-center gap-3">
                     <Image
                       src={auteur.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(auteurNom)}&background=7c5fe6&color=fff`}
                       alt={auteurNom} width={40} height={40}
-                      className="rounded-xl object-cover border border-slate-100 shrink-0"
+                      className="rounded-xl object-cover border border-line shrink-0"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{auteurNom}</p>
-                      <p className="text-xs text-slate-400">Particulier</p>
+                      <p className="text-sm font-semibold text-ink">{auteurNom}</p>
+                      <p className="text-xs text-muted">Particulier</p>
                     </div>
                   </div>
                 </div>
@@ -295,8 +295,8 @@ export default function JobDetailPage() {
             <div className="hidden lg:flex flex-col gap-4">
 
               {/* Détails */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Détails</h2>
+              <div className="bg-white rounded-2xl border border-line p-5 space-y-4">
+                <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Détails</h2>
                 {[
                   { icon: <Euro size={14} />, label: "Rémunération", value: `${annonce.remuneration} €/h`, bold: true },
                   { icon: <MapPin size={14} />, label: "Lieu", value: annonce.lieu },
@@ -304,12 +304,12 @@ export default function JobDetailPage() {
                   { icon: <Clock size={14} />, label: "Durée", value: `${annonce.duree} heure${annonce.duree > 1 ? 's' : ''}` },
                 ].map(item => (
                   <div key={item.label} className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0 mt-0.5">
+                    <div className="w-7 h-7 rounded-lg bg-paper-2 border border-line flex items-center justify-center text-muted shrink-0 mt-0.5">
                       {item.icon}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide">{item.label}</p>
-                      <p className={`text-sm text-slate-800 truncate ${item.bold ? 'font-bold text-violet-700' : 'font-medium'}`}>
+                      <p className="text-[11px] text-muted font-medium uppercase tracking-wide">{item.label}</p>
+                      <p className={`text-sm text-ink truncate ${item.bold ? 'font-bold text-brand-dark' : 'font-medium'}`}>
                         {item.value}
                       </p>
                     </div>
@@ -319,17 +319,17 @@ export default function JobDetailPage() {
 
               {/* Auteur */}
               {auteur && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Publié par</h2>
+                <div className="bg-white rounded-2xl border border-line p-5">
+                  <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Publié par</h2>
                   <div className="flex items-center gap-3">
                     <Image
                       src={auteur.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(auteurNom)}&background=7c5fe6&color=fff`}
                       alt={auteurNom} width={40} height={40}
-                      className="rounded-xl object-cover border border-slate-100"
+                      className="rounded-xl object-cover border border-line"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{auteurNom}</p>
-                      <p className="text-xs text-slate-400">Particulier</p>
+                      <p className="text-sm font-semibold text-ink">{auteurNom}</p>
+                      <p className="text-xs text-muted">Particulier</p>
                     </div>
                   </div>
                 </div>
@@ -389,11 +389,11 @@ function PostulerAnnonce({ annonce, user, hasStudentProfile, alreadyApplied, set
   );
 
   if (alreadyApplied || success) return (
-    <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 flex items-start gap-3">
-      <CheckCircle size={16} className="text-violet-500 shrink-0 mt-0.5" />
+    <div className="bg-brand-soft border border-brand/30 rounded-2xl p-4 flex items-start gap-3">
+      <CheckCircle size={16} className="text-brand shrink-0 mt-0.5" />
       <div>
-        <p className="text-sm font-semibold text-violet-800">Candidature envoyée</p>
-        <p className="text-xs text-violet-600 mt-0.5">Le client recevra une notification.</p>
+        <p className="text-sm font-semibold text-brand-dark">Candidature envoyée</p>
+        <p className="text-xs text-brand mt-0.5">Le client recevra une notification.</p>
       </div>
     </div>
   );
@@ -419,13 +419,13 @@ function PostulerAnnonce({ annonce, user, hasStudentProfile, alreadyApplied, set
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5">
-      <p className="text-xs text-slate-400 mb-3">
+    <div className="bg-white rounded-2xl border border-line p-5">
+      <p className="text-xs text-muted mb-3">
         En postulant, le client recevra une notification et pourra consulter ton profil.
       </p>
       <button onClick={postuler} disabled={loading}
-        className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
-        style={{ fontFamily: 'Sora, system-ui' }}>
+        className="w-full py-3 bg-ink hover:bg-ink-2 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
         {loading
           ? <><Loader2 size={14} className="animate-spin" /> Envoi…</>
           : <>Postuler à cette annonce <ChevronRight size={14} /></>}
@@ -480,11 +480,11 @@ function AuteurCandidatures({ annonce, candidatures, setAnnonce, setCandidatures
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5">
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-line p-5">
+      <h3 className="text-xs font-bold text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
         Candidatures reçues
         {candidatures.length > 0 && (
-          <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full text-[10px] font-bold normal-case">
+          <span className="bg-brand-soft text-brand-dark px-2 py-0.5 rounded-full text-[10px] font-bold normal-case">
             {candidatures.length}
           </span>
         )}
@@ -492,22 +492,22 @@ function AuteurCandidatures({ annonce, candidatures, setAnnonce, setCandidatures
 
       {candidatures.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-2">
-            <User size={16} className="text-slate-400" />
+          <div className="w-10 h-10 rounded-xl bg-paper-2 border border-line flex items-center justify-center mb-2">
+            <User size={16} className="text-muted" />
           </div>
-          <p className="text-sm text-slate-500">Aucune candidature pour l'instant.</p>
+          <p className="text-sm text-muted">Aucune candidature pour l'instant.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {candidatures.map((c: Candidature) => (
             <div key={c.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-line bg-paper-2/50">
               <div className="flex items-center gap-3 min-w-0">
                 <Image src={c.photoURL || ""} alt={c.userName || ""}
                   width={36} height={36}
-                  className="rounded-xl object-cover border border-slate-200 shrink-0" />
+                  className="rounded-xl object-cover border border-line shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{c.userName}</p>
+                  <p className="text-sm font-semibold text-ink truncate">{c.userName}</p>
                   <span className="text-[11px] font-medium"
                     style={{ color: c.statut === "acceptée" ? "#15803d" : "#64748b" }}>
                     {c.statut === "acceptée" ? "✓ Acceptée" : "En attente"}
@@ -516,7 +516,7 @@ function AuteurCandidatures({ annonce, candidatures, setAnnonce, setCandidatures
               </div>
               <div className="flex gap-2 shrink-0">
                 <button onClick={() => openChat(c.userId)}
-                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-violet-600 transition">
+                  className="p-2 rounded-lg border border-line bg-white hover:bg-paper-2 text-muted hover:text-brand transition">
                   <MessageSquare size={14} />
                 </button>
                 <button onClick={() => accepter(c)}
@@ -524,7 +524,7 @@ function AuteurCandidatures({ annonce, candidatures, setAnnonce, setCandidatures
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                     annonce.acceptedUserId === c.userId
                       ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
-                      : "bg-violet-600 hover:bg-violet-700 text-white"
+                      : "bg-ink hover:bg-ink-2 text-white"
                   }`}>
                   {annonce.acceptedUserId === c.userId ? "Accepté" : "Accepter"}
                 </button>
@@ -561,30 +561,30 @@ function TaskCompletion({ annonce, user, setAnnonce }: any) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5">
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Confirmer la mission</h3>
+    <div className="bg-white rounded-2xl border border-line p-5">
+      <h3 className="text-xs font-bold text-muted uppercase tracking-widest mb-4">Confirmer la mission</h3>
       <div className="space-y-2 mb-4">
         {[
           { label: isAuthor ? "Ma confirmation (client)" : "Confirmation du client", done: annonce.taskCompletion?.author },
           { label: isAuthor ? "Confirmation de l'étudiant" : "Ma confirmation (étudiant)", done: annonce.taskCompletion?.student },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-2.5 text-sm">
-            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.done ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.done ? 'bg-emerald-500' : 'bg-line'}`}>
               {item.done && <CheckCircle size={10} className="text-white" />}
             </div>
-            <span className={item.done ? "text-emerald-700 font-medium" : "text-slate-500"}>{item.label}</span>
+            <span className={item.done ? "text-emerald-700 font-medium" : "text-muted"}>{item.label}</span>
           </div>
         ))}
       </div>
       {myDone ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-muted bg-paper-2 border border-line rounded-xl px-4 py-3">
           <CheckCircle size={14} className="text-emerald-500 shrink-0" />
           {otherDone ? "Mission terminée par les deux parties." : "En attente de la confirmation de l'autre partie."}
         </div>
       ) : (
         <button onClick={confirm}
-          className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2"
-          style={{ fontFamily: 'Sora, system-ui' }}>
+          className="w-full py-2.5 bg-ink hover:bg-ink-2 text-white text-sm font-bold rounded-xl transition flex items-center justify-center gap-2"
+          style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
           <CheckCircle size={14} /> Confirmer la mission effectuée
         </button>
       )}
