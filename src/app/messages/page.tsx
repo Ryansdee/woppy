@@ -79,8 +79,8 @@ async function fetchProfile(uid: string): Promise<UserProfile> {
 function ReadStatus({ msg, uid }: { msg: Message; uid: string }) {
   if (msg.senderId !== uid) return null;
   return msg.readBy && msg.readBy.length > 1
-    ? <CheckCheck size={12} className="text-violet-400" />
-    : <Check size={12} className="text-slate-400" />;
+    ? <CheckCheck size={12} className="text-brand" />
+    : <Check size={12} className="text-muted" />;
 }
 
 /* ══════════════════════════════════════════════════════════ */
@@ -273,49 +273,49 @@ export default function MessagesPage() {
 
   /* ── loader ── */
   if (loading) return (
-    <div className="h-screen bg-slate-50 flex items-center justify-center">
+    <div className="h-screen bg-paper-2 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
           <MessageSquare size={18} className="text-white" />
         </div>
-        <p className="text-sm text-slate-500">Chargement…</p>
+        <p className="text-sm text-muted">Chargement…</p>
       </div>
     </div>
   );
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
-      <div className="h-[calc(100vh-64px)] flex bg-slate-50 overflow-hidden text-slate-900"
+      <div className="h-[calc(100vh-64px)] flex bg-paper-2 overflow-hidden text-ink"
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* ══════════════════════════════
             SIDEBAR
         ══════════════════════════════ */}
-        <aside className={`${isMobile && chatId ? 'hidden' : 'flex'} w-full md:w-[300px] lg:w-[320px] bg-white border-r border-slate-100 flex-col shrink-0`}>
+        <aside className={`${isMobile && chatId ? 'hidden' : 'flex'} w-full md:w-[300px] lg:w-[320px] bg-white border-r border-line flex-col shrink-0`}>
 
           {/* Sidebar topbar */}
-          <div className="h-14 px-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-            <h1 className="font-bold text-sm text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+          <div className="h-14 px-4 border-b border-line flex items-center justify-between shrink-0">
+            <h1 className="font-bold text-sm text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               Messages
             </h1>
             <button onClick={() => setShowSearch(s => !s)}
-              className={`p-1.5 rounded-lg transition-colors ${showSearch ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}>
+              className={`p-1.5 rounded-lg transition-colors ${showSearch ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-paper-2'}`}>
               <Search size={15} />
             </button>
           </div>
 
           {/* Search */}
           {showSearch && (
-            <div className="px-3 py-2 border-b border-slate-100">
+            <div className="px-3 py-2 border-b border-line">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
                 <input autoFocus type="text" placeholder="Rechercher…" value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/25 focus:border-violet-400 transition-all" />
+                  className="w-full pl-8 pr-8 py-2 text-xs rounded-lg border border-line bg-paper-2 text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand/25 focus:border-brand transition-all" />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">
                     <X size={12} />
                   </button>
                 )}
@@ -327,11 +327,11 @@ export default function MessagesPage() {
           <div className="flex-1 overflow-y-auto">
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                  <MessageSquare size={18} className="text-slate-400" />
+                <div className="w-12 h-12 rounded-2xl bg-paper-2 flex items-center justify-center mb-3">
+                  <MessageSquare size={18} className="text-muted" />
                 </div>
-                <p className="text-sm font-semibold text-slate-700 mb-1">Aucune conversation</p>
-                <p className="text-xs text-slate-400">Vos messages apparaîtront ici</p>
+                <p className="text-sm font-semibold text-ink-2 mb-1">Aucune conversation</p>
+                <p className="text-xs text-muted">Vos messages apparaîtront ici</p>
               </div>
             ) : (
               <div>
@@ -340,29 +340,29 @@ export default function MessagesPage() {
                   const isActive = c.id === chatId;
                   return (
                     <button key={c.id} onClick={() => router.push(`/messages?chatId=${c.id}`)}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 ${isActive ? 'bg-violet-50 border-r-2 border-violet-500' : ''}`}>
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-paper-2 ${isActive ? 'bg-brand-soft border-r-2 border-brand' : ''}`}>
                       <div className="relative shrink-0">
                         <img src={o?.photoURL} alt={o?.displayName}
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                          className="w-10 h-10 rounded-xl object-cover border border-line" />
                         {o?.isOnline && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-baseline justify-between mb-0.5">
-                          <p className={`text-sm font-semibold truncate ${isActive ? 'text-violet-700' : 'text-slate-900'}`}>
+                          <p className={`text-sm font-semibold truncate ${isActive ? 'text-brand-dark' : 'text-ink'}`}>
                             {o?.displayName}
                           </p>
                           {c.lastMessageTime && (
-                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                            <span className="text-[10px] text-muted shrink-0 ml-2">
                               {fmtTime(new Date(c.lastMessageTime.toDate()))}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-slate-400 truncate flex-1">{c.lastMessage}</p>
-                          {c.unreadCount && c.unreadCount > 0 && (
-                            <span className="shrink-0 w-4 h-4 bg-violet-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                          <p className="text-xs text-muted truncate flex-1">{c.lastMessage}</p>
+                          {(c.unreadCount ?? 0) > 0 && (
+                            <span className="shrink-0 w-4 h-4 bg-ink text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                               {c.unreadCount}
                             </span>
                           )}
@@ -381,23 +381,23 @@ export default function MessagesPage() {
         ══════════════════════════════ */}
         <main className="flex-1 flex flex-col min-w-0 bg-white">
           {!chatId ? (
-            <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
-              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-4 shadow-sm">
-                <MessageSquare size={22} className="text-slate-400" />
+            <div className="flex-1 flex flex-col items-center justify-center bg-paper-2">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-line flex items-center justify-center mb-4 shadow-sm">
+                <MessageSquare size={22} className="text-muted" />
               </div>
-              <h2 className="text-base font-bold text-slate-800 mb-1" style={{ fontFamily: 'Sora, system-ui' }}>
+              <h2 className="text-base font-bold text-ink mb-1" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                 Messagerie Woppy
               </h2>
-              <p className="text-sm text-slate-400">Sélectionne une conversation pour commencer</p>
+              <p className="text-sm text-muted">Sélectionne une conversation pour commencer</p>
             </div>
           ) : (
             <>
               {/* ── Chat header ── */}
-              <div className="h-14 px-5 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div className="h-14 px-5 bg-white border-b border-line flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {isMobile && (
                     <button onClick={() => router.push('/messages')}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors mr-1">
+                      className="p-1.5 rounded-lg text-muted hover:bg-paper-2 transition-colors mr-1">
                       <ArrowLeft size={16} />
                     </button>
                   )}
@@ -405,16 +405,16 @@ export default function MessagesPage() {
                     <Link href={`/profile/${other.uid}`} className="flex items-center gap-3 min-w-0 flex-1 group">
                       <div className="relative shrink-0">
                         <img src={other.photoURL} alt={other.displayName}
-                          className="w-8 h-8 rounded-xl object-cover border border-slate-100" />
+                          className="w-8 h-8 rounded-xl object-cover border border-line" />
                         {other.isOnline && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-violet-700 transition-colors">
+                        <p className="text-sm font-semibold text-ink truncate group-hover:text-brand-dark transition-colors">
                           {other.displayName}
                         </p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] text-muted">
                           {other.isOnline ? 'En ligne' : 'Hors ligne'}
                         </p>
                       </div>
@@ -425,18 +425,18 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-1">
                   {commonJobs.length > 0 && (
                     <button onClick={() => setShowJobs(s => !s)}
-                      className={`relative p-2 rounded-lg transition-colors ${showJobs ? 'bg-violet-50 text-violet-600' : 'text-slate-400 hover:bg-slate-100'}`}>
+                      className={`relative p-2 rounded-lg transition-colors ${showJobs ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-paper-2'}`}>
                       <Briefcase size={15} />
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-violet-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ink text-white text-[8px] font-bold rounded-full flex items-center justify-center">
                         {commonJobs.length}
                       </span>
                     </button>
                   )}
                   <Menu as="div" className="relative">
-                    <MenuButton className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                    <MenuButton className="p-2 rounded-lg text-muted hover:bg-paper-2 transition-colors">
                       <MoreVertical size={15} />
                     </MenuButton>
-                    <Menu.Items className="absolute right-0 mt-1 w-48 bg-white rounded-xl border border-slate-100 shadow-lg py-1 z-10">
+                    <Menu.Items className="absolute right-0 mt-1 w-48 bg-white rounded-xl border border-line shadow-lg py-1 z-10">
                       <MenuItem>
                         {({ active }: { active: boolean }) => (
                           <button onClick={() => router.push(`/support?chatId=${chatId}`)}
@@ -452,22 +452,22 @@ export default function MessagesPage() {
 
               {/* ── Jobs panel ── */}
               {showJobs && commonJobs.length > 0 && (
-                <div className="bg-slate-50 border-b border-slate-100 px-5 py-3">
+                <div className="bg-paper-2 border-b border-line px-5 py-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <p className="text-xs font-bold text-muted uppercase tracking-widest">
                       Missions en commun
                     </p>
-                    <button onClick={() => setShowJobs(false)} className="text-slate-400 hover:text-slate-600">
+                    <button onClick={() => setShowJobs(false)} className="text-muted hover:text-ink-2">
                       <X size={13} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {commonJobs.map(job => (
                       <div key={job.id}
-                        className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5">
-                        <p className="text-xs font-medium text-slate-700">{job.title || 'Mission'}</p>
+                        className="flex items-center gap-2 bg-white border border-line rounded-xl px-3 py-1.5">
+                        <p className="text-xs font-medium text-ink-2">{job.title || 'Mission'}</p>
                         {job.status && (
-                          <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">
+                          <span className="text-[10px] font-bold text-brand bg-brand-soft border border-brand/30 px-1.5 py-0.5 rounded-full">
                             {job.status}
                           </span>
                         )}
@@ -478,13 +478,13 @@ export default function MessagesPage() {
               )}
 
               {/* ── Messages ── */}
-              <div className="flex-1 overflow-y-auto px-5 py-5 bg-slate-50">
+              <div className="flex-1 overflow-y-auto px-5 py-5 bg-paper-2">
                 <div className="max-w-3xl mx-auto space-y-6">
                   {Object.entries(grouped).map(([dateKey, msgs]) => (
                     <div key={dateKey}>
                       {/* Date divider */}
                       <div className="flex justify-center mb-5">
-                        <span className="bg-white border border-slate-100 px-3 py-1 rounded-full text-[11px] font-medium text-slate-500 shadow-sm">
+                        <span className="bg-white border border-line px-3 py-1 rounded-full text-[11px] font-medium text-muted shadow-sm">
                           {fmtDateLabel(new Date(dateKey))}
                         </span>
                       </div>
@@ -499,7 +499,7 @@ export default function MessagesPage() {
 
                           if (msg.type === 'system') return (
                             <div key={msg.id} className="flex justify-center my-3">
-                              <span className="bg-white border border-slate-100 px-3 py-1 rounded-full text-[11px] text-slate-500">
+                              <span className="bg-white border border-line px-3 py-1 rounded-full text-[11px] text-muted">
                                 {msg.text}
                               </span>
                             </div>
@@ -515,7 +515,7 @@ export default function MessagesPage() {
                                   <div className="w-7 h-7 shrink-0 mt-auto">
                                     {showAv && (
                                       <img src={other?.photoURL} alt=""
-                                        className="w-7 h-7 rounded-lg object-cover border border-slate-100" />
+                                        className="w-7 h-7 rounded-lg object-cover border border-line" />
                                     )}
                                   </div>
                                 )}
@@ -525,7 +525,7 @@ export default function MessagesPage() {
                                     {/* Image */}
                                     {msg.type === 'file' && isImage(msg.fileName) ? (
                                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer"
-                                        className="block rounded-2xl overflow-hidden border border-slate-200">
+                                        className="block rounded-2xl overflow-hidden border border-line">
                                         <img src={msg.fileUrl} alt={msg.fileName}
                                           className="max-w-[220px] max-h-[200px] object-cover" />
                                       </a>
@@ -533,12 +533,12 @@ export default function MessagesPage() {
                                       /* Bubble */
                                       <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                                         isOwn
-                                          ? 'bg-violet-600 text-white rounded-br-sm'
-                                          : 'bg-white text-slate-800 border border-slate-100 shadow-sm rounded-bl-sm'
+                                          ? 'bg-ink text-white rounded-br-sm'
+                                          : 'bg-white text-ink border border-line shadow-sm rounded-bl-sm'
                                       } ${isFirst && isOwn ? 'rounded-tr-2xl' : ''} ${isFirst && !isOwn ? 'rounded-tl-2xl' : ''}`}>
                                         {msg.type === 'file'
                                           ? <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer"
-                                              className={`flex items-center gap-2 hover:underline ${isOwn ? 'text-white' : 'text-violet-600'}`}>
+                                              className={`flex items-center gap-2 hover:underline ${isOwn ? 'text-white' : 'text-brand'}`}>
                                               <Paperclip size={13} /> <span className="text-xs font-medium">{msg.fileName}</span>
                                             </a>
                                           : msg.text
@@ -548,10 +548,10 @@ export default function MessagesPage() {
 
                                     {/* Context menu */}
                                     <Menu as="div" className={`absolute ${isOwn ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-0 opacity-0 group-hover:opacity-100 transition-opacity`}>
-                                      <MenuButton className="p-1 bg-white border border-slate-200 rounded-lg shadow-sm mx-1.5">
-                                        <MoreVertical size={12} className="text-slate-500" />
+                                      <MenuButton className="p-1 bg-white border border-line rounded-lg shadow-sm mx-1.5">
+                                        <MoreVertical size={12} className="text-muted" />
                                       </MenuButton>
-                                      <Menu.Items className={`absolute ${isOwn ? 'right-0' : 'left-0'} mt-1 w-36 bg-white border border-slate-100 rounded-xl shadow-lg py-1 z-10`}>
+                                      <Menu.Items className={`absolute ${isOwn ? 'right-0' : 'left-0'} mt-1 w-36 bg-white border border-line rounded-xl shadow-lg py-1 z-10`}>
                                         <MenuItem>
                                           {({ active }: { active: boolean }) => (
                                             <button onClick={() => report(msg)}
@@ -567,7 +567,7 @@ export default function MessagesPage() {
                                   {/* Time + read status */}
                                   {showAv && (
                                     <div className={`flex items-center gap-1 mt-1 px-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                      <span className="text-[10px] text-slate-400">
+                                      <span className="text-[10px] text-muted">
                                         {msg.createdAt && fmtTime(new Date(msg.createdAt.toDate()))}
                                       </span>
                                       {isOwn && <ReadStatus msg={msg} uid={user?.uid ?? ''} />}
@@ -586,11 +586,11 @@ export default function MessagesPage() {
                   {otherTyping && (
                     <div className="flex justify-start">
                       <div className="flex gap-2.5">
-                        <img src={other?.photoURL} alt="" className="w-7 h-7 rounded-lg object-cover border border-slate-100 mt-auto" />
-                        <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
+                        <img src={other?.photoURL} alt="" className="w-7 h-7 rounded-lg object-cover border border-line mt-auto" />
+                        <div className="bg-white border border-line shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
                           <div className="flex gap-1">
                             {[0, 0.2, 0.4].map((d, i) => (
-                              <span key={i} className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
+                              <span key={i} className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce"
                                 style={{ animationDelay: `${d}s` }} />
                             ))}
                           </div>
@@ -604,9 +604,9 @@ export default function MessagesPage() {
               </div>
 
               {/* ── Input bar ── */}
-              <div className="px-5 py-4 bg-white border-t border-slate-100 shrink-0">
+              <div className="px-5 py-4 bg-white border-t border-line shrink-0">
                 <div className="max-w-3xl mx-auto flex items-end gap-2">
-                  <label className="p-2 rounded-xl text-slate-400 hover:text-violet-600 hover:bg-violet-50 cursor-pointer transition-colors">
+                  <label className="p-2 rounded-xl text-muted hover:text-brand hover:bg-brand-soft cursor-pointer transition-colors">
                     <Paperclip size={16} />
                     <input ref={fileInputRef} type="file" className="hidden" onChange={handleFile} />
                   </label>
@@ -617,15 +617,15 @@ export default function MessagesPage() {
                       value={newMessage}
                       onChange={e => handleTyping(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                      className="w-full px-4 py-2.5 pr-10 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400/25 focus:border-violet-400 focus:bg-white transition-all" />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-violet-500 transition-colors">
+                      className="w-full px-4 py-2.5 pr-10 text-sm rounded-xl border border-line bg-paper-2 text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand/25 focus:border-brand focus:bg-white transition-all" />
+                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-brand transition-colors">
                       <Smile size={15} />
                     </button>
                   </div>
 
                   <button onClick={() => sendMessage()}
                     disabled={sending || !newMessage.trim()}
-                    className="p-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all shadow-sm shadow-violet-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
+                    className="p-2.5 bg-ink hover:bg-ink-2 text-white rounded-xl transition-all shadow-sm shadow-brand/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
                     {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                   </button>
                 </div>

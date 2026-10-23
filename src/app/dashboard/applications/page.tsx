@@ -67,46 +67,46 @@ export default function ApplicationsDashboardPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5]">
-      <Loader2 className="w-10 h-10 animate-spin text-violet-500 mb-4" />
-      <p className="font-['DM_Sans',system-ui] text-gray-400">Chargement des candidatures...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
+      <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
+      <p className="font-['DM_Sans',system-ui] text-muted">Chargement des candidatures...</p>
     </div>
   );
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        
       `}</style>
 
-      <main className="min-h-screen bg-[#f9f8f5] font-['DM_Sans',system-ui,sans-serif]">
+      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
 
         {/* ── Hero ── */}
         <section className="max-w-[960px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
 
           {/* Badge */}
           <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-violet-50 border border-violet-200 text-[13px] font-semibold text-violet-500">
+            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
               <FileText className="w-3.5 h-3.5" />
               Recrutement
             </span>
           </div>
 
-          <h1 className="font-['Sora',system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#1a1a2e] mb-4">
+          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
             Candidatures{" "}
-            <span className="bg-gradient-to-br from-violet-500 to-violet-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
               reçues
             </span>
           </h1>
 
-          <p className="text-center text-[14px] sm:text-[16px] text-gray-400 max-w-[440px] mx-auto mb-10 leading-[1.7]">
+          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[440px] mx-auto mb-10 leading-[1.7]">
             Gérez et suivez toutes les candidatures reçues pour vos offres d'emploi.
           </p>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
             {([
-              { key: "all",  label: "Total",     value: stats.total, color: "text-violet-500", activeBg: "bg-violet-500" },
+              { key: "all",  label: "Total",     value: stats.total, color: "text-brand", activeBg: "bg-brand" },
               { key: "new",  label: "Nouvelles",  value: stats.new,   color: "text-amber-500",  activeBg: "bg-amber-500"  },
               { key: "seen", label: "Vues",       value: stats.seen,  color: "text-green-500",  activeBg: "bg-green-500"  },
             ] as const).map((s) => (
@@ -116,15 +116,15 @@ export default function ApplicationsDashboardPage() {
                 className={`rounded-2xl p-4 text-center border transition-all duration-150
                   ${filterStatus === s.key
                     ? `${s.activeBg} border-transparent shadow-md`
-                    : "bg-white border-stone-200 hover:border-violet-200 hover:shadow-sm"
+                    : "bg-white border-stone-200 hover:border-brand/30 hover:shadow-sm"
                   }`}
               >
-                <p className={`font-['Sora',system-ui] font-bold text-2xl
-                  ${filterStatus === s.key ? "text-white" : "text-[#1a1a2e]"}`}>
+                <p className={`font-[var(--font-bricolage),system-ui] font-bold text-2xl
+                  ${filterStatus === s.key ? "text-white" : "text-[#15131f]"}`}>
                   {s.value}
                 </p>
                 <p className={`text-[11px] font-medium mt-0.5
-                  ${filterStatus === s.key ? "text-white/70" : "text-gray-400"}`}>
+                  ${filterStatus === s.key ? "text-white/70" : "text-muted"}`}>
                   {s.label}
                 </p>
               </button>
@@ -137,18 +137,18 @@ export default function ApplicationsDashboardPage() {
           {/* ── Search bar ── */}
           <div className="bg-white border border-stone-200 rounded-2xl p-4">
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 type="text"
                 placeholder="Rechercher par nom ou email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-ink-2 placeholder:text-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-all"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink-2 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -164,11 +164,11 @@ export default function ApplicationsDashboardPage() {
                   exit={{ opacity: 0, height: 0 }}
                   className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-100 flex-wrap"
                 >
-                  <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="text-[12px] text-gray-400">Filtres actifs :</span>
+                  <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
+                  <span className="text-[12px] text-muted">Filtres actifs :</span>
 
                   {filterStatus !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-500 border border-violet-200">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-brand-soft text-brand border border-brand/30">
                       {filterStatus === "new" ? "Nouvelles" : "Vues"}
                       <button onClick={() => setFilterStatus("all")}>
                         <X className="w-3 h-3" />
@@ -176,7 +176,7 @@ export default function ApplicationsDashboardPage() {
                     </span>
                   )}
                   {searchTerm && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-gray-500 border border-stone-200">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-muted border border-stone-200">
                       "{searchTerm}"
                       <button onClick={() => setSearchTerm("")}>
                         <X className="w-3 h-3" />
@@ -185,7 +185,7 @@ export default function ApplicationsDashboardPage() {
                   )}
                   <button
                     onClick={() => { setFilterStatus("all"); setSearchTerm(""); }}
-                    className="ml-auto text-[12px] text-violet-500 font-semibold hover:text-violet-600 transition-colors"
+                    className="ml-auto text-[12px] text-brand font-semibold hover:text-brand transition-colors"
                   >
                     Réinitialiser
                   </button>
@@ -201,15 +201,15 @@ export default function ApplicationsDashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white border border-stone-200 rounded-2xl p-16 text-center"
             >
-              <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Inbox className="w-7 h-7 text-violet-400" />
+              <div className="w-14 h-14 bg-brand-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Inbox className="w-7 h-7 text-brand" />
               </div>
-              <p className="font-['Sora',system-ui] font-bold text-[#1a1a2e] mb-1">
+              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
                 {searchTerm || filterStatus !== "all"
                   ? "Aucune candidature trouvée"
                   : "Aucune candidature pour le moment"}
               </p>
-              <p className="text-sm text-gray-400 mb-5">
+              <p className="text-sm text-muted mb-5">
                 {searchTerm || filterStatus !== "all"
                   ? "Essayez de modifier vos filtres"
                   : "Les nouvelles candidatures apparaîtront ici"}
@@ -217,7 +217,7 @@ export default function ApplicationsDashboardPage() {
               {(searchTerm || filterStatus !== "all") && (
                 <button
                   onClick={() => { setFilterStatus("all"); setSearchTerm(""); }}
-                  className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-semibold rounded-xl transition-colors"
+                  className="px-4 py-2 bg-brand hover:bg-ink text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   Réinitialiser les filtres
                 </button>
@@ -236,13 +236,13 @@ export default function ApplicationsDashboardPage() {
                   >
                     <Link
                       href={`/dashboard/applications/${app.id}`}
-                      className="group block bg-white border border-stone-200 rounded-2xl p-5 hover:border-violet-200 hover:shadow-[0_2px_20px_rgba(138,107,254,0.08)] transition-all duration-150 no-underline"
+                      className="group block bg-white border border-stone-200 rounded-2xl p-5 hover:border-brand/30 hover:shadow-[0_2px_20px_rgba(138,107,254,0.08)] transition-all duration-150 no-underline"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
 
                         {/* Avatar */}
-                        <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0 border border-violet-100">
-                          <span className="font-['Sora',system-ui] font-bold text-sm text-violet-500">
+                        <div className="w-10 h-10 bg-brand-soft rounded-xl flex items-center justify-center shrink-0 border border-brand-soft">
+                          <span className="font-[var(--font-bricolage),system-ui] font-bold text-sm text-brand">
                             {app.fullName.charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -250,7 +250,7 @@ export default function ApplicationsDashboardPage() {
                         {/* Infos */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <p className="font-['Sora',system-ui] font-bold text-[14px] text-[#1a1a2e] group-hover:text-violet-500 transition-colors">
+                            <p className="font-[var(--font-bricolage),system-ui] font-bold text-[14px] text-[#15131f] group-hover:text-brand transition-colors">
                               {app.fullName}
                             </p>
                             {isNew && (
@@ -267,18 +267,18 @@ export default function ApplicationsDashboardPage() {
 
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
                             <div className="flex items-center gap-1.5">
-                              <Mail className="w-3 h-3 text-gray-400 shrink-0" />
-                              <span className="text-[12px] text-gray-400 truncate">{app.email}</span>
+                              <Mail className="w-3 h-3 text-muted shrink-0" />
+                              <span className="text-[12px] text-muted truncate">{app.email}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <Briefcase className="w-3 h-3 text-gray-400 shrink-0" />
-                              <span className="text-[12px] text-gray-400 truncate">
+                              <Briefcase className="w-3 h-3 text-muted shrink-0" />
+                              <span className="text-[12px] text-muted truncate">
                                 <CareerTitle careerId={app.careerId} />
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3 text-gray-400 shrink-0" />
-                              <span className="text-[12px] text-gray-400">
+                              <Calendar className="w-3 h-3 text-muted shrink-0" />
+                              <span className="text-[12px] text-muted">
                                 {app.createdAt
                                   ? new Date(app.createdAt.seconds * 1000).toLocaleDateString("fr-FR", {
                                       day: "2-digit", month: "short", year: "numeric",
@@ -290,7 +290,7 @@ export default function ApplicationsDashboardPage() {
                         </div>
 
                         {/* CTA */}
-                        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-violet-400 group-hover:text-violet-600 shrink-0 self-end sm:self-auto transition-colors">
+                        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-brand group-hover:text-brand shrink-0 self-end sm:self-auto transition-colors">
                           Voir détails
                           <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                         </div>

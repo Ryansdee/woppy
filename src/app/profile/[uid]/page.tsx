@@ -121,20 +121,20 @@ export default function UserProfilePage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
           <Briefcase size={18} className="text-white" />
         </div>
-        <p className="text-sm text-slate-500">Chargement…</p>
+        <p className="text-sm text-muted">Chargement…</p>
       </div>
     </div>
   );
 
   if (!userProfile) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-      <p className="text-sm text-slate-500">Profil introuvable.</p>
-      <Link href="/students" className="text-xs text-violet-600 hover:underline">Retour aux étudiants</Link>
+    <div className="min-h-screen bg-paper-2 flex flex-col items-center justify-center gap-3">
+      <p className="text-sm text-muted">Profil introuvable.</p>
+      <Link href="/students" className="text-xs text-brand hover:underline">Retour aux étudiants</Link>
     </div>
   );
 
@@ -162,22 +162,22 @@ export default function UserProfilePage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');
+      <style>{`
         .rbc-toolbar button { font-size: 12px !important; }
-        .rbc-event { background: #7c5fe6 !important; border: none !important; border-radius: 6px !important; font-size: 11px !important; }
-        .rbc-today { background: #f5f3ff !important; }
+        .rbc-event { background: #7357f6 !important; border: none !important; border-radius: 6px !important; font-size: 11px !important; }
+        .rbc-today { background: #efebff !important; }
       `}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* ── Topbar ── */}
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div className="bg-white border-b border-line sticky top-16 z-40">
           <div className="max-w-5xl mx-auto px-6 h-14 flex items-center gap-3">
-            <Link href="/students" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+            <Link href="/students" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted hover:text-ink-2 transition-colors">
               <ArrowLeft size={16} />
             </Link>
-            <div className="w-px h-4 bg-slate-200" />
-            <span className="text-sm font-semibold text-slate-900 truncate" style={{ fontFamily: 'Sora, system-ui' }}>
+            <div className="w-px h-4 bg-line" />
+            <span className="text-sm font-semibold text-ink truncate" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               {fullName}
             </span>
           </div>
@@ -191,19 +191,19 @@ export default function UserProfilePage() {
 
               {/* Identity card */}
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-slate-100 p-6 text-center">
+                className="bg-white rounded-2xl border border-line p-6 text-center">
                 <div className="relative w-20 h-20 mx-auto mb-4">
                   <Image src={avatarUrl} alt={fullName} width={80} height={80}
-                    className="rounded-2xl object-cover border border-slate-200 w-full h-full" />
+                    className="rounded-2xl object-cover border border-line w-full h-full" />
                 </div>
-                <h1 className="font-bold text-base text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+                <h1 className="font-bold text-base text-ink mb-1 tracking-tight" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                   {fullName}
                 </h1>
                 {userProfile.city && (
-                  <p className="text-xs text-slate-400 flex items-center justify-center gap-1 mb-3">
+                  <p className="text-xs text-muted flex items-center justify-center gap-1 mb-3">
                     <MapPin size={10} />
                     <a href={`https://www.google.com/maps/place/${userProfile.city}`} target="_blank"
-                      className="hover:text-violet-600 transition-colors">{userProfile.city}</a>
+                      className="hover:text-brand transition-colors">{userProfile.city}</a>
                   </p>
                 )}
 
@@ -218,27 +218,27 @@ export default function UserProfilePage() {
                     <CheckCircle size={10} /> {jobsDone} mission{jobsDone > 1 ? 's' : ''}
                   </span>
                   {studentProfile?.hourlyRate && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-soft text-brand-dark border border-brand/30">
                       {studentProfile.hourlyRate} €/h
                     </span>
                   )}
                   {studentProfile?.age && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-paper-2 text-ink-2 border border-line">
                       {studentProfile.age} ans
                     </span>
                   )}
                 </div>
 
                 {userProfile.createdAt?.seconds && (
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-muted">
                     Membre depuis {new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' })}
                   </p>
                 )}
 
                 {currentUser && currentUser.uid !== uid && (
                   <button onClick={handleMessage}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-600 hover:bg-violet-700
-                               text-white text-sm font-semibold rounded-xl transition shadow-sm shadow-violet-200">
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-ink hover:bg-ink-2
+                               text-white text-sm font-semibold rounded-xl transition shadow-sm shadow-brand/30">
                     <MessageSquare size={14} /> Envoyer un message
                   </button>
                 )}
@@ -246,13 +246,13 @@ export default function UserProfilePage() {
 
               {/* Bio */}
               {(userProfile.bio || studentProfile?.description) && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">À propos</h2>
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                <div className="bg-white rounded-2xl border border-line p-5">
+                  <h2 className="text-xs font-bold text-muted uppercase tracking-widest mb-2">À propos</h2>
+                  <p className="text-sm text-ink-2 leading-relaxed">
                     {studentProfile?.description || userProfile.bio}
                   </p>
                   {studentProfile?.description && userProfile.bio && (
-                    <p className="text-xs text-slate-400 mt-2 italic">{userProfile.bio}</p>
+                    <p className="text-xs text-muted mt-2 italic">{userProfile.bio}</p>
                   )}
                 </div>
               )}
@@ -266,16 +266,16 @@ export default function UserProfilePage() {
                 <Section title="Avis reçus" count={reviewsList.length}>
                   <div className="space-y-3">
                     {reviewsList.map(r => (
-                      <div key={r.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                      <div key={r.id} className="p-4 bg-paper-2 border border-line rounded-xl">
                         <div className="flex items-center gap-1 mb-2">
                           {[1,2,3,4,5].map(n => (
                             <Star key={n} size={13}
-                              className={n <= (r.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} />
+                              className={n <= (r.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-line fill-line'} />
                           ))}
-                          <span className="text-xs font-semibold text-slate-600 ml-1">{r.rating}/5</span>
+                          <span className="text-xs font-semibold text-ink-2 ml-1">{r.rating}/5</span>
                         </div>
-                        {r.comment && <p className="text-sm text-slate-700 leading-relaxed mb-1.5">{r.comment}</p>}
-                        <p className="text-[11px] text-slate-400">
+                        {r.comment && <p className="text-sm text-ink-2 leading-relaxed mb-1.5">{r.comment}</p>}
+                        <p className="text-[11px] text-muted">
                           {r.createdAt?.seconds
                             ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('fr-BE', { day: 'numeric', month: 'long', year: 'numeric' })
                             : 'Date inconnue'}
@@ -292,14 +292,14 @@ export default function UserProfilePage() {
                   {isMobile ? (
                     <div className="space-y-2">
                       {events.map((ev, i) => (
-                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-violet-50 border border-violet-100 rounded-xl">
-                          <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
-                          <span className="text-sm font-medium text-violet-700">{ev.title}</span>
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-brand-soft border border-brand-soft rounded-xl">
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+                          <span className="text-sm font-medium text-brand-dark">{ev.title}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-xl overflow-hidden border border-slate-100">
+                    <div className="rounded-xl overflow-hidden border border-line">
                       <BigCalendar
                         localizer={localizer}
                         events={events}
@@ -309,7 +309,7 @@ export default function UserProfilePage() {
                         views={['week']}
                         defaultView="week"
                         eventPropGetter={() => ({
-                          style: { backgroundColor: '#7c5fe6', color: 'white', borderRadius: '6px', border: 'none', fontSize: '11px' }
+                          style: { backgroundColor: '#7357f6', color: 'white', borderRadius: '6px', border: 'none', fontSize: '11px' }
                         })}
                       />
                     </div>
@@ -325,19 +325,19 @@ export default function UserProfilePage() {
                       <motion.div key={i}
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        className="p-4 bg-paper-2 border border-line rounded-xl">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-bold text-slate-900 mb-0.5" style={{ fontFamily: 'Sora, system-ui' }}>{exp.title}</h3>
+                            <h3 className="text-sm font-bold text-ink mb-0.5" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>{exp.title}</h3>
                             {exp.company && (
-                              <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                              <p className="text-xs text-muted flex items-center gap-1 mb-1">
                                 <Building2 size={11} /> {exp.company}
                               </p>
                             )}
-                            {exp.description && <p className="text-xs text-slate-600 leading-relaxed mt-1.5">{exp.description}</p>}
+                            {exp.description && <p className="text-xs text-ink-2 leading-relaxed mt-1.5">{exp.description}</p>}
                           </div>
                           {(exp.startDate || exp.endDate) && (
-                            <span className="shrink-0 text-[11px] text-slate-400 whitespace-nowrap">
+                            <span className="shrink-0 text-[11px] text-muted whitespace-nowrap">
                               {exp.startDate || '—'} → {exp.endDate || 'Présent'}
                             </span>
                           )}
@@ -351,23 +351,23 @@ export default function UserProfilePage() {
               {/* Annonces publiées */}
               <Section title="Annonces publiées" count={annonces.length}>
                 {annonces.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">Aucune annonce publiée.</p>
+                  <p className="text-sm text-muted text-center py-6">Aucune annonce publiée.</p>
                 ) : (
                   <div className="space-y-2">
                     {annonces.map(a => {
                       const cfg = STATUS_CFG[a.statut] || STATUS_CFG['ouverte'];
                       return (
                         <Link key={a.id} href={`/jobs/${a.id}`}
-                          className="group flex items-center justify-between p-4 bg-slate-50 border border-slate-100
-                                     hover:border-violet-200 hover:bg-violet-50/30 rounded-xl transition-all">
+                          className="group flex items-center justify-between p-4 bg-paper-2 border border-line
+                                     hover:border-brand/30 hover:bg-brand-soft/30 rounded-xl transition-all">
                           <div className="flex-1 min-w-0 mr-3">
-                            <h3 className="text-sm font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate mb-1">
+                            <h3 className="text-sm font-semibold text-ink group-hover:text-brand-dark transition-colors truncate mb-1">
                               {a.titre || a.description}
                             </h3>
-                            <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+                            <div className="flex flex-wrap gap-3 text-xs text-muted">
                               {a.lieu && <span className="flex items-center gap-1"><MapPin size={10} />{a.lieu}</span>}
                               {a.date && <span className="flex items-center gap-1"><CalendarIcon size={10} />{a.date}</span>}
-                              {a.remuneration && <span className="font-semibold text-violet-600">{a.remuneration} €/h</span>}
+                              {a.remuneration && <span className="font-semibold text-brand">{a.remuneration} €/h</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -375,7 +375,7 @@ export default function UserProfilePage() {
                               style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                               {cfg.label}
                             </span>
-                            <ChevronRight size={13} className="text-slate-300 group-hover:text-violet-400 transition-colors" />
+                            <ChevronRight size={13} className="text-muted group-hover:text-brand transition-colors" />
                           </div>
                         </Link>
                       );
@@ -394,11 +394,11 @@ export default function UserProfilePage() {
 
 function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</h2>
+    <div className="bg-white rounded-2xl border border-line overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+        <h2 className="text-xs font-bold text-muted uppercase tracking-widest">{title}</h2>
         {count !== undefined && count > 0 && (
-          <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{count}</span>
+          <span className="text-[11px] font-bold text-muted bg-paper-2 px-2 py-0.5 rounded-full">{count}</span>
         )}
       </div>
       <div className="p-5">{children}</div>

@@ -9,6 +9,8 @@ const withPWAConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
+  // Permet un build de contrôle à côté d'un `next dev` en cours (NEXT_DIST_DIR=.next-check)
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   images: {
     remotePatterns: [

@@ -239,7 +239,7 @@ export default function StatusPage() {
       <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* ── Navbar ── */}
-        <nav className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <nav className="bg-white border-b border-slate-100 sticky top-16 z-40">
           <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5">
               <Image src="/images/logo.png" alt="Woppy" width={26} height={26} className="rounded-xl" />

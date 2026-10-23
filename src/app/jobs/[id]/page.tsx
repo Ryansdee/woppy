@@ -152,7 +152,7 @@ export default function JobDetailPage() {
       <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* Topbar */}
-        <div className="bg-white border-b border-line sticky top-0 z-40">
+        <div className="bg-white border-b border-line sticky top-16 z-40">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
             <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted transition-colors shrink-0">
               <ChevronLeft size={18} />

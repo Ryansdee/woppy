@@ -1,5 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+/* Pages plein écran sans pied de page */
+const HIDDEN_ON = ['/messages'];
 
 const COLUMNS = [
   {
@@ -31,7 +37,10 @@ const COLUMNS = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
   const year = new Date().getFullYear();
+
+  if (HIDDEN_ON.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <footer className="mt-auto border-t border-line bg-paper">

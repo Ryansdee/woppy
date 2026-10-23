@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
+import { MAP_TILES_URL, MAP_TILES_OPTIONS } from '@/lib/mapTiles';
 import L from 'leaflet';
 
 // 🎨 Marqueur Woppy
@@ -46,19 +47,12 @@ export default function WoppyMap({
         scrollWheelZoom: false,
       });
 
-      // ✅ Fond clair Carto (fonctionne sans clé API)
-      L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        {
-          attribution:
-            '© <strong>Woppy</strong>',
-        }
-      ).addTo(map);
+      L.tileLayer(MAP_TILES_URL, MAP_TILES_OPTIONS).addTo(map);
 
       // 📍 Marqueur Woppy
       L.marker(position, { icon: woppyMarkerIcon })
         .addTo(map)
-        .bindPopup(`<b>${lieu}</b><br><small>Lieu de l’annonce</small>`);
+        .bindPopup(`<b>${String(lieu).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)}</b><br><small>Lieu de l’annonce</small>`);
 
       mapRef.current = map;
     }

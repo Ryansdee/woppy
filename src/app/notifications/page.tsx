@@ -50,7 +50,7 @@ async function fetchProfile(uid: string): Promise<UserProfile | null> {
 
 /* ── type config ── */
 const TYPE_CFG: Record<string, { label: string; icon: React.ReactNode; dot: string; color: string; bg: string; border: string }> = {
-  message:     { label: 'Message',     icon: <MessageSquare size={13} />, dot: '#7c5fe6', color: '#5b21b6', bg: '#f5f3ff', border: '#ddd6fe' },
+  message:     { label: 'Message',     icon: <MessageSquare size={13} />, dot: '#7357f6', color: '#5b21b6', bg: '#efebff', border: '#ddd6fe' },
   job:         { label: 'Annonce',     icon: <Briefcase size={13} />,     dot: '#3b82f6', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
   application: { label: 'Candidature', icon: <UserPlus size={13} />,      dot: '#22c55e', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
   review:      { label: 'Avis',        icon: <Star size={13} />,          dot: '#f59e0b', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
@@ -137,42 +137,42 @@ export default function NotificationsPage() {
 
   /* loader */
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-violet-600 flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
           <Bell size={18} className="text-white" />
         </div>
-        <p className="text-sm text-slate-500">Chargement…</p>
+        <p className="text-sm text-muted">Chargement…</p>
       </div>
     </div>
   );
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* ── Topbar ── */}
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div className="bg-white border-b border-line sticky top-16 z-40">
           <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/dashboard" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors">
+              <Link href="/dashboard" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted transition-colors">
                 <ArrowLeft size={16} />
               </Link>
-              <div className="w-px h-4 bg-slate-200" />
-              <h1 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+              <div className="w-px h-4 bg-line" />
+              <h1 className="text-sm font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                 Notifications
               </h1>
               {unreadCount > 0 && (
-                <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-brand-dark bg-brand-soft border border-brand/30 px-2 py-0.5 rounded-full">
                   {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
                 </span>
               )}
             </div>
             {unreadCount > 0 && (
               <button onClick={markAllRead}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-600 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-brand transition-colors">
                 <CheckCheck size={14} /> Tout marquer lu
               </button>
             )}
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
 
           {/* ── Filters ── */}
           {notifs.length > 0 && (
-            <div className="flex bg-slate-100 p-1 rounded-xl gap-1 mb-6 w-fit flex-wrap">
+            <div className="flex bg-paper-2 p-1 rounded-xl gap-1 mb-6 w-fit flex-wrap">
               {([
                 ['all',      `Toutes (${notifs.length})`],
                 ['unread',   `Non lues (${unreadCount})`],
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
               ] as const).map(([key, label]) => (
                 <button key={key} onClick={() => setFilter(key)}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                    filter === key ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    filter === key ? 'bg-white text-brand-dark shadow-sm' : 'text-muted hover:text-ink-2'
                   }`}>
                   {label}
                 </button>
@@ -202,22 +202,22 @@ export default function NotificationsPage() {
 
           {/* ── Empty ── */}
           {filtered.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                {filter === 'unread' ? <CheckCircle size={20} className="text-slate-400" />
-                  : filter === 'messages' ? <MessageSquare size={20} className="text-slate-400" />
-                  : filter === 'jobs'     ? <Briefcase size={20} className="text-slate-400" />
-                  : <Bell size={20} className="text-slate-400" />}
+            <div className="bg-white rounded-2xl border border-line p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-paper-2 flex items-center justify-center mx-auto mb-4">
+                {filter === 'unread' ? <CheckCircle size={20} className="text-muted" />
+                  : filter === 'messages' ? <MessageSquare size={20} className="text-muted" />
+                  : filter === 'jobs'     ? <Briefcase size={20} className="text-muted" />
+                  : <Bell size={20} className="text-muted" />}
               </div>
-              <p className="text-sm font-semibold text-slate-700 mb-1">
+              <p className="text-sm font-semibold text-ink-2 mb-1">
                 {filter === 'unread' ? 'Tout est à jour' : 'Aucune notification'}
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted">
                 {filter === 'unread' ? 'Vous avez lu toutes vos notifications.' : 'Aucune notification dans cette catégorie.'}
               </p>
               {filter !== 'all' && notifs.length > 0 && (
                 <button onClick={() => setFilter('all')}
-                  className="mt-4 text-xs text-violet-600 hover:underline font-semibold">
+                  className="mt-4 text-xs text-brand hover:underline font-semibold">
                   Voir toutes les notifications
                 </button>
               )}
@@ -232,12 +232,12 @@ export default function NotificationsPage() {
                 <div key={n.id}
                   onClick={() => onClick(n)}
                   className={`group relative bg-white rounded-2xl border transition-all cursor-pointer
-                    hover:border-violet-200 hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)]
-                    ${!n.read ? 'border-violet-200' : 'border-slate-100'}`}>
+                    hover:border-brand/30 hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)]
+                    ${!n.read ? 'border-brand/30' : 'border-line'}`}>
 
                   {/* Unread dot */}
                   {!n.read && (
-                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-violet-500" />
+                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand" />
                   )}
 
                   <div className="flex items-start gap-4 p-4 pr-8">
@@ -247,8 +247,8 @@ export default function NotificationsPage() {
                       <div className="relative shrink-0">
                         <Image src={n.fromUserData.photoURL} alt={n.fromUserData.displayName ?? ''}
                           width={40} height={40}
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-lg flex items-center justify-center text-violet-600 bg-violet-50 border border-violet-200">
+                          className="w-10 h-10 rounded-xl object-cover border border-line" />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-lg flex items-center justify-center text-brand bg-brand-soft border border-brand/30">
                           <MessageSquare size={9} />
                         </div>
                       </div>
@@ -266,23 +266,23 @@ export default function NotificationsPage() {
                           style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                           {cfg.label}
                         </span>
-                        <span className="text-[11px] text-slate-400">{fmtAgo(n.createdAt)}</span>
+                        <span className="text-[11px] text-muted">{fmtAgo(n.createdAt)}</span>
                       </div>
 
-                      <p className={`text-sm leading-relaxed ${n.read ? 'text-slate-500' : 'text-slate-800 font-medium'}`}>
+                      <p className={`text-sm leading-relaxed ${n.read ? 'text-muted' : 'text-ink font-medium'}`}>
                         {n.message}
                       </p>
 
                       {/* Message preview */}
                       {n.type === 'message' && (n.messagePreview || n.fromUserData) && (
-                        <div className="mt-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+                        <div className="mt-2 bg-paper-2 border border-line rounded-xl px-3 py-2.5">
                           {n.fromUserData && (
-                            <p className="text-xs font-semibold text-slate-700 mb-0.5">{n.fromUserData.displayName}</p>
+                            <p className="text-xs font-semibold text-ink-2 mb-0.5">{n.fromUserData.displayName}</p>
                           )}
                           {n.messagePreview && (
-                            <p className="text-xs text-slate-500 italic line-clamp-2">"{n.messagePreview}"</p>
+                            <p className="text-xs text-muted italic line-clamp-2">"{n.messagePreview}"</p>
                           )}
-                          <p className="text-xs text-violet-600 font-semibold mt-1.5 flex items-center gap-1">
+                          <p className="text-xs text-brand font-semibold mt-1.5 flex items-center gap-1">
                             Ouvrir la conversation <ChevronRight size={10} />
                           </p>
                         </div>
@@ -304,12 +304,12 @@ export default function NotificationsPage() {
                           <div className="flex items-center gap-0.5">
                             {[1,2,3,4,5].map(s => (
                               <Star key={s} size={12}
-                                className={s <= n.rating! ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} />
+                                className={s <= n.rating! ? 'text-amber-400 fill-amber-400' : 'text-line fill-line'} />
                             ))}
                           </div>
-                          <span className="text-xs text-slate-500">{n.rating}/5</span>
+                          <span className="text-xs text-muted">{n.rating}/5</span>
                           {n.fromUserData && (
-                            <span className="text-xs text-slate-400">· par {n.fromUserData.displayName}</span>
+                            <span className="text-xs text-muted">· par {n.fromUserData.displayName}</span>
                           )}
                         </div>
                       )}
@@ -325,7 +325,7 @@ export default function NotificationsPage() {
                       </button>
                     )}
                     <button onClick={e => del(n.id, e)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Supprimer">
+                      className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-colors" title="Supprimer">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -335,7 +335,7 @@ export default function NotificationsPage() {
           </div>
 
           {filtered.length > 0 && (
-            <p className="text-center text-xs text-slate-400 mt-8">
+            <p className="text-center text-xs text-muted mt-8">
               Cliquez sur une notification pour accéder au détail.
             </p>
           )}

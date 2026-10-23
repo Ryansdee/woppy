@@ -6,7 +6,7 @@ export default function MessagesLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center text-gray-500">
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted">
       Chargement des messages...
     </div>}>
       {children}

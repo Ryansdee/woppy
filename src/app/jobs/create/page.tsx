@@ -183,7 +183,7 @@ export default function CreateAnnoncePage() {
       <div className="min-h-screen bg-paper-2">
 
         {/* ── Topbar ── */}
-        <div className="bg-white border-b border-line sticky top-0 z-30">
+        <div className="bg-white border-b border-line sticky top-16 z-30">
           <div className="max-w-2xl mx-auto px-6 h-14 flex items-center gap-3">
             <Link href="/jobs" className="p-1.5 rounded-lg hover:bg-paper-2 text-muted hover:text-ink-2 transition-colors">
               <ArrowLeft size={16} />

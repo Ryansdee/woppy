@@ -169,7 +169,7 @@ function AnnoncesContent() {
       <div className="jobs-root min-h-screen bg-paper-2 text-ink">
 
         {/* ════════ TOPBAR ════════ */}
-        <div className="sticky top-0 z-40 bg-white border-b border-line"
+        <div className="sticky top-16 z-40 bg-white border-b border-line"
           style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.05)' }}>
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
 

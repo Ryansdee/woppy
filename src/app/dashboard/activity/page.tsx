@@ -17,11 +17,11 @@ import {
 /* ── status config ── */
 const JOB_STATUS = {
   pending:  { label: "En attente",  dot: "#60a5fa", color: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe" },
-  selected: { label: "Sélectionné", dot: "#7c5fe6", color: "#5b21b6", bg: "#f5f3ff", border: "#ddd6fe" },
+  selected: { label: "Sélectionné", dot: "#7357f6", color: "#5b21b6", bg: "#efebff", border: "#ddd6fe" },
   done:     { label: "Terminé",     dot: "#22c55e", color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
 };
 const AD_STATUS = {
-  open:     { label: "Ouverte",     dot: "#7c5fe6", color: "#5b21b6", bg: "#f5f3ff", border: "#ddd6fe" },
+  open:     { label: "Ouverte",     dot: "#7357f6", color: "#5b21b6", bg: "#efebff", border: "#ddd6fe" },
   progress: { label: "En cours",    dot: "#f59e0b", color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
   done:     { label: "Terminée",    dot: "#22c55e", color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
 };
@@ -116,14 +116,14 @@ export default function ActivityPage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         {/* ── Topbar ── */}
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div className="bg-white border-b border-line sticky top-16 z-40">
           <div className="max-w-5xl mx-auto px-6 h-14 flex items-center">
-            <h1 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+            <h1 className="text-sm font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               Mon activité
             </h1>
           </div>
@@ -132,11 +132,11 @@ export default function ActivityPage() {
         <div className="max-w-5xl mx-auto px-6 py-8">
 
           {/* ── Tabs ── */}
-          <div className="flex bg-slate-100 p-1 rounded-xl gap-1 mb-6 w-fit">
+          <div className="flex bg-paper-2 p-1 rounded-xl gap-1 mb-6 w-fit">
             {([["jobs", <Briefcase size={14} />, "Mes jobs"], ["annonces", <FileText size={14} />, "Mes annonces"]] as const).map(([key, icon, label]) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  tab === key ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  tab === key ? "bg-white text-brand-dark shadow-sm" : "text-muted hover:text-ink-2"
                 }`}>
                 {icon} {label}
               </button>
@@ -145,12 +145,12 @@ export default function ActivityPage() {
 
           {/* ── KPIs ── */}
           {kpis.length > 0 && (
-            <div className="grid grid-cols-3 gap-px mb-6 rounded-xl overflow-hidden border border-slate-100"
+            <div className="grid grid-cols-3 gap-px mb-6 rounded-xl overflow-hidden border border-line"
               style={{ background: 'rgba(0,0,0,0.05)' }}>
               {kpis.map(k => (
                 <div key={k.label} className="bg-white px-6 py-4">
-                  <p className="text-xs text-slate-500 font-medium mb-1">{k.label}</p>
-                  <p className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui', letterSpacing: '-0.03em' }}>
+                  <p className="text-xs text-muted font-medium mb-1">{k.label}</p>
+                  <p className="text-2xl font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui', letterSpacing: '-0.03em' }}>
                     {k.value}
                   </p>
                 </div>
@@ -162,8 +162,8 @@ export default function ActivityPage() {
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 size={22} className="animate-spin text-violet-600" />
-                <p className="text-sm text-slate-500">Chargement…</p>
+                <Loader2 size={22} className="animate-spin text-brand" />
+                <p className="text-sm text-muted">Chargement…</p>
               </div>
             </div>
           ) : (
@@ -195,19 +195,19 @@ function JobsView({ postules, selectionnes, termines, user, isStudent }: any) {
 
   // Profil non-étudiant → message d'activation
   if (!isStudent) return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-10 flex flex-col items-center text-center">
-      <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center mb-4">
-        <GraduationCap size={24} className="text-violet-500" />
+    <div className="bg-white rounded-2xl border border-line p-10 flex flex-col items-center text-center">
+      <div className="w-14 h-14 rounded-2xl bg-brand-soft border border-brand-soft flex items-center justify-center mb-4">
+        <GraduationCap size={24} className="text-brand" />
       </div>
-      <h3 className="font-bold text-slate-900 mb-2" style={{ fontFamily: 'Sora, system-ui' }}>
+      <h3 className="font-bold text-ink mb-2" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
         Profil étudiant requis
       </h3>
-      <p className="text-sm text-slate-500 max-w-xs leading-relaxed mb-5">
+      <p className="text-sm text-muted max-w-xs leading-relaxed mb-5">
         Tu n'as pas encore activé ton statut étudiant sur ton profil. Active-le pour pouvoir postuler aux missions disponibles sur Woppy.
       </p>
       <Link href="/dashboard/profile"
-        className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white
-                   text-sm font-semibold rounded-xl transition shadow-sm shadow-violet-200">
+        className="flex items-center gap-2 px-5 py-2.5 bg-ink hover:bg-ink-2 text-white
+                   text-sm font-semibold rounded-xl transition shadow-sm shadow-brand/30">
         Activer mon profil étudiant <ArrowRight size={14} />
       </Link>
     </div>
@@ -277,11 +277,11 @@ function Group({ title, icon, count, children }: { title: string; icon: React.Re
   return (
     <div>
       <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-6 h-6 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-500">
+        <div className="w-6 h-6 rounded-lg bg-brand-soft border border-brand-soft flex items-center justify-center text-brand">
           {icon}
         </div>
-        <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>{title}</h2>
-        <span className="ml-auto text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{count}</span>
+        <h2 className="text-sm font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>{title}</h2>
+        <span className="ml-auto text-[11px] font-bold text-muted bg-paper-2 px-2 py-0.5 rounded-full">{count}</span>
       </div>
       <div className="space-y-2">{children}</div>
     </div>
@@ -290,11 +290,11 @@ function Group({ title, icon, count, children }: { title: string; icon: React.Re
 
 function Empty({ text, action }: { text: string; action?: { label: string; href: string } }) {
   return (
-    <div className="bg-white rounded-xl border border-dashed border-slate-200 px-6 py-8 text-center">
-      <p className="text-sm text-slate-400 mb-3">{text}</p>
+    <div className="bg-white rounded-xl border border-dashed border-line px-6 py-8 text-center">
+      <p className="text-sm text-muted mb-3">{text}</p>
       {action && (
         <Link href={action.href}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 transition">
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-dark transition">
           {action.label} <ChevronRight size={11} />
         </Link>
       )}
@@ -321,17 +321,17 @@ function JobCard({ annonce, type, user, index }: {
     <motion.div
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="group bg-white rounded-xl border border-slate-100 hover:border-violet-200
+      className="group bg-white rounded-xl border border-line hover:border-brand/30
                  hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)] transition-all duration-200"
     >
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 mr-3">
           <Link href={`/jobs/${annonce.id}`}>
-            <h3 className="text-sm font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate mb-1.5">
+            <h3 className="text-sm font-semibold text-ink group-hover:text-brand-dark transition-colors truncate mb-1.5">
               {annonce.titre || annonce.title || "Mission"}
             </h3>
           </Link>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+          <div className="flex flex-wrap gap-3 text-xs text-muted">
             {annonce.lieu && (
               <span className="flex items-center gap-1"><MapPin size={11} />{annonce.lieu}</span>
             )}
@@ -339,7 +339,7 @@ function JobCard({ annonce, type, user, index }: {
               <span className="flex items-center gap-1"><Calendar size={11} />{annonce.date}</span>
             )}
             {annonce.remuneration && (
-              <span className="font-semibold text-violet-600">{annonce.remuneration} €/h</span>
+              <span className="font-semibold text-brand">{annonce.remuneration} €/h</span>
             )}
           </div>
         </div>
@@ -395,17 +395,17 @@ function AnnonceCard({ annonce, type, user, index }: {
     <motion.div
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="group bg-white rounded-xl border border-slate-100 hover:border-violet-200
+      className="group bg-white rounded-xl border border-line hover:border-brand/30
                  hover:shadow-[0_4px_20px_rgba(124,95,230,0.08)] transition-all duration-200"
     >
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 mr-3">
           <Link href={`/jobs/${annonce.id}`}>
-            <h3 className="text-sm font-semibold text-slate-900 group-hover:text-violet-700 transition-colors truncate mb-1.5">
+            <h3 className="text-sm font-semibold text-ink group-hover:text-brand-dark transition-colors truncate mb-1.5">
               {annonce.titre || annonce.title || "Annonce"}
             </h3>
           </Link>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+          <div className="flex flex-wrap gap-3 text-xs text-muted">
             {annonce.lieu && (
               <span className="flex items-center gap-1"><MapPin size={11} />{annonce.lieu}</span>
             )}
@@ -413,15 +413,15 @@ function AnnonceCard({ annonce, type, user, index }: {
               <span className="flex items-center gap-1"><Calendar size={11} />{annonce.date}</span>
             )}
             {annonce.remuneration && (
-              <span className="font-semibold text-violet-600">{annonce.remuneration} €/h</span>
+              <span className="font-semibold text-brand">{annonce.remuneration} €/h</span>
             )}
           </div>
 
           {/* Étudiant accepté */}
           {acceptedName && (
-            <div className="flex items-center gap-2 mt-2.5 text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 w-fit">
-              <div className="w-4 h-4 rounded-md bg-violet-100 flex items-center justify-center">
-                <User size={9} className="text-violet-600" />
+            <div className="flex items-center gap-2 mt-2.5 text-xs text-muted bg-paper-2 border border-line rounded-lg px-3 py-1.5 w-fit">
+              <div className="w-4 h-4 rounded-md bg-brand-soft flex items-center justify-center">
+                <User size={9} className="text-brand" />
               </div>
               {acceptedName}
             </div>

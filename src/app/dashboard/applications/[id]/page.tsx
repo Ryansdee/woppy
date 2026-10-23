@@ -71,33 +71,33 @@ export default function ApplicationDetails({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20 px-4">
-        <Loader2 className="w-12 h-12 animate-spin text-[#8a6bfe] mb-4" />
-        <p className="text-gray-600 font-medium text-center">Chargement de la candidature...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20 px-4">
+        <Loader2 className="w-12 h-12 animate-spin text-[#7357f6] mb-4" />
+        <p className="text-ink-2 font-medium text-center">Chargement de la candidature...</p>
       </div>
     );
   }
 
   if (!application) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center bg-white rounded-2xl shadow-xl p-8 sm:p-12 max-w-md border border-gray-100 w-full"
+          className="text-center bg-white rounded-2xl shadow-xl p-8 sm:p-12 max-w-md border border-line w-full"
         >
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
             <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-ink mb-2 sm:mb-3">
             Candidature introuvable
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
+          <p className="text-sm sm:text-base text-ink-2 mb-6 sm:mb-8">
             Cette candidature n'existe pas ou a été supprimée.
           </p>
           <Link
             href="/dashboard/applications"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             Retour aux candidatures
@@ -108,9 +108,9 @@ export default function ApplicationDetails({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
       {/* Header avec gradient Woppy */}
-      <div className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl">
+      <div className="bg-gradient-to-r from-[#5a3fe0] via-[#7357f6] to-[#7b5bef] text-white shadow-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -118,7 +118,7 @@ export default function ApplicationDetails({
           >
             <Link
               href="/dashboard/applications"
-              className="inline-flex items-center gap-2 text-purple-100 hover:text-white mb-4 sm:mb-6 transition-colors group text-sm sm:text-base"
+              className="inline-flex items-center gap-2 text-brand-soft hover:text-white mb-4 sm:mb-6 transition-colors group text-sm sm:text-base"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:-translate-x-1 transition-transform" />
               Retour
@@ -131,7 +131,7 @@ export default function ApplicationDetails({
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">Détails</h1>
-                  <p className="text-purple-100 text-sm sm:text-base truncate">
+                  <p className="text-brand-soft text-sm sm:text-base truncate">
                     <span className="font-semibold">{application.fullName}</span>
                   </p>
                 </div>
@@ -167,45 +167,45 @@ export default function ApplicationDetails({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-gray-100"
+              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-line"
             >
               <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white shadow-lg">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-xl flex items-center justify-center text-white shadow-lg">
                   <User className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-ink">
                   Informations
                 </h2>
               </div>
 
               <div className="space-y-3 sm:space-y-4">
                 {/* Nom */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-xl border border-purple-100">
+                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#8a6bfe]" />
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 font-semibold mb-1">
+                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
                       Nom complet
                     </p>
-                    <p className="text-base sm:text-lg font-bold text-gray-900 break-words">
+                    <p className="text-base sm:text-lg font-bold text-ink break-words">
                       {application.fullName}
                     </p>
                   </div>
                 </div>
 
                 {/* Email */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-xl border border-purple-100">
+                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#8a6bfe]" />
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 font-semibold mb-1">
+                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
                       Email
                     </p>
                     <a 
                       href={`mailto:${application.email}`}
-                      className="text-base sm:text-lg font-bold text-[#8a6bfe] hover:underline flex items-center gap-2 break-all"
+                      className="text-base sm:text-lg font-bold text-[#7357f6] hover:underline flex items-center gap-2 break-all"
                     >
                       <span className="break-all">{application.email}</span>
                       <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -214,15 +214,15 @@ export default function ApplicationDetails({
                 </div>
 
                 {/* Date */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-xl border border-purple-100">
+                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#8a6bfe]" />
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-gray-600 font-semibold mb-1">
+                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
                       Date de candidature
                     </p>
-                    <p className="text-base sm:text-lg font-bold text-gray-900">
+                    <p className="text-base sm:text-lg font-bold text-ink">
                       {application.createdAt
                         ? new Date(
                             application.createdAt.seconds * 1000
@@ -240,17 +240,17 @@ export default function ApplicationDetails({
 
                 {/* CV Preview */}
                 {application.cvUrl && (
-                  <div className="bg-white rounded-xl border-2 border-gray-200 shadow-md overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 flex items-center justify-between">
-                      <p className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-[#8a6bfe]" />
+                  <div className="bg-white rounded-xl border-2 border-line shadow-md overflow-hidden">
+                    <div className="bg-gradient-to-r from-brand-soft to-blue-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-line flex items-center justify-between">
+                      <p className="text-xs sm:text-sm font-semibold text-ink-2 flex items-center gap-2">
+                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-[#7357f6]" />
                         Aperçu du CV
                       </p>
                       <a
                         href={application.cvUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs sm:text-sm text-[#8a6bfe] hover:underline font-medium flex items-center gap-1"
+                        className="text-xs sm:text-sm text-[#7357f6] hover:underline font-medium flex items-center gap-1"
                       >
                         <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">Télécharger</span>
@@ -273,25 +273,25 @@ export default function ApplicationDetails({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-gray-100"
+              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-line"
             >
               <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg">
                   <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-ink">
                   Message
                 </h2>
               </div>
               
               <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 p-4 sm:p-6 rounded-xl border-2 border-blue-100">
-                <p className="text-sm sm:text-base text-gray-800 whitespace-pre-line leading-relaxed">
+                <p className="text-sm sm:text-base text-ink whitespace-pre-line leading-relaxed">
                   {application.message}
                 </p>
               </div>
 
               {/* Stats message */}
-              <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500">
+              <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted">
                 <span>{application.message.length} caractères</span>
                 <span>•</span>
                 <span>{application.message.split(/\s+/).length} mots</span>
@@ -307,25 +307,25 @@ export default function ApplicationDetails({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100 lg:sticky lg:top-6"
+                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line lg:sticky lg:top-6"
               >
                 <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg">
                     <Briefcase className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                  <h2 className="text-lg sm:text-xl font-bold text-ink">
                     Offre concernée
                   </h2>
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
                   <div className="p-4 sm:p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-xl border-2 border-green-100">
-                    <p className="font-bold text-base sm:text-lg text-gray-900 mb-2 sm:mb-3 break-words">
+                    <p className="font-bold text-base sm:text-lg text-ink mb-2 sm:mb-3 break-words">
                       {career.title}
                     </p>
                     
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
+                      <div className="flex items-center gap-2 text-sm sm:text-base text-ink-2">
                         <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
                         <span className="font-medium">{career.location}</span>
                       </div>
@@ -345,7 +345,7 @@ export default function ApplicationDetails({
                       whileTap={{ scale: 0.98 }}
                       onClick={markAsSeen}
                       disabled={marking}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] disabled:from-gray-400 disabled:to-gray-500 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-sm sm:text-base"
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] disabled:from-muted disabled:to-muted text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-sm sm:text-base"
                     >
                       {marking ? (
                         <>
@@ -372,12 +372,12 @@ export default function ApplicationDetails({
                 </div>
 
                 {/* Quick Actions */}
-                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Actions rapides</p>
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-line">
+                  <p className="text-xs sm:text-sm font-semibold text-ink-2 mb-2 sm:mb-3">Actions rapides</p>
                   <div className="space-y-2">
                     <Link
                       href={`mailto:${application.email}?subject=Votre candidature - ${career.title}`}
-                      className="flex items-center gap-2 text-xs sm:text-sm text-[#8a6bfe] hover:underline font-medium"
+                      className="flex items-center gap-2 text-xs sm:text-sm text-[#7357f6] hover:underline font-medium"
                     >
                       <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                       Envoyer un email
@@ -387,7 +387,7 @@ export default function ApplicationDetails({
                         href={application.cvUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#8a6bfe] hover:underline font-medium"
+                        className="flex items-center gap-2 text-xs sm:text-sm text-[#7357f6] hover:underline font-medium"
                       >
                         <Download className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                         Télécharger le CV
