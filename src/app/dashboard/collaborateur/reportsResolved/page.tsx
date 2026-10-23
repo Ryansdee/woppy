@@ -47,8 +47,8 @@ const DECISION_CONFIG = {
   deleted: {
     icon: <Trash2 className="w-3.5 h-3.5" />,
     label: 'Message supprimé',
-    badge: 'bg-stone-100 text-gray-600 border border-stone-300',
-    hover: 'hover:border-stone-300',
+    badge: 'bg-paper-2 text-ink-2 border border-line',
+    hover: 'hover:border-line',
   },
 } as const;
 
@@ -125,26 +125,26 @@ export default function ReportsResolvedPage() {
 
   /* ── Loading ── */
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5]">
-      <Loader2 className="w-10 h-10 animate-spin text-violet-500 mb-4" />
-      <p className="font-['DM_Sans',system-ui] text-gray-400 font-medium">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
+      <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
+      <p className="font-['DM_Sans',system-ui] text-muted font-medium">
         Chargement de l'historique...
       </p>
     </div>
   );
 
   if (!authorized) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5] px-5">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7] px-5">
       <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-5">
         <Ban className="w-7 h-7 text-red-500" />
       </div>
-      <h2 className="font-['Sora',system-ui] font-bold text-xl text-[#1a1a2e] mb-2">Accès refusé</h2>
-      <p className="text-gray-400 text-sm mb-6 font-['DM_Sans',system-ui]">
+      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-xl text-[#15131f] mb-2">Accès refusé</h2>
+      <p className="text-muted text-sm mb-6 font-['DM_Sans',system-ui]">
         Vous n'avez pas les permissions nécessaires.
       </p>
       <button
         onClick={() => router.push('/dashboard')}
-        className="px-5 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-semibold hover:bg-violet-600 transition-colors"
+        className="px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-ink transition-colors"
       >
         Retour au tableau de bord
       </button>
@@ -154,10 +154,10 @@ export default function ReportsResolvedPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        
       `}</style>
 
-      <main className="min-h-screen bg-[#f9f8f5] font-['DM_Sans',system-ui,sans-serif]">
+      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
 
         {/* ── Hero ── */}
         <section className="max-w-[960px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
@@ -166,7 +166,7 @@ export default function ReportsResolvedPage() {
           <div className="flex justify-center mb-6">
             <Link
               href="/dashboard/collaborateur"
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-400 hover:text-violet-500 transition-colors no-underline"
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted hover:text-brand transition-colors no-underline"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Retour à l'espace collaborateur
@@ -175,30 +175,30 @@ export default function ReportsResolvedPage() {
 
           {/* Badge */}
           <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-violet-50 border border-violet-200 text-[13px] font-semibold text-violet-500">
+            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
               <Shield className="w-3.5 h-3.5" />
               Historique
             </span>
           </div>
 
-          <h1 className="font-['Sora',system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#1a1a2e] mb-4">
+          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
             Signalements{" "}
-            <span className="bg-gradient-to-br from-violet-500 to-violet-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
               résolus
             </span>
           </h1>
 
-          <p className="text-center text-[14px] sm:text-[16px] text-gray-400 max-w-[440px] mx-auto mb-10 leading-[1.7]">
+          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[440px] mx-auto mb-10 leading-[1.7]">
             Consultez l'ensemble des signalements traités et les décisions prises par l'équipe.
           </p>
 
           {/* Stats cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {([
-              { key: 'all',           label: 'Total',        value: stats.total,        icon: <Shield className="w-4 h-4" />,   color: 'text-violet-500', activeBg: 'bg-violet-500' },
+              { key: 'all',           label: 'Total',        value: stats.total,        icon: <Shield className="w-4 h-4" />,   color: 'text-brand', activeBg: 'bg-brand' },
               { key: 'not_offensive', label: 'Pas offensif', value: stats.notOffensive, icon: <ThumbsUp className="w-4 h-4" />, color: 'text-green-500',  activeBg: 'bg-green-500'  },
               { key: 'blocked',       label: 'Bloqués',      value: stats.blocked,      icon: <Ban className="w-4 h-4" />,      color: 'text-red-500',    activeBg: 'bg-red-500'    },
-              { key: 'deleted',       label: 'Supprimés',    value: stats.deleted,      icon: <Trash2 className="w-4 h-4" />,   color: 'text-gray-500',   activeBg: 'bg-[#1a1a2e]' },
+              { key: 'deleted',       label: 'Supprimés',    value: stats.deleted,      icon: <Trash2 className="w-4 h-4" />,   color: 'text-muted',   activeBg: 'bg-[#15131f]' },
             ] as const).map((s) => (
               <button
                 key={s.key}
@@ -206,16 +206,16 @@ export default function ReportsResolvedPage() {
                 className={`rounded-2xl p-4 text-left border transition-all duration-150
                   ${filter === s.key
                     ? `${s.activeBg} border-transparent shadow-md`
-                    : 'bg-white border-stone-200 hover:border-violet-200 hover:shadow-sm'
+                    : 'bg-white border-line hover:border-brand/30 hover:shadow-sm'
                   }`}
               >
                 <div className={`mb-2 ${filter === s.key ? 'text-white/80' : s.color}`}>
                   {s.icon}
                 </div>
-                <p className={`font-['Sora',system-ui] font-bold text-xl ${filter === s.key ? 'text-white' : 'text-[#1a1a2e]'}`}>
+                <p className={`font-[var(--font-bricolage),system-ui] font-bold text-xl ${filter === s.key ? 'text-white' : 'text-[#15131f]'}`}>
                   {s.value}
                 </p>
-                <p className={`text-[11px] font-medium mt-0.5 ${filter === s.key ? 'text-white/70' : 'text-gray-400'}`}>
+                <p className={`text-[11px] font-medium mt-0.5 ${filter === s.key ? 'text-white/70' : 'text-muted'}`}>
                   {s.label}
                 </p>
               </button>
@@ -234,10 +234,10 @@ export default function ReportsResolvedPage() {
                 exit={{ opacity: 0, y: -6 }}
                 className="flex items-center gap-2 mb-5"
               >
-                <Filter className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-[13px] text-gray-400">
+                <Filter className="w-3.5 h-3.5 text-muted" />
+                <span className="text-[13px] text-muted">
                   Filtre actif :{" "}
-                  <span className="font-semibold text-[#1a1a2e]">
+                  <span className="font-semibold text-[#15131f]">
                     {filter === 'not_offensive' && 'Pas offensif'}
                     {filter === 'blocked'       && 'Bloqués'}
                     {filter === 'deleted'       && 'Supprimés'}
@@ -245,7 +245,7 @@ export default function ReportsResolvedPage() {
                 </span>
                 <button
                   onClick={() => setFilter('all')}
-                  className="text-[13px] text-violet-500 font-semibold hover:text-violet-600 transition-colors"
+                  className="text-[13px] text-brand font-semibold hover:text-brand transition-colors"
                 >
                   Réinitialiser
                 </button>
@@ -258,15 +258,15 @@ export default function ReportsResolvedPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-stone-200 rounded-2xl p-16 text-center"
+              className="bg-white border border-line rounded-2xl p-16 text-center"
             >
-              <div className="w-14 h-14 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-7 h-7 text-violet-400" />
+              <div className="w-14 h-14 bg-brand-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-7 h-7 text-brand" />
               </div>
-              <p className="font-['Sora',system-ui] font-bold text-[#1a1a2e] mb-1">
+              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
                 Aucun résultat
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 {filter === 'all'
                   ? "Aucun signalement résolu pour l'instant."
                   : 'Aucun signalement ne correspond à ce filtre.'}
@@ -278,8 +278,8 @@ export default function ReportsResolvedPage() {
                 const cfg = DECISION_CONFIG[r.decision as keyof typeof DECISION_CONFIG] ?? {
                   icon: <Flag className="w-3.5 h-3.5" />,
                   label: 'Traité',
-                  badge: 'bg-violet-50 text-violet-500 border border-violet-200',
-                  hover: 'hover:border-violet-200',
+                  badge: 'bg-brand-soft text-brand border border-brand/30',
+                  hover: 'hover:border-brand/30',
                 };
 
                 return (
@@ -288,25 +288,25 @@ export default function ReportsResolvedPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.04 }}
-                    className={`bg-white border border-stone-200 rounded-2xl p-5 transition-all duration-150 ${cfg.hover} hover:shadow-[0_2px_20px_rgba(0,0,0,0.06)]`}
+                    className={`bg-white border border-line rounded-2xl p-5 transition-all duration-150 ${cfg.hover} hover:shadow-[0_2px_20px_rgba(0,0,0,0.06)]`}
                   >
                     {/* Top : qui + badge décision */}
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-violet-50 rounded-lg flex items-center justify-center shrink-0">
-                            <Flag className="w-3 h-3 text-violet-400" />
+                          <div className="w-6 h-6 bg-brand-soft rounded-lg flex items-center justify-center shrink-0">
+                            <Flag className="w-3 h-3 text-brand" />
                           </div>
-                          <span className="text-[13px] font-semibold text-[#1a1a2e]">
+                          <span className="text-[13px] font-semibold text-[#15131f]">
                             Signalé par{" "}
-                            <span className="text-violet-500">{nameOf(r.reporterId)}</span>
+                            <span className="text-brand">{nameOf(r.reporterId)}</span>
                           </span>
                         </div>
                         <div className="flex items-center gap-2 pl-8">
-                          <User className="w-3 h-3 text-gray-400" />
-                          <span className="text-[12px] text-gray-400">
+                          <User className="w-3 h-3 text-muted" />
+                          <span className="text-[12px] text-muted">
                             Expéditeur :{" "}
-                            <span className="font-semibold text-gray-600">{nameOf(r.senderId)}</span>
+                            <span className="font-semibold text-ink-2">{nameOf(r.senderId)}</span>
                           </span>
                         </div>
                       </div>
@@ -319,31 +319,31 @@ export default function ReportsResolvedPage() {
                     </div>
 
                     {/* Message */}
-                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 mb-4">
+                    <div className="bg-paper-2 border border-line rounded-xl p-4 mb-4">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <MessageSquare className="w-3 h-3 text-gray-400" />
-                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        <MessageSquare className="w-3 h-3 text-muted" />
+                        <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
                           Contenu signalé
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                      <p className="text-sm text-ink-2 leading-relaxed whitespace-pre-line">
                         {r.text}
                       </p>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-stone-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-line">
                       <div className="flex items-center gap-1.5">
-                        <Shield className="w-3 h-3 text-violet-400" />
-                        <span className="text-[12px] text-gray-400">
+                        <Shield className="w-3 h-3 text-brand" />
+                        <span className="text-[12px] text-muted">
                           Traité par{" "}
-                          <span className="font-semibold text-violet-500">{nameOf(r.resolvedBy)}</span>
+                          <span className="font-semibold text-brand">{nameOf(r.resolvedBy)}</span>
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          <span className="text-[11px] text-gray-400">
+                          <Calendar className="w-3 h-3 text-muted" />
+                          <span className="text-[11px] text-muted">
                             {r.resolvedAt?.toDate &&
                               new Date(r.resolvedAt.toDate()).toLocaleString('fr-BE', {
                                 day: '2-digit', month: 'short', year: 'numeric',
@@ -351,7 +351,7 @@ export default function ReportsResolvedPage() {
                               })}
                           </span>
                         </div>
-                        <span className="text-[10px] text-gray-400 font-mono bg-stone-100 px-2 py-0.5 rounded-lg">
+                        <span className="text-[10px] text-muted font-mono bg-paper-2 px-2 py-0.5 rounded-lg">
                           {r.chatId}
                         </span>
                       </div>

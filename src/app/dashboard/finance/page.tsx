@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAuth } from "firebase/auth";
-import { db } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import {
   collection,
   query,
@@ -45,16 +45,13 @@ export default function FinanceDashboard() {
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const fetchMissions = async () => {
+    /* Attend que Firebase ait restauré la session avant de charger */
+    const fetchMissions = async (user: User) => {
       try {
         const candidaturesRef = collection(db, "candidatures");
         const q = query(
           candidaturesRef,
-          where("userId", "==", user.uid),
+          where("candidatId", "==", user.uid),
           where("statut", "==", "acceptée")
         );
 
@@ -81,7 +78,10 @@ export default function FinanceDashboard() {
       }
     };
 
-    fetchMissions();
+    return onAuthStateChanged(auth, (user) => {
+      if (user) fetchMissions(user);
+      else window.location.href = "/auth/login";
+    });
   }, []);
 
   // 🔢 Données agrégées
@@ -291,25 +291,25 @@ export default function FinanceDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
-        <Loader2 className="w-12 h-12 animate-spin text-[#8a6bfe] mb-4" />
-        <p className="text-gray-600 font-medium">Chargement de tes finances...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
+        <Loader2 className="w-12 h-12 animate-spin text-[#7357f6] mb-4" />
+        <p className="text-ink-2 font-medium">Chargement de tes finances...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
       {/* Header avec gradient Woppy */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#6b4fd9] via-[#8a6bfe] to-[#7b5bef] text-white shadow-xl"
+        className="bg-gradient-to-r from-[#5a3fe0] via-[#7357f6] to-[#7b5bef] text-white shadow-xl"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-purple-100 hover:text-white mb-4 sm:mb-6 transition-colors group text-sm sm:text-base"
+            className="inline-flex items-center gap-2 text-brand-soft hover:text-white mb-4 sm:mb-6 transition-colors group text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:-translate-x-1 transition-transform" />
             Retour au tableau de bord
@@ -324,7 +324,7 @@ export default function FinanceDashboard() {
                 <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
                   Mes finances
                 </h1>
-                <p className="text-purple-100 text-sm sm:text-base">
+                <p className="text-brand-soft text-sm sm:text-base">
                   Analyse de tes revenus sur Woppy
                 </p>
               </div>
@@ -333,7 +333,7 @@ export default function FinanceDashboard() {
             {/* Badge missions */}
             <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center">
               <p className="text-2xl sm:text-3xl font-bold">{missions.length}</p>
-              <p className="text-xs text-purple-100">Mission{missions.length > 1 ? 's' : ''}</p>
+              <p className="text-xs text-brand-soft">Mission{missions.length > 1 ? 's' : ''}</p>
             </div>
           </div>
         </div>
@@ -344,20 +344,20 @@ export default function FinanceDashboard() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-md p-8 sm:p-12 text-center border border-gray-100"
+            className="bg-white rounded-2xl shadow-md p-8 sm:p-12 text-center border border-line"
           >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
               <Wallet className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">
+            <h3 className="text-xl sm:text-2xl font-bold text-ink mb-2 sm:mb-3">
               Aucune donnée financière
             </h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
+            <p className="text-sm sm:text-base text-ink-2 mb-6 sm:mb-8">
               Tu n'as pas encore de missions acceptées. Commence à postuler pour voir tes finances ici !
             </p>
             <Link
               href="/jobs"
-              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
             >
               Voir les annonces
               <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -375,7 +375,7 @@ export default function FinanceDashboard() {
               {/* Total brut */}
               <motion.div
                 whileHover={{ scale: 1.03, y: -4 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100 relative overflow-hidden group"
+                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line relative overflow-hidden group"
               >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
                 <div className="relative z-10">
@@ -387,10 +387,10 @@ export default function FinanceDashboard() {
                       Brut
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 font-medium">
+                  <p className="text-xs sm:text-sm text-ink-2 mb-1 font-medium">
                     Total brut
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-ink">
                     {summary.totalBrut.toFixed(2)} €
                   </p>
                 </div>
@@ -399,22 +399,22 @@ export default function FinanceDashboard() {
               {/* Total net */}
               <motion.div
                 whileHover={{ scale: 1.03, y: -4 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100 relative overflow-hidden group"
+                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line relative overflow-hidden group"
               >
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#8a6bfe]/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#7357f6]/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-xl flex items-center justify-center text-white shadow-lg">
                       <Euro className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="text-[#8a6bfe] text-xs font-semibold bg-purple-50 px-2 py-1 rounded-full">
+                    <span className="text-[#7357f6] text-xs font-semibold bg-brand-soft px-2 py-1 rounded-full">
                       Net
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 font-medium">
+                  <p className="text-xs sm:text-sm text-ink-2 mb-1 font-medium">
                     Total net estimé
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] bg-clip-text text-transparent">
+                  <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] bg-clip-text text-transparent">
                     {summary.totalNet.toFixed(2)} €
                   </p>
                 </div>
@@ -423,7 +423,7 @@ export default function FinanceDashboard() {
               {/* Heures totales */}
               <motion.div
                 whileHover={{ scale: 1.03, y: -4 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100 relative overflow-hidden group"
+                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line relative overflow-hidden group"
               >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
                 <div className="relative z-10">
@@ -435,10 +435,10 @@ export default function FinanceDashboard() {
                       Heures
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 font-medium">
+                  <p className="text-xs sm:text-sm text-ink-2 mb-1 font-medium">
                     Heures totales
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-ink">
                     {summary.totalHours} h
                   </p>
                 </div>
@@ -447,7 +447,7 @@ export default function FinanceDashboard() {
               {/* Moyenne par heure */}
               <motion.div
                 whileHover={{ scale: 1.03, y: -4 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100 relative overflow-hidden group"
+                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line relative overflow-hidden group"
               >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
                 <div className="relative z-10">
@@ -459,10 +459,10 @@ export default function FinanceDashboard() {
                       Moy.
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1 font-medium">
+                  <p className="text-xs sm:text-sm text-ink-2 mb-1 font-medium">
                     Moyenne/heure
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-ink">
                     {summary.avgPerHour.toFixed(2)} €
                   </p>
                 </div>
@@ -478,7 +478,7 @@ export default function FinanceDashboard() {
             >
               <button 
                 onClick={exportToCSV}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-[#8a6bfe] transition-all text-sm sm:text-base font-medium text-gray-700 hover:text-[#8a6bfe]"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-line rounded-xl hover:shadow-md hover:border-[#7357f6] transition-all text-sm sm:text-base font-medium text-ink-2 hover:text-[#7357f6]"
               >
                 <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Exporter Excel</span>
@@ -486,7 +486,7 @@ export default function FinanceDashboard() {
               </button>
               <button 
                 onClick={() => setShowGraphs(!showGraphs)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-[#8a6bfe] transition-all text-sm sm:text-base font-medium text-gray-700 hover:text-[#8a6bfe]"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-line rounded-xl hover:shadow-md hover:border-[#7357f6] transition-all text-sm sm:text-base font-medium text-ink-2 hover:text-[#7357f6]"
               >
                 <PieChart className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Graphiques</span>
@@ -494,7 +494,7 @@ export default function FinanceDashboard() {
               </button>
               <button 
                 onClick={() => setShowObjectives(!showObjectives)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-[#8a6bfe] transition-all text-sm sm:text-base font-medium text-gray-700 hover:text-[#8a6bfe] col-span-2 lg:col-span-1"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-line rounded-xl hover:shadow-md hover:border-[#7357f6] transition-all text-sm sm:text-base font-medium text-ink-2 hover:text-[#7357f6] col-span-2 lg:col-span-1"
               >
                 <Award className="w-4 h-4 sm:w-5 sm:h-5" />
                 Objectifs
@@ -510,14 +510,14 @@ export default function FinanceDashboard() {
                   exit={{ opacity: 0, height: 0 }}
                   className="mb-6 sm:mb-8 overflow-hidden"
                 >
-                  <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                      <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-[#8a6bfe]" />
+                  <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line">
+                    <h3 className="text-lg sm:text-xl font-bold text-ink mb-4 sm:mb-6 flex items-center gap-2">
+                      <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-[#7357f6]" />
                       Statistiques mensuelles
                     </h3>
                     
                     {monthlyStats.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">Aucune donnée mensuelle disponible</p>
+                      <p className="text-muted text-center py-8">Aucune donnée mensuelle disponible</p>
                     ) : (
                       <div className="space-y-4">
                         {monthlyStats.map((stat, index) => (
@@ -526,23 +526,23 @@ export default function FinanceDashboard() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-100"
+                            className="p-4 bg-gradient-to-r from-brand-soft to-blue-50 rounded-xl border border-brand-soft"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div>
-                                <h4 className="font-bold text-gray-900">{stat.month}</h4>
-                                <p className="text-sm text-gray-600">{stat.count} mission{stat.count > 1 ? 's' : ''}</p>
+                                <h4 className="font-bold text-ink">{stat.month}</h4>
+                                <p className="text-sm text-ink-2">{stat.count} mission{stat.count > 1 ? 's' : ''}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-lg font-bold text-gray-900">{stat.net.toFixed(2)} €</p>
-                                <p className="text-xs text-gray-600">{stat.hours}h travaillées</p>
+                                <p className="text-lg font-bold text-ink">{stat.net.toFixed(2)} €</p>
+                                <p className="text-xs text-ink-2">{stat.hours}h travaillées</p>
                               </div>
                             </div>
                             
                             {/* Barre de progression visuelle */}
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-line rounded-full h-2">
                               <div 
-                                className="bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] h-2 rounded-full transition-all duration-500"
+                                className="bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.min((stat.net / Math.max(...monthlyStats.map(s => s.net))) * 100, 100)}%` }}
                               />
                             </div>
@@ -564,9 +564,9 @@ export default function FinanceDashboard() {
                   exit={{ opacity: 0, height: 0 }}
                   className="mb-6 sm:mb-8 overflow-hidden"
                 >
-                  <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                      <Target className="w-5 h-5 sm:w-6 sm:h-6 text-[#8a6bfe]" />
+                  <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line">
+                    <h3 className="text-lg sm:text-xl font-bold text-ink mb-4 sm:mb-6 flex items-center gap-2">
+                      <Target className="w-5 h-5 sm:w-6 sm:h-6 text-[#7357f6]" />
                       Mes objectifs du mois
                     </h3>
                     
@@ -574,14 +574,14 @@ export default function FinanceDashboard() {
                       {/* Objectif revenus */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-semibold text-gray-700">Objectif revenus</span>
-                          <span className="text-sm font-bold text-[#8a6bfe]">
+                          <span className="text-sm font-semibold text-ink-2">Objectif revenus</span>
+                          <span className="text-sm font-bold text-[#7357f6]">
                             {objectivesProgress.currentEarnings.toFixed(2)} € / {objectives.monthlyTarget} €
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-line rounded-full h-3">
                           <div 
-                            className="bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] h-3 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                            className="bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] h-3 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
                             style={{ width: `${Math.min(objectivesProgress.earningsProgress, 100)}%` }}
                           >
                             {objectivesProgress.earningsProgress >= 10 && (
@@ -596,12 +596,12 @@ export default function FinanceDashboard() {
                       {/* Objectif heures */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-semibold text-gray-700">Objectif heures</span>
+                          <span className="text-sm font-semibold text-ink-2">Objectif heures</span>
                           <span className="text-sm font-bold text-green-600">
                             {objectivesProgress.currentHours}h / {objectives.hoursTarget}h
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-line rounded-full h-3">
                           <div 
                             className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
                             style={{ width: `${Math.min(objectivesProgress.hoursProgress, 100)}%` }}
@@ -616,25 +616,25 @@ export default function FinanceDashboard() {
                       </div>
 
                       {/* Modifier objectifs */}
-                      <div className="pt-4 border-t border-gray-200">
-                        <p className="text-xs text-gray-600 mb-3">Modifier mes objectifs</p>
+                      <div className="pt-4 border-t border-line">
+                        <p className="text-xs text-ink-2 mb-3">Modifier mes objectifs</p>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-xs text-gray-600 mb-1 block">Revenus mensuels (€)</label>
+                            <label className="text-xs text-ink-2 mb-1 block">Revenus mensuels (€)</label>
                             <input
                               type="number"
                               value={objectives.monthlyTarget}
                               onChange={(e) => setObjectives(prev => ({ ...prev, monthlyTarget: Number(e.target.value) }))}
-                              className="w-full px-3 py-2 border text-gray-500 border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8a6bfe]"
+                              className="w-full px-3 py-2 border text-muted border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7357f6]"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-600 mb-1 block">Heures mensuelles</label>
+                            <label className="text-xs text-ink-2 mb-1 block">Heures mensuelles</label>
                             <input
                               type="number"
                               value={objectives.hoursTarget}
                               onChange={(e) => setObjectives(prev => ({ ...prev, hoursTarget: Number(e.target.value) }))}
-                              className="w-full px-3 py-2 border text-gray-500 border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8a6bfe]"
+                              className="w-full px-3 py-2 border text-muted border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7357f6]"
                             />
                           </div>
                         </div>
@@ -650,14 +650,14 @@ export default function FinanceDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-gray-100"
+              className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line"
             >
               <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-[#8a6bfe]" />
+                <h3 className="text-lg sm:text-xl font-bold text-ink flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-[#7357f6]" />
                   Historique
                 </h3>
-                <span className="text-xs sm:text-sm text-gray-500">
+                <span className="text-xs sm:text-sm text-muted">
                   {missions.length} mission{missions.length > 1 ? 's' : ''}
                 </span>
               </div>
@@ -678,37 +678,37 @@ export default function FinanceDashboard() {
                       transition={{ delay: index * 0.05 }}
                       whileHover={{ scale: 1.01, x: 4 }}
                       onClick={() => setSelectedMission(m)}
-                      className="p-4 sm:p-5 bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-xl border border-purple-100 hover:border-[#8a6bfe] transition-all cursor-pointer"
+                      className="p-4 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft hover:border-[#7357f6] transition-all cursor-pointer"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 mb-2 text-sm sm:text-base truncate">
+                          <h4 className="font-bold text-ink mb-2 text-sm sm:text-base truncate">
                             {a.titre}
                           </h4>
-                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-ink-2">
                             <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#8a6bfe]" />
+                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#7357f6]" />
                               <span>{a.date}</span>
                             </div>
                             <span>•</span>
                             <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#8a6bfe]" />
+                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#7357f6]" />
                               <span>{a.duree}h</span>
                             </div>
                             <span className="hidden sm:inline">•</span>
                             <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#8a6bfe]" />
+                              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#7357f6]" />
                               <span className="truncate">{a.lieu}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-left sm:text-right flex-shrink-0">
-                          <p className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-1 sm:justify-end">
-                            <Euro className="w-4 h-4 text-gray-600" />
+                          <p className="text-base sm:text-lg font-bold text-ink flex items-center gap-1 sm:justify-end">
+                            <Euro className="w-4 h-4 text-ink-2" />
                             {brut.toFixed(2)} €
                           </p>
-                          <p className="text-xs sm:text-sm text-[#8a6bfe] font-semibold">
+                          <p className="text-xs sm:text-sm text-[#7357f6] font-semibold">
                             Net: {net.toFixed(2)} €
                           </p>
                         </div>
@@ -732,10 +732,10 @@ export default function FinanceDashboard() {
                     <Target className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 mb-1 text-sm sm:text-base">
+                    <h4 className="font-bold text-ink mb-1 text-sm sm:text-base">
                       Information importante
                     </h4>
-                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-ink-2 leading-relaxed">
                       Les montants nets sont estimés à 85% du brut. Les charges réelles peuvent varier selon ton statut. 
                       Consulte un comptable pour plus de précision.
                     </p>
@@ -759,19 +759,19 @@ export default function FinanceDashboard() {
           >
             <motion.div
               onClick={(e) => e.stopPropagation()}
-              className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full border border-gray-100"
+              className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl max-w-md w-full border border-line"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#8a6bfe] to-[#6b4fd9] rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
                 <Euro className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-ink mb-2 text-center">
                 Détail des gains
               </h2>
-              <p className="text-sm sm:text-base text-gray-600 mb-6 text-center">
+              <p className="text-sm sm:text-base text-ink-2 mb-6 text-center">
                 {selectedMission.annonce?.titre}
               </p>
 
@@ -779,9 +779,9 @@ export default function FinanceDashboard() {
                 <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <DollarSign className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-gray-900">Total brut</span>
+                    <span className="font-semibold text-ink">Total brut</span>
                   </div>
-                  <span className="text-lg font-bold text-gray-900">
+                  <span className="text-lg font-bold text-ink">
                     {(
                       Number(selectedMission.annonce?.remuneration) *
                       Number(selectedMission.annonce?.duree || 1)
@@ -790,12 +790,12 @@ export default function FinanceDashboard() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-brand-soft rounded-xl">
                   <div className="flex items-center gap-3">
-                    <Euro className="w-5 h-5 text-[#8a6bfe]" />
-                    <span className="font-semibold text-gray-900">Total net</span>
+                    <Euro className="w-5 h-5 text-[#7357f6]" />
+                    <span className="font-semibold text-ink">Total net</span>
                   </div>
-                  <span className="text-lg font-bold bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] bg-clip-text text-transparent">
+                  <span className="text-lg font-bold bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] bg-clip-text text-transparent">
                     {(
                       Number(selectedMission.annonce?.remuneration) *
                       Number(selectedMission.annonce?.duree || 1) *
@@ -808,7 +808,7 @@ export default function FinanceDashboard() {
 
               <button
                 onClick={() => setSelectedMission(null)}
-                className="w-full bg-gradient-to-r from-[#8a6bfe] to-[#6b4fd9] text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base"
+                className="w-full bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base"
               >
                 Fermer
               </button>

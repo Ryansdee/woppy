@@ -17,7 +17,7 @@ const CONTRACT_TYPES = [
   { value: "Stage",     color: "#c2410c", bg: "#fff7ed", border: "#fed7aa" },
   { value: "Freelance", color: "#9333ea", bg: "#fdf4ff", border: "#e9d5ff" },
   { value: "Étudiant",  color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" },
-  { value: "Autre",     color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" },
+  { value: "Autre",     color: "#6e6a7c", bg: "#f9fafb", border: "#e5e7eb" },
 ];
 
 const FIELD_LABEL: React.CSSProperties = {
@@ -26,7 +26,7 @@ const FIELD_LABEL: React.CSSProperties = {
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
-  color: "#9ca3af",
+  color: "#6e6a7c",
   marginBottom: 7,
   fontFamily: "'DM Sans', system-ui",
 };
@@ -35,10 +35,10 @@ const INPUT_BASE: React.CSSProperties = {
   width: "100%",
   padding: "10px 14px",
   borderRadius: 10,
-  border: "1px solid #e2e0db",
-  background: "#faf9f7",
+  border: "1px solid #e7e3ec",
+  background: "#fbfaf7",
   fontSize: 14,
-  color: "#1a1a2e",
+  color: "#15131f",
   outline: "none",
   transition: "border-color 0.15s, box-shadow 0.15s",
   fontFamily: "'DM Sans', system-ui",
@@ -55,8 +55,8 @@ function PreviewDescription({ text }: { text: string }) {
       <ul key={k} style={{ margin: "0 0 14px", paddingLeft: 0, listStyle: "none" }}>
         {bullets.map((b, i) => (
           <li key={i} style={{ display: "flex", gap: 9, marginBottom: 6 }}>
-            <span style={{ marginTop: 7, width: 5, height: 5, borderRadius: "50%", background: "#8a6bfe", flexShrink: 0 }} />
-            <span style={{ fontSize: 14, color: "#4b4b58", lineHeight: 1.65 }}>{b}</span>
+            <span style={{ marginTop: 7, width: 5, height: 5, borderRadius: "50%", background: "#7357f6", flexShrink: 0 }} />
+            <span style={{ fontSize: 14, color: "#3a3747", lineHeight: 1.65 }}>{b}</span>
           </li>
         ))}
       </ul>
@@ -72,9 +72,9 @@ function PreviewDescription({ text }: { text: string }) {
     flush(`f${i}`);
     const isTitle = l.endsWith(":") || (l.length <= 52 && /^[A-ZÀÁÂ]/.test(l) && !l.includes(",")) || /^[A-Z\s]{4,}$/.test(l);
     if (isTitle) {
-      nodes.push(<p key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#8a6bfe", marginBottom: 8, marginTop: nodes.length ? 20 : 0 }}>{l.replace(/:$/, "")}</p>);
+      nodes.push(<p key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7357f6", marginBottom: 8, marginTop: nodes.length ? 20 : 0 }}>{l.replace(/:$/, "")}</p>);
     } else {
-      nodes.push(<p key={i} style={{ fontSize: 14, color: "#4b4b58", lineHeight: 1.75, marginBottom: 10 }}>{l}</p>);
+      nodes.push(<p key={i} style={{ fontSize: 14, color: "#3a3747", lineHeight: 1.75, marginBottom: 10 }}>{l}</p>);
     }
   });
   flush("end");
@@ -129,36 +129,36 @@ export default function JobsCareerDashboardPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        body { background: #f9f8f5 !important; margin: 0; }
+        
+        body { background: #fbfaf7 !important; margin: 0; }
         * { box-sizing: border-box; font-family: 'DM Sans', system-ui; }
-        h1,h2,h3 { font-family: 'Sora', system-ui; }
-        input:focus, textarea:focus { border-color: #8a6bfe !important; box-shadow: 0 0 0 3px rgba(138,107,254,0.11) !important; }
+        h1,h2,h3 { font-family: var(--font-bricolage),system-ui; }
+        input:focus, textarea:focus { border-color: #7357f6 !important; box-shadow: 0 0 0 3px rgba(138,107,254,0.11) !important; }
         .contract-btn { transition: all 0.13s; }
         .contract-btn:hover { transform: translateY(-1px); }
         .submit-btn { transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
-        .submit-btn:hover:not(:disabled) { background: #7558f0 !important; box-shadow: 0 8px 24px rgba(138,107,254,0.3) !important; transform: translateY(-1px); }
+        .submit-btn:hover:not(:disabled) { background: #7357f6 !important; box-shadow: 0 8px 24px rgba(138,107,254,0.3) !important; transform: translateY(-1px); }
         .preview-toggle { transition: color 0.12s, background 0.12s; }
-        .preview-toggle:hover { color: #8a6bfe !important; }
+        .preview-toggle:hover { color: #7357f6 !important; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #e2e0db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #e7e3ec; border-radius: 4px; }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: "#f9f8f5" }}>
+      <div style={{ minHeight: "100vh", background: "#fbfaf7" }}>
 
         {/* ── Header ── */}
-        <div style={{ background: "#fff", borderBottom: "1px solid #e8e6e1" }}>
+        <div style={{ background: "#fff", borderBottom: "1px solid #f3f1ec" }}>
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f0eeff", border: "1px solid #d4c9fd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Briefcase style={{ width: 18, height: 18, color: "#8a6bfe" }} />
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: "#efebff", border: "1px solid #d9d0fd", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Briefcase style={{ width: 18, height: 18, color: "#7357f6" }} />
               </div>
               <div>
-                <h1 style={{ fontFamily: "'Sora',system-ui", fontWeight: 800, fontSize: 20, color: "#1a1a2e", letterSpacing: "-0.02em", marginBottom: 2 }}>
+                <h1 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: 20, color: "#15131f", letterSpacing: "-0.02em", marginBottom: 2 }}>
                   Nouvelle offre d'emploi
                 </h1>
-                <p style={{ fontSize: 13, color: "#9ca3af" }}>
-                  Publiée automatiquement sur <span style={{ color: "#8a6bfe", fontWeight: 600 }}>/careers</span>
+                <p style={{ fontSize: 13, color: "#6e6a7c" }}>
+                  Publiée automatiquement sur <span style={{ color: "#7357f6", fontWeight: 600 }}>/careers</span>
                 </p>
               </div>
             </div>
@@ -196,17 +196,17 @@ export default function JobsCareerDashboardPage() {
 
             {/* ── Form ── */}
             <form onSubmit={handleSubmit}>
-              <div style={{ background: "#fff", border: "1px solid #e8e6e1", borderRadius: 20, overflow: "hidden" }}>
+              <div style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, overflow: "hidden" }}>
 
                 {/* Form header */}
-                <div style={{ padding: "18px 24px", borderBottom: "1px solid #f0ede8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#b0aea8" }}>
+                <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f1ec", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6e6a7c" }}>
                     Informations du poste
                   </p>
                   {canPreview && (
                     <button type="button" className="preview-toggle"
                       onClick={() => setShowPreview(p => !p)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: showPreview ? "#8a6bfe" : "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: showPreview ? "#7357f6" : "#6e6a7c", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                       {showPreview ? <EyeOff style={{ width: 13, height: 13 }} /> : <Eye style={{ width: 13, height: 13 }} />}
                       {showPreview ? "Masquer l'aperçu" : "Aperçu"}
                     </button>
@@ -225,8 +225,8 @@ export default function JobsCareerDashboardPage() {
                       </label>
                       <input style={INPUT_BASE} placeholder="Développeur·se Full-Stack"
                         value={title} onChange={e => setTitle(e.target.value)} required
-                        onFocus={e => { e.target.style.borderColor = "#8a6bfe"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                        onBlur={e => { e.target.style.borderColor = "#e2e0db"; e.target.style.boxShadow = "none"; }} />
+                        onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
+                        onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
                     </div>
                     <div>
                       <label style={FIELD_LABEL}>
@@ -236,8 +236,8 @@ export default function JobsCareerDashboardPage() {
                       </label>
                       <input style={INPUT_BASE} placeholder="Bruxelles, Remote…"
                         value={location} onChange={e => setLocation(e.target.value)} required
-                        onFocus={e => { e.target.style.borderColor = "#8a6bfe"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                        onBlur={e => { e.target.style.borderColor = "#e2e0db"; e.target.style.boxShadow = "none"; }} />
+                        onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
+                        onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
                     </div>
                   </div>
 
@@ -250,9 +250,9 @@ export default function JobsCareerDashboardPage() {
                           onClick={() => setType(c.value)}
                           style={{
                             padding: "7px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                            background: type === c.value ? c.bg : "#f9f8f5",
-                            color: type === c.value ? c.color : "#9ca3af",
-                            border: `1px solid ${type === c.value ? c.border : "#e2e0db"}`,
+                            background: type === c.value ? c.bg : "#fbfaf7",
+                            color: type === c.value ? c.color : "#6e6a7c",
+                            border: `1px solid ${type === c.value ? c.border : "#e7e3ec"}`,
                             boxShadow: type === c.value ? `0 2px 8px ${c.bg}` : "none",
                           }}>
                           {c.value}
@@ -269,16 +269,16 @@ export default function JobsCareerDashboardPage() {
                           <FileText style={{ width: 10, height: 10 }} /> Description *
                         </span>
                       </label>
-                      <span style={{ fontSize: 10, color: "#c0bdb8", fontFamily: "'DM Mono', monospace" }}>{description.length} car.</span>
+                      <span style={{ fontSize: 10, color: "#6e6a7c", fontFamily: "'DM Mono', monospace" }}>{description.length} car.</span>
                     </div>
                     <textarea
                       style={{ ...INPUT_BASE, minHeight: 200, resize: "vertical", lineHeight: 1.65 }}
                       placeholder={`Décris le poste...\n\nMissions :\n- Développer les fonctionnalités front-end\n- Participer aux code reviews\n\nProfil recherché :\n- 2+ ans d'expérience React\n- Bonne communication`}
                       value={description} onChange={e => setDescription(e.target.value)} required
-                      onFocus={e => { e.target.style.borderColor = "#8a6bfe"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                      onBlur={e => { e.target.style.borderColor = "#e2e0db"; e.target.style.boxShadow = "none"; }}
+                      onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
+                      onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }}
                     />
-                    <p style={{ fontSize: 11, color: "#c0bdb8", marginTop: 6 }}>
+                    <p style={{ fontSize: 11, color: "#6e6a7c", marginTop: 6 }}>
                       Astuce : les lignes en majuscules, se terminant par «&nbsp;:&nbsp;» ou les listes avec «&nbsp;-&nbsp;» seront automatiquement mises en forme.
                     </p>
                   </div>
@@ -288,28 +288,28 @@ export default function JobsCareerDashboardPage() {
                     <label style={FIELD_LABEL}>
                       <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <LinkIcon style={{ width: 10, height: 10 }} /> Lien de candidature
-                        <span style={{ fontWeight: 400, color: "#c0bdb8", textTransform: "none", letterSpacing: 0 }}>— optionnel</span>
+                        <span style={{ fontWeight: 400, color: "#6e6a7c", textTransform: "none", letterSpacing: 0 }}>— optionnel</span>
                       </span>
                     </label>
                     <input style={INPUT_BASE} type="url" placeholder="https://forms.gle/… ou mailto:jobs@woppy.be"
                       value={applyUrl} onChange={e => setApplyUrl(e.target.value)}
-                      onFocus={e => { e.target.style.borderColor = "#8a6bfe"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                      onBlur={e => { e.target.style.borderColor = "#e2e0db"; e.target.style.boxShadow = "none"; }} />
+                      onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
+                      onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
                   </div>
 
                   {/* Visibility toggle */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 12, background: "#faf9f7", border: "1px solid #e8e6e1" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 12, background: "#fbfaf7", border: "1px solid #f3f1ec" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? "#f0eeff" : "#f5f4f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? "#efebff" : "#f3f1ec", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {active
-                          ? <Eye style={{ width: 13, height: 13, color: "#8a6bfe" }} />
-                          : <EyeOff style={{ width: 13, height: 13, color: "#c0bdb8" }} />}
+                          ? <Eye style={{ width: 13, height: 13, color: "#7357f6" }} />
+                          : <EyeOff style={{ width: 13, height: 13, color: "#6e6a7c" }} />}
                       </div>
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#15131f" }}>
                           {active ? "Offre visible" : "Offre masquée"}
                         </p>
-                        <p style={{ fontSize: 11, color: "#9ca3af" }}>
+                        <p style={{ fontSize: 11, color: "#6e6a7c" }}>
                           {active ? "Publiée sur /careers dès soumission" : "Non visible au public"}
                         </p>
                       </div>
@@ -317,7 +317,7 @@ export default function JobsCareerDashboardPage() {
                     <button type="button" onClick={() => setActive(a => !a)}
                       style={{
                         width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                        background: active ? "#8a6bfe" : "#e2e0db",
+                        background: active ? "#7357f6" : "#e7e3ec",
                         position: "relative", transition: "background 0.2s", flexShrink: 0,
                       }}>
                       <span style={{
@@ -332,14 +332,14 @@ export default function JobsCareerDashboardPage() {
                 </div>
 
                 {/* Form footer */}
-                <div style={{ padding: "16px 24px", borderTop: "1px solid #f0ede8", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <p style={{ fontSize: 11, color: "#c0bdb8" }}>* champs obligatoires</p>
+                <div style={{ padding: "16px 24px", borderTop: "1px solid #f3f1ec", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <p style={{ fontSize: 11, color: "#6e6a7c" }}>* champs obligatoires</p>
                   <button type="submit" disabled={loading} className="submit-btn"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 8,
                       padding: "11px 22px", borderRadius: 11, border: "none",
-                      background: loading ? "#c4b8ff" : "#8a6bfe", color: "#fff",
-                      fontFamily: "'Sora',system-ui", fontWeight: 700, fontSize: 14,
+                      background: loading ? "#c4b8ff" : "#7357f6", color: "#fff",
+                      fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 14,
                       cursor: loading ? "not-allowed" : "pointer",
                       boxShadow: "0 4px 14px rgba(138,107,254,0.25)",
                     }}>
@@ -357,11 +357,11 @@ export default function JobsCareerDashboardPage() {
               {showPreview && canPreview && (
                 <motion.div
                   initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}
-                  style={{ background: "#fff", border: "1px solid #e8e6e1", borderRadius: 20, overflow: "hidden", position: "sticky", top: 20 }}>
+                  style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, overflow: "hidden", position: "sticky", top: 20 }}>
 
-                  <div style={{ padding: "14px 20px", borderBottom: "1px solid #f0ede8", display: "flex", alignItems: "center", gap: 7 }}>
-                    <Eye style={{ width: 12, height: 12, color: "#8a6bfe" }} />
-                    <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#8a6bfe" }}>
+                  <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f1ec", display: "flex", alignItems: "center", gap: 7 }}>
+                    <Eye style={{ width: 12, height: 12, color: "#7357f6" }} />
+                    <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7357f6" }}>
                       Aperçu
                     </p>
                   </div>
@@ -373,14 +373,14 @@ export default function JobsCareerDashboardPage() {
                         {type}
                       </span>
                       {location && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#9ca3af" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6e6a7c" }}>
                           <MapPin style={{ width: 10, height: 10 }} />{location}
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h2 style={{ fontFamily: "'Sora',system-ui", fontWeight: 800, fontSize: 20, color: "#1a1a2e", letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.25 }}>
+                    <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: 20, color: "#15131f", letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.25 }}>
                       {title}
                     </h2>
 
@@ -391,8 +391,8 @@ export default function JobsCareerDashboardPage() {
 
                     {/* Apply URL */}
                     {applyUrl && (
-                      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0ede8" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#8a6bfe" }}>
+                      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f3f1ec" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#7357f6" }}>
                           <LinkIcon style={{ width: 11, height: 11 }} /> {applyUrl}
                         </span>
                       </div>
@@ -400,16 +400,16 @@ export default function JobsCareerDashboardPage() {
 
                     {/* CTA mock */}
                     <div style={{ marginTop: 18 }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, background: "#8a6bfe", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Sora',system-ui" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, background: "#7357f6", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "var(--font-bricolage),system-ui" }}>
                         Postuler <ArrowRight style={{ width: 13, height: 13 }} />
                       </div>
                     </div>
                   </div>
 
                   {/* Visibility badge */}
-                  <div style={{ padding: "12px 20px", background: "#faf9f7", borderTop: "1px solid #f0ede8", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Zap style={{ width: 11, height: 11, color: active ? "#22c55e" : "#c0bdb8" }} />
-                    <span style={{ fontSize: 11, fontWeight: 600, color: active ? "#15803d" : "#9ca3af" }}>
+                  <div style={{ padding: "12px 20px", background: "#fbfaf7", borderTop: "1px solid #f3f1ec", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Zap style={{ width: 11, height: 11, color: active ? "#22c55e" : "#6e6a7c" }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: active ? "#15803d" : "#6e6a7c" }}>
                       {active ? "Sera publiée immédiatement" : "Restera masquée"}
                     </span>
                   </div>

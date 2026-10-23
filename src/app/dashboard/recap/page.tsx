@@ -46,11 +46,11 @@ const PERIOD_LABELS: Record<Period, string> = {
   "1y": "12 derniers mois",
 };
 
-const VIOLET = "#8a6bfe";
+const VIOLET = "#7357f6";
 const GREEN = "#22c55e";
 const RED = "#ef4444";
 const AMBER = "#f59e0b";
-const DARK = "#1a1a2e";
+const DARK = "#15131f";
 
 function startOf(period: Period): Date {
   const d = new Date();
@@ -106,8 +106,8 @@ function buildTimeline(docs: any[], period: Period, dateField = "createdAt") {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-3 py-2 shadow-lg text-sm font-['DM_Sans',system-ui]">
-      <p className="text-gray-400 text-[11px] mb-1">{label}</p>
+    <div className="bg-white border border-line rounded-xl px-3 py-2 shadow-lg text-sm font-['DM_Sans',system-ui]">
+      <p className="text-muted text-[11px] mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} style={{ color: p.color }} className="font-semibold">
           {p.name} : {p.value}
@@ -126,13 +126,13 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-center gap-2.5 mb-4">
-      <div className="w-7 h-7 bg-stone-100 rounded-lg flex items-center justify-center">
+      <div className="w-7 h-7 bg-paper-2 rounded-lg flex items-center justify-center">
         {icon}
       </div>
-      <h2 className="font-['Sora',system-ui] font-bold text-[16px] text-[#1a1a2e]">
+      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-[16px] text-[#15131f]">
         {title}
       </h2>
-      <div className="flex-1 h-px bg-stone-200 ml-1" />
+      <div className="flex-1 h-px bg-line ml-1" />
     </div>
   );
 }
@@ -145,8 +145,8 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-5">
-      <p className="font-['DM_Sans',system-ui] font-semibold text-[13px] text-gray-600 mb-4">
+    <div className="bg-white border border-line rounded-2xl p-5">
+      <p className="font-['DM_Sans',system-ui] font-semibold text-[13px] text-ink-2 mb-4">
         {title}
       </p>
       {children}
@@ -166,13 +166,13 @@ function MiniStat({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-3">
+    <div className="bg-white border border-line rounded-2xl p-4 flex items-center gap-3">
       <div className={`${color} opacity-80`}>{icon}</div>
       <div>
-        <p className={`font-['Sora',system-ui] font-bold text-xl ${color}`}>
+        <p className={`font-[var(--font-bricolage),system-ui] font-bold text-xl ${color}`}>
           {value}
         </p>
-        <p className="text-[11px] text-gray-400 font-medium">{label}</p>
+        <p className="text-[11px] text-muted font-medium">{label}</p>
       </div>
     </div>
   );
@@ -180,7 +180,7 @@ function MiniStat({
 
 function EmptyChart() {
   return (
-    <div className="h-[220px] flex flex-col items-center justify-center text-gray-300">
+    <div className="h-[220px] flex flex-col items-center justify-center text-muted">
       <BarChart2 className="w-8 h-8 mb-2" />
       <p className="text-xs">Aucune donnée</p>
     </div>
@@ -192,6 +192,7 @@ export default function AnalyticsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [period, setPeriod] = useState<Period>("30d");
 
   const [users, setUsers] = useState<any[]>([]);
@@ -233,7 +234,7 @@ export default function AnalyticsPage() {
       const res = await fetch("/api/admin/analytics", {
         headers: { Authorization: `Bearer ${t}` },
       });
-      if (!res.ok) throw new Error("Fetch failed");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setUsers(data.users);
       setAnnonces(data.annonces);
@@ -241,8 +242,10 @@ export default function AnalyticsPage() {
       setReports(data.reports);
       setResolved(data.resolved);
       setReviews(data.reviews);
+      setLoadError(false);
     } catch (e) {
       console.error("Analytics fetch error:", e);
+      setLoadError(true);
     } finally {
       setFetching(false);
     }
@@ -345,8 +348,8 @@ const volumeTotal = annoncesAvecData.reduce(
   (sum, a) => sum + (a.duree * a.remuneration), 0
 );
 
-const commissionWoppy = volumeTotal * 0.10;
-const netEtudiants    = volumeTotal - commissionWoppy;
+// Woppy ne prélève aucune commission : tout le volume revient aux étudiants
+const netEtudiants = volumeTotal;
 
 const heuresMoyennes = annoncesAvecData.length
   ? (annoncesAvecData.reduce((s, a) => s + a.duree, 0) / annoncesAvecData.length).toFixed(1)
@@ -355,9 +358,9 @@ const heuresMoyennes = annoncesAvecData.length
   /* ── Loading ── */
   if (loading)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f8f5]">
-        <Loader2 className="w-10 h-10 animate-spin text-violet-500 mb-4" />
-        <p className="font-['DM_Sans',system-ui] text-gray-400">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
+        <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
+        <p className="font-['DM_Sans',system-ui] text-muted">
           Vérification des autorisations...
         </p>
       </div>
@@ -368,16 +371,16 @@ const heuresMoyennes = annoncesAvecData.length
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        
       `}</style>
 
-      <main className="min-h-screen bg-[#f9f8f5] font-['DM_Sans',system-ui,sans-serif]">
+      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
         {/* ── Hero ── */}
         <section className="max-w-[1080px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
           <div className="flex justify-center mb-6">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-400 hover:text-violet-500 transition-colors no-underline"
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted hover:text-brand transition-colors no-underline"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Retour au dashboard
@@ -385,26 +388,26 @@ const heuresMoyennes = annoncesAvecData.length
           </div>
 
           <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-violet-50 border border-violet-200 text-[13px] font-semibold text-violet-500">
+            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
               <BarChart2 className="w-3.5 h-3.5" />
               Analytics
             </span>
           </div>
 
-          <h1 className="font-['Sora',system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#1a1a2e] mb-4">
+          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
             Tableau de bord{" "}
-            <span className="bg-gradient-to-br from-violet-500 to-violet-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
               Woppy
             </span>
           </h1>
-          <p className="text-center text-[14px] sm:text-[16px] text-gray-400 max-w-[480px] mx-auto mb-8 leading-[1.7]">
+          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[480px] mx-auto mb-8 leading-[1.7]">
             Vue d'ensemble de la plateforme — utilisateurs, annonces,
             modération.
           </p>
 
           {/* Period selector */}
           <div className="flex justify-center">
-            <div className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-1">
+            <div className="bg-white border border-line rounded-2xl p-1.5 flex gap-1">
               {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(
                 ([key, label]) => (
                   <button
@@ -413,8 +416,8 @@ const heuresMoyennes = annoncesAvecData.length
                     className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150
                     ${
                       period === key
-                        ? "bg-violet-500 text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-stone-50"
+                        ? "bg-brand text-white shadow-sm"
+                        : "text-muted hover:text-ink-2 hover:bg-paper-2"
                     }`}
                   >
                     {label}
@@ -427,10 +430,16 @@ const heuresMoyennes = annoncesAvecData.length
 
         {/* ── Content ── */}
         <div className="max-w-[1080px] mx-auto px-5 pb-24 space-y-8">
+          {loadError && !fetching && (
+            <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Impossible de charger les statistiques : la route <code>/api/admin/analytics</code> a échoué.
+              En local, vérifiez que les variables <code>FIREBASE_ADMIN_*</code> sont définies dans <code>.env.local</code>.
+            </div>
+          )}
           {fetching ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
-              <p className="text-sm text-gray-400">Chargement des données...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-brand" />
+              <p className="text-sm text-muted">Chargement des données...</p>
             </div>
           ) : (
             <>
@@ -442,7 +451,7 @@ const heuresMoyennes = annoncesAvecData.length
                     value: users.length,
                     sub: `+${newUsers.length} sur la période`,
                     icon: <Users className="w-4 h-4" />,
-                    iconBg: "bg-violet-50 text-violet-500",
+                    iconBg: "bg-brand-soft text-brand",
                   },
                   {
                     label: "Annonces créées",
@@ -468,20 +477,20 @@ const heuresMoyennes = annoncesAvecData.length
                 ].map((s) => (
                   <div
                     key={s.label}
-                    className="bg-white border border-stone-200 rounded-2xl p-4"
+                    className="bg-white border border-line rounded-2xl p-4"
                   >
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 ${s.iconBg}`}
                     >
                       {s.icon}
                     </div>
-                    <p className="font-['Sora',system-ui] font-bold text-2xl text-[#1a1a2e]">
+                    <p className="font-[var(--font-bricolage),system-ui] font-bold text-2xl text-[#15131f]">
                       {s.value}
                     </p>
-                    <p className="text-[12px] font-semibold text-gray-600 mt-0.5">
+                    <p className="text-[12px] font-semibold text-ink-2 mt-0.5">
                       {s.label}
                     </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{s.sub}</p>
                   </div>
                 ))}
               </div>
@@ -489,7 +498,7 @@ const heuresMoyennes = annoncesAvecData.length
               {/* ── Utilisateurs ── */}
               <div>
                 <SectionHeader
-                  icon={<Users className="w-4 h-4 text-violet-500" />}
+                  icon={<Users className="w-4 h-4 text-brand" />}
                   title="Utilisateurs & vérifications"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
@@ -566,15 +575,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
@@ -605,7 +614,7 @@ const heuresMoyennes = annoncesAvecData.length
                   <MiniStat
                     label="Annonces actives"
                     value={annoncesActives.length}
-                    color="text-violet-500"
+                    color="text-brand"
                     icon={<TrendingUp className="w-3.5 h-3.5" />}
                   />
                   <MiniStat
@@ -654,15 +663,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
@@ -714,17 +723,17 @@ const heuresMoyennes = annoncesAvecData.length
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#f0ede8"
+                        stroke="#f3f1ec"
                         vertical={false}
                       />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 11, fill: "#b0aea8" }}
+                        tick={{ fontSize: 11, fill: "#6e6a7c" }}
                         tickLine={false}
                         axisLine={false}
                       />
                       <YAxis
-                        tick={{ fontSize: 10, fill: "#b0aea8" }}
+                        tick={{ fontSize: 10, fill: "#6e6a7c" }}
                         tickLine={false}
                         axisLine={false}
                         allowDecimals={false}
@@ -747,20 +756,20 @@ const heuresMoyennes = annoncesAvecData.length
               {/* ── Revenus Woppy ── */}
               <div>
                 <SectionHeader
-                  icon={<TrendingUp className="w-4 h-4 text-violet-500" />}
-                  title="Revenus & commissions"
+                  icon={<TrendingUp className="w-4 h-4 text-brand" />}
+                  title="Volume des missions"
                 />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <MiniStat
                     label="Volume total généré"
                     value={`${volumeTotal.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
-                    color="text-violet-500"
+                    color="text-brand"
                     icon={<TrendingUp className="w-3.5 h-3.5" />}
                   />
                   <MiniStat
-                    label="Commission Woppy (10%)"
-                    value={`${commissionWoppy.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
-                    color="text-green-500"
+                    label="Commission Woppy"
+                    value="0 €"
+                    color="text-muted"
                     icon={<Star className="w-3.5 h-3.5" />}
                   />
                   <MiniStat
@@ -772,7 +781,7 @@ const heuresMoyennes = annoncesAvecData.length
                   <MiniStat
                     label="Heures moy. / mission"
                     value={`${heuresMoyennes}h`}
-                    color="text-gray-500"
+                    color="text-muted"
                     icon={<Clock className="w-3.5 h-3.5" />}
                   />
                 </div>
@@ -804,7 +813,7 @@ const heuresMoyennes = annoncesAvecData.length
                         ? `${Math.round((resolved.length / (reports.length + resolved.length)) * 100)}%`
                         : "—"
                     }
-                    color="text-violet-500"
+                    color="text-brand"
                     icon={<Shield className="w-3.5 h-3.5" />}
                   />
                 </div>
@@ -867,15 +876,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede8" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#b0aea8" }}
+                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}

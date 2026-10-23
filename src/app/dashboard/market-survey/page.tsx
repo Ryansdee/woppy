@@ -149,7 +149,7 @@ export default function MarketSurveyDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 px-4 py-6 sm:px-6 lg:px-10">
+    <main className="min-h-screen bg-paper text-ink px-4 py-6 sm:px-6 lg:px-10">
       <div className="max-w-6xl mx-auto">
         {/* HEADER */}
         <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -157,14 +157,14 @@ export default function MarketSurveyDashboardPage() {
             <h1 className="text-2xl sm:text-3xl font-semibold">
               Enquête de marché Woppy
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-muted mt-1">
               Vue interne pour analyser les réponses au formulaire (intérêt,
               profil, features demandées).
             </p>
           </div>
-          <div className="text-right text-sm text-slate-400">
+          <div className="text-right text-sm text-muted">
             <p>Total réponses :{' '}
-              <span className="font-semibold text-violet-300">
+              <span className="font-semibold text-brand">
                 {stats.total}
               </span>
             </p>
@@ -173,7 +173,7 @@ export default function MarketSurveyDashboardPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-2 text-slate-300">
+            <div className="flex items-center gap-2 text-muted">
               <Loader2 className="h-5 w-5 animate-spin" />
               <span>Chargement des réponses...</span>
             </div>
@@ -182,36 +182,36 @@ export default function MarketSurveyDashboardPage() {
           <>
             {/* SECTION : KPIs */}
             <section className="grid gap-4 sm:grid-cols-3 mb-6">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-400">
+              <div className="rounded-2xl border border-line bg-white p-4">
+                <p className="text-xs uppercase tracking-wide text-muted">
                   Intéressé par Woppy
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-emerald-400">
+                <p className="mt-2 text-3xl font-semibold text-emerald-600">
                   {stats.yes}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {stats.yesPct}% des répondants
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-400">
+              <div className="rounded-2xl border border-line bg-white p-4">
+                <p className="text-xs uppercase tracking-wide text-muted">
                   Mitigé
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-amber-300">
+                <p className="mt-2 text-3xl font-semibold text-amber-600">
                   {stats.maybe}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {stats.maybePct}% des répondants
                 </p>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-400">
+              <div className="rounded-2xl border border-line bg-white p-4">
+                <p className="text-xs uppercase tracking-wide text-muted">
                   Pas intéressé
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-rose-400">
+                <p className="mt-2 text-3xl font-semibold text-rose-600">
                   {stats.no}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {stats.noPct}% des répondants
                 </p>
               </div>
@@ -220,12 +220,12 @@ export default function MarketSurveyDashboardPage() {
             {/* SECTION : PROFIL + FEATURES */}
             <section className="grid gap-4 lg:grid-cols-3 mb-8">
               {/* Profil par statut */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 lg:col-span-1">
+              <div className="rounded-2xl border border-line bg-white p-4 lg:col-span-1">
                 <h2 className="text-sm font-semibold mb-2">
                   Répartition par statut
                 </h2>
                 {stats.statusEntries.length === 0 ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     Pas encore assez de données.
                   </p>
                 ) : (
@@ -233,12 +233,12 @@ export default function MarketSurveyDashboardPage() {
                     {stats.statusEntries.map(([status, count]) => (
                       <li
                         key={status}
-                        className="flex items-center justify-between border-b border-slate-800/60 pb-1 last:border-none"
+                        className="flex items-center justify-between border-b border-line pb-1 last:border-none"
                       >
-                        <span className="capitalize text-slate-200">
+                        <span className="capitalize text-ink">
                           {statusLabel(status)}
                         </span>
-                        <span className="text-slate-300 font-medium">
+                        <span className="text-muted font-medium">
                           {count}
                         </span>
                       </li>
@@ -248,12 +248,12 @@ export default function MarketSurveyDashboardPage() {
               </div>
 
               {/* Top features */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 lg:col-span-2">
+              <div className="rounded-2xl border border-line bg-white p-4 lg:col-span-2">
                 <h2 className="text-sm font-semibold mb-2">
                   Features les plus demandées
                 </h2>
                 {stats.topFeatures.length === 0 ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     Pas encore de réponses avec des fonctionnalités.
                   </p>
                 ) : (
@@ -261,12 +261,12 @@ export default function MarketSurveyDashboardPage() {
                     {stats.topFeatures.map(([feature, count]) => (
                       <li
                         key={feature}
-                        className="flex items-center justify-between rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2"
+                        className="flex items-center justify-between rounded-xl bg-white border border-line px-3 py-2"
                       >
-                        <span className="text-slate-100">
+                        <span className="text-ink">
                           {feature}
                         </span>
-                        <span className="text-violet-300 font-semibold">
+                        <span className="text-brand font-semibold">
                           {count}
                         </span>
                       </li>
@@ -277,39 +277,39 @@ export default function MarketSurveyDashboardPage() {
             </section>
 
             {/* SECTION : TABLEAU DES RÉPONSES */}
-            <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            <section className="rounded-2xl border border-line bg-white p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold">
                   Détail des réponses ({stats.total})
                 </h2>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted">
                   Les plus récentes en premier
                 </p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="min-w-full text-xs">
-                  <thead className="bg-slate-950/60">
+                  <thead className="bg-white">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Date
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Statut
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Ville
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Intérêt
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Job / difficultés
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Features
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-slate-400">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Commentaire
                       </th>
                     </tr>
@@ -318,38 +318,38 @@ export default function MarketSurveyDashboardPage() {
                     {data.map((r) => (
                       <tr
                         key={r.id}
-                        className="border-t border-slate-800 hover:bg-slate-950/60"
+                        className="border-t border-line hover:bg-white"
                       >
-                        <td className="align-top px-3 py-2 text-slate-300 whitespace-nowrap">
+                        <td className="align-top px-3 py-2 text-muted whitespace-nowrap">
                           {formatDate(r.createdAt)}
                         </td>
-                        <td className="align-top px-3 py-2 text-slate-200 whitespace-nowrap">
+                        <td className="align-top px-3 py-2 text-ink whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="capitalize">
                               {statusLabel(r.status || '')}
                             </span>
                             {r.age && (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-[11px] text-muted">
                                 {r.age} ans
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="align-top px-3 py-2 text-slate-300 whitespace-nowrap">
+                        <td className="align-top px-3 py-2 text-muted whitespace-nowrap">
                           {r.city || '-'}
                         </td>
                         <td className="align-top px-3 py-2">
                           <InterestBadge interest={r.interest} />
                           {r.searchFrequency && (
-                            <p className="text-[11px] text-slate-500 mt-1">
+                            <p className="text-[11px] text-muted mt-1">
                               Fréquence : {frequencyLabel(r.searchFrequency)}
                             </p>
                           )}
                         </td>
-                        <td className="align-top px-3 py-2 text-slate-200">
+                        <td className="align-top px-3 py-2 text-ink">
                           {r.jobTypes.length > 0 && (
                             <p className="mb-1">
-                              <span className="text-[11px] text-slate-400">
+                              <span className="text-[11px] text-muted">
                                 Types :
                               </span>{' '}
                               <span className="text-[11px]">
@@ -358,44 +358,44 @@ export default function MarketSurveyDashboardPage() {
                             </p>
                           )}
                           {r.mainDifficulties.length > 0 && (
-                            <ul className="list-disc list-inside text-[11px] text-slate-400 space-y-0.5">
+                            <ul className="list-disc list-inside text-[11px] text-muted space-y-0.5">
                               {r.mainDifficulties.map((d, i) => (
                                 <li key={i}>{d}</li>
                               ))}
                             </ul>
                           )}
                         </td>
-                        <td className="align-top px-3 py-2 text-slate-200">
+                        <td className="align-top px-3 py-2 text-ink">
                           {r.expectedFeatures.length > 0 && (
-                            <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-0.5">
+                            <ul className="list-disc list-inside text-[11px] text-muted space-y-0.5">
                               {r.expectedFeatures.map((f, i) => (
                                 <li key={i}>{f}</li>
                               ))}
                             </ul>
                           )}
                           {r.customFeature && (
-                            <p className="mt-1 text-[11px] text-violet-300">
+                            <p className="mt-1 text-[11px] text-brand">
                               + {r.customFeature}
                             </p>
                           )}
                           {r.devices.length > 0 && (
-                            <p className="mt-1 text-[10px] text-slate-500">
+                            <p className="mt-1 text-[10px] text-muted">
                               Devices : {r.devices.join(', ')}
                             </p>
                           )}
                         </td>
-                        <td className="align-top px-3 py-2 text-slate-300 max-w-xs">
+                        <td className="align-top px-3 py-2 text-muted max-w-xs">
                           {r.comment ? (
                             <p className="text-[11px] whitespace-pre-wrap">
                               {r.comment}
                             </p>
                           ) : (
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-[11px] text-muted">
                               —
                             </span>
                           )}
                           {r.discovery && (
-                            <p className="mt-1 text-[10px] text-slate-500">
+                            <p className="mt-1 text-[10px] text-muted">
                               Via : {r.discovery}
                             </p>
                           )}
@@ -407,7 +407,7 @@ export default function MarketSurveyDashboardPage() {
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-3 py-6 text-center text-sm text-slate-500"
+                          className="px-3 py-6 text-center text-sm text-muted"
                         >
                           Aucune réponse pour l&apos;instant.
                         </td>
@@ -427,24 +427,24 @@ export default function MarketSurveyDashboardPage() {
 /* === Composants utilitaires === */
 
 function InterestBadge({ interest }: { interest: Interest }) {
-  if (!interest) return <span className="text-xs text-slate-500">-</span>;
+  if (!interest) return <span className="text-xs text-muted">-</span>;
 
   const map: Record<
     Interest,
     { label: string; className: string }
   > = {
-    '': { label: '-', className: 'bg-slate-800 text-slate-300' },
+    '': { label: '-', className: 'bg-paper-2 text-muted' },
     yes: {
       label: 'Intéressé(e)',
-      className: 'bg-emerald-900/60 text-emerald-300 border-emerald-500/40',
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     maybe: {
       label: 'Mitigé(e)',
-      className: 'bg-amber-900/60 text-amber-300 border-amber-500/40',
+      className: 'bg-amber-50 text-amber-700 border-amber-200',
     },
     no: {
       label: 'Pas intéressé(e)',
-      className: 'bg-rose-900/60 text-rose-300 border-rose-500/40',
+      className: 'bg-rose-50 text-rose-700 border-rose-200',
     },
   };
 

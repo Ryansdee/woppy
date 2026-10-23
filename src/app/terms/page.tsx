@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, Scale, ChevronRight } from 'lucide-react';
+import { Scale, ChevronRight } from 'lucide-react';
 
 const sections = [
   {
@@ -28,17 +26,17 @@ const sections = [
             { label: "Montant facturé au Demandeur", value: "14 €/h", sub: "ex. pour une heure" },
             { label: "Montant perçu par l'étudiant", value: "13 €/h", sub: "≈ 93 % reversé" },
           ].map(item => (
-            <div key={item.label} className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-500 mb-1">{item.label}</p>
-              <p className="text-xl font-bold text-violet-700" style={{ fontFamily: 'Sora, system-ui' }}>{item.value}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{item.sub}</p>
+            <div key={item.label} className="bg-paper-2 border border-line rounded-xl p-4 text-center">
+              <p className="text-xs text-muted mb-1">{item.label}</p>
+              <p className="text-xl font-bold text-brand-dark" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>{item.value}</p>
+              <p className="text-[11px] text-muted mt-0.5">{item.sub}</p>
             </div>
           ))}
         </div>
         <p className="mt-4">Les services fournis par Woppy comprennent :</p>
         <ul className="mt-2 space-y-1.5 pl-4">
           {["Publication d'annonces et gestion des candidatures", "Messagerie intégrée entre utilisateurs"].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
       </>
@@ -57,7 +55,7 @@ const sections = [
             "Activités de la vie quotidienne : déménagement, jardinage, bricolage, aide informatique, cours particuliers, livraison, nettoyage, garde d'animaux, etc.",
             "Rémunération brute annuelle de l'étudiant inférieure au plafond légal belge (7 460 €/an en 2025)",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
         <p className="mt-4">Les missions de longue durée, à caractère permanent ou assimilables à un emploi salarié régulier sont expressément exclues de la Plateforme. Woppy se réserve le droit de supprimer toute annonce ne respectant pas ce cadre.</p>
@@ -76,7 +74,7 @@ const sections = [
             "Un seul compte par personne physique est autorisé",
             "Les tentatives de fraude ou d'usurpation d'identité entraînent une suspension immédiate et définitive",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
       </>
@@ -87,7 +85,7 @@ const sections = [
     title: "Obligations des utilisateurs",
     content: (
       <>
-        <p className="font-semibold text-slate-800 text-sm mb-2">5.1 — Demandeurs (particuliers)</p>
+        <p className="font-semibold text-ink text-sm mb-2">5.1 — Demandeurs (particuliers)</p>
         <ul className="space-y-1.5 pl-4 mb-4">
           {[
             "Publier des annonces légales, précises et conformes au cadre collaboratif de la Plateforme",
@@ -95,10 +93,10 @@ const sections = [
             "Ne pas proposer de missions contournant le cadre légal du travail étudiant",
             "Ne pas effectuer de paiements hors plateforme",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
-        <p className="font-semibold text-slate-800 text-sm mb-2">5.2 — Prestataires (étudiants)</p>
+        <p className="font-semibold text-ink text-sm mb-2">5.2 — Prestataires (étudiants)</p>
         <ul className="space-y-1.5 pl-4">
           {[
             "Effectuer les missions avec sérieux et professionnalisme",
@@ -106,7 +104,7 @@ const sections = [
             "Ne pas annuler une mission acceptée sans motif valable et sans prévenir le Demandeur",
             "Ne pas accepter de paiements hors plateforme",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
       </>
@@ -126,7 +124,7 @@ const sections = [
             "L'utilisation de la Plateforme est gratuite pour les Demandeurs comme pour les étudiants",
             "Si Woppy introduit un système de paiement intégré ou des frais de service, les utilisateurs en seront informés avant leur entrée en vigueur",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
       </>
@@ -146,13 +144,13 @@ const sections = [
             "Des interruptions temporaires du service pour raisons techniques",
             "Des conséquences fiscales ou sociales pour les utilisateurs ayant dépassé les plafonds légaux",
           ].map(i => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-600"><ChevronRight size={14} className="text-violet-400 shrink-0 mt-0.5" />{i}</li>
+            <li key={i} className="flex items-start gap-2 text-sm text-ink-2"><ChevronRight size={14} className="text-brand shrink-0 mt-0.5" />{i}</li>
           ))}
         </ul>
         <p className="mt-3">La responsabilité de Woppy est en tout état de cause limitée au montant des frais de plateforme perçus sur la transaction concernée.</p>
         <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Avertissement fiscal important</p>
-          <p className="text-xs text-amber-700 leading-relaxed">Les missions réalisées par des étudiants relèvent du régime belge du <strong>travail étudiant</strong> : chaque étudiant dispose d'un quota annuel de 650 heures soumises à une cotisation de solidarité réduite. Au-delà, les cotisations sociales ordinaires s'appliquent. Les revenus perçus peuvent également avoir un impact sur la fiscalité de l'étudiant et sur son statut de personne à charge. Il appartient à chaque étudiant de vérifier sa situation sur la plateforme officielle <a href="https://www.studentatwork.be/fr/quota-heures-et-impact.html" target="_blank" rel="noopener noreferrer" className="text-violet-600 underline">Student@Work</a>.</p>
+          <p className="text-xs text-amber-700 leading-relaxed">Les missions réalisées par des étudiants relèvent du régime belge du <strong>travail étudiant</strong> : chaque étudiant dispose d'un quota annuel de 650 heures soumises à une cotisation de solidarité réduite. Au-delà, les cotisations sociales ordinaires s'appliquent. Les revenus perçus peuvent également avoir un impact sur la fiscalité de l'étudiant et sur son statut de personne à charge. Il appartient à chaque étudiant de vérifier sa situation sur la plateforme officielle <a href="https://www.studentatwork.be/fr/quota-heures-et-impact.html" target="_blank" rel="noopener noreferrer" className="text-brand underline">Student@Work</a>.</p>
         </div>
       </>
     ),
@@ -168,7 +166,7 @@ const sections = [
     n: "09",
     title: "Données personnelles",
     content: (
-      <p>Woppy respecte le Règlement Général sur la Protection des Données (RGPD — UE 2016/679). Les données collectées sont strictement limitées à ce qui est nécessaire au fonctionnement du service et ne sont jamais vendues ni cédées à des tiers à des fins commerciales. Pour toute demande relative à vos données, contactez <a href="mailto:privacy@woppy.be" className="text-violet-600 hover:underline">privacy@woppy.be</a>.</p>
+      <p>Woppy respecte le Règlement Général sur la Protection des Données (RGPD — UE 2016/679). Les données collectées sont strictement limitées à ce qui est nécessaire au fonctionnement du service et ne sont jamais vendues ni cédées à des tiers à des fins commerciales. Pour toute demande relative à vos données, contactez <a href="mailto:privacy@woppy.be" className="text-brand hover:underline">privacy@woppy.be</a>.</p>
     ),
   },
   {
@@ -176,7 +174,7 @@ const sections = [
     title: "Résiliation",
     content: (
       <>
-        <p>Vous pouvez demander la suppression de votre compte à tout moment en écrivant à <a href="mailto:support@woppy.be" className="text-violet-600 hover:underline">support@woppy.be</a>.</p>
+        <p>Vous pouvez demander la suppression de votre compte à tout moment en écrivant à <a href="mailto:support@woppy.be" className="text-brand hover:underline">support@woppy.be</a>.</p>
         <p className="mt-2">Woppy se réserve le droit de suspendre ou supprimer un compte en cas de non-respect des présentes CGU, de fraude avérée, de dépassement manifeste du cadre collaboratif, ou d'inactivité supérieure à 24 mois.</p>
       </>
     ),
@@ -199,11 +197,11 @@ const sections = [
           { label: "Support", value: "support@woppy.be", href: "mailto:support@woppy.be" },
           { label: "Données personnelles", value: "privacy@woppy.be", href: "mailto:privacy@woppy.be" },
         ].map(item => (
-          <div key={item.label} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+          <div key={item.label} className="bg-paper-2 border border-line rounded-xl p-4">
+            <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-1">{item.label}</p>
             {item.href
-              ? <a href={item.href} className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors">{item.value}</a>
-              : <p className="text-sm text-slate-700">{item.value}</p>
+              ? <a href={item.href} className="text-sm font-medium text-brand hover:text-brand-dark transition-colors">{item.value}</a>
+              : <p className="text-sm text-ink-2">{item.value}</p>
             }
           </div>
         ))}
@@ -215,40 +213,26 @@ const sections = [
 export default function TermsPage() {
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&display=swap');`}</style>
+      <style>{``}</style>
 
       <main className="min-h-screen bg-white" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-        {/* ── Navbar ── */}
-        <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-slate-100 z-50">
-          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/images/logo.png" alt="Logo Woppy" width={28} height={28} className="rounded-xl" />
-              <span className="font-bold text-lg text-violet-600" style={{ fontFamily: 'Sora, system-ui' }}>woppy</span>
-            </Link>
-            <Link href="/"
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors font-medium">
-              <ArrowLeft size={15} /> Retour à l'accueil
-            </Link>
-          </div>
-        </nav>
-
         {/* ── Hero ── */}
-        <section className="pt-24 pb-12 px-6 bg-slate-50 border-b border-slate-100">
+        <section className="pt-12 pb-12 px-6 bg-paper-2 border-b border-line">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="w-14 h-14 bg-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <div className="w-14 h-14 bg-ink rounded-2xl flex items-center justify-center mx-auto mb-5">
               <Scale className="text-white" size={24} />
             </div>
-            <h1 className="font-bold text-3xl text-slate-900 mb-2 tracking-tight" style={{ fontFamily: 'Sora, system-ui' }}>
+            <h1 className="font-bold text-3xl text-ink mb-2 tracking-tight" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               Conditions Générales d'Utilisation
             </h1>
-            <p className="text-slate-500 text-sm mb-1">Woppy — Plateforme d'économie collaborative</p>
-            <p className="text-xs text-slate-400">Dernière mise à jour : 4 novembre 2025</p>
+            <p className="text-muted text-sm mb-1">Woppy — Plateforme d'économie collaborative</p>
+            <p className="text-xs text-muted">Dernière mise à jour : 4 novembre 2025</p>
 
             {/* Key differentiator */}
-            <div className="mt-6 inline-flex items-start gap-3 bg-violet-50 border border-violet-200 rounded-2xl px-5 py-4 text-left max-w-xl">
-              <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0 mt-1.5" />
-              <p className="text-sm text-violet-800 leading-relaxed">
+            <div className="mt-6 inline-flex items-start gap-3 bg-brand-soft border border-brand/30 rounded-2xl px-5 py-4 text-left max-w-xl">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 mt-1.5" />
+              <p className="text-sm text-brand-dark leading-relaxed">
                 Woppy n'est <strong>pas une agence d'intérim</strong>. Notre modèle d'économie collaborative permet de reverser jusqu'à <strong>93 % du montant</strong> à l'étudiant, contre 65–80 % en intérim classique.
               </p>
             </div>
@@ -256,14 +240,14 @@ export default function TermsPage() {
         </section>
 
         {/* ── TOC ── */}
-        <section className="bg-white border-b border-slate-100">
+        <section className="bg-white border-b border-line">
           <div className="max-w-3xl mx-auto px-6 py-6">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Sommaire</p>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Sommaire</p>
             <div className="grid sm:grid-cols-2 gap-1">
               {sections.map(s => (
                 <a key={s.n} href={`#section-${s.n}`}
-                  className="flex items-center gap-2.5 text-sm text-slate-600 hover:text-violet-600 py-1.5 transition-colors group">
-                  <span className="text-[11px] font-bold text-slate-300 group-hover:text-violet-300 w-6 shrink-0">{s.n}</span>
+                  className="flex items-center gap-2.5 text-sm text-ink-2 hover:text-brand py-1.5 transition-colors group">
+                  <span className="text-[11px] font-bold text-muted group-hover:text-brand/50 w-6 shrink-0">{s.n}</span>
                   {s.title}
                 </a>
               ))}
@@ -276,16 +260,16 @@ export default function TermsPage() {
           <div className="max-w-3xl mx-auto space-y-8">
             {sections.map((s, i) => (
               <div key={s.n} id={`section-${s.n}`}
-                className="bg-white rounded-2xl border border-slate-100 overflow-hidden scroll-mt-20">
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-50">
-                  <span className="text-[11px] font-bold text-violet-400 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full shrink-0">
+                className="bg-white rounded-2xl border border-line overflow-hidden scroll-mt-20">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-line">
+                  <span className="text-[11px] font-bold text-brand bg-brand-soft border border-brand-soft px-2 py-0.5 rounded-full shrink-0">
                     {s.n}
                   </span>
-                  <h2 className="font-bold text-sm text-slate-900" style={{ fontFamily: 'Sora, system-ui' }}>
+                  <h2 className="font-bold text-sm text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                     {s.title}
                   </h2>
                 </div>
-                <div className="px-6 py-5 text-sm text-slate-600 leading-relaxed">
+                <div className="px-6 py-5 text-sm text-ink-2 leading-relaxed">
                   {s.content}
                 </div>
               </div>

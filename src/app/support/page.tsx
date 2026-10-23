@@ -67,26 +67,26 @@ function SupportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f5e5ff] via-white to-[#e8d5ff]/70 py-10 px-4 sm:px-6 text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-white to-[#e8d5ff]/70 py-10 px-4 sm:px-6 text-ink">
 
       <div className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl shadow-xl border border-[#e5d5ff] rounded-3xl p-6 sm:p-8">
 
         <button
           onClick={() => router.push(`/messages?chatId=${chatId}`)}
-          className="flex items-center gap-2 text-[#8a6bfe] hover:text-[#6f52d9] mb-4"
+          className="flex items-center gap-2 text-[#7357f6] hover:text-[#6f52d9] mb-4"
         >
           <ArrowLeft size={20} /> Retour
         </button>
 
         <div className="flex items-center gap-3 mb-6">
           <AlertTriangle className="text-[#b3261e]" size={28} />
-          <h1 className="text-2xl font-bold text-gray-800">Signaler un problème</h1>
+          <h1 className="text-2xl font-bold text-ink">Signaler un problème</h1>
         </div>
 
         {/* Chat Summary */}
         {chatData && otherUser && (
-          <div className="mb-6 bg-[#f5e5ff]/40 border border-[#e5d5ff] rounded-2xl p-4">
-            <h2 className="font-semibold text-gray-800 text-lg mb-3 flex items-center gap-2">
+          <div className="mb-6 bg-[#fbfaf7]/40 border border-[#e5d5ff] rounded-2xl p-4">
+            <h2 className="font-semibold text-ink text-lg mb-3 flex items-center gap-2">
               <MessageSquare size={18} /> Conversation concernée
             </h2>
 
@@ -102,11 +102,11 @@ function SupportContent() {
                 className="w-12 h-12 rounded-full border border-[#ddc2ff]"
               />
               <div>
-                <p className="font-semibold text-gray-800">
+                <p className="font-semibold text-ink">
                   {otherUser?.displayName ||
                     `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim()}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-ink-2">
                   Dernier message : {chatData.lastMessage || '…'}
                 </p>
               </div>
@@ -117,20 +117,20 @@ function SupportContent() {
         {/* Form */}
         <form onSubmit={sendReport} className="space-y-4">
           <div>
-            <label className="font-medium text-gray-800">Décris ton problème *</label>
+            <label className="font-medium text-ink">Décris ton problème *</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
               placeholder="Ex : comportement inapproprié, spam, problème sur le job, etc."
-              className="mt-2 w-full border border-[#ddc2ff] bg-[#f5e5ff]/30 rounded-2xl p-4 focus:ring-2 focus:ring-[#8a6bfe] outline-none resize-none"
+              className="mt-2 w-full border border-[#ddc2ff] bg-[#fbfaf7]/30 rounded-2xl p-4 focus:ring-2 focus:ring-[#7357f6] outline-none resize-none"
             />
           </div>
 
           <button
             type="submit"
             disabled={!message.trim() || sending}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white font-medium py-3 rounded-2xl shadow-md hover:shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#7357f6] to-[#a996fa] text-white font-medium py-3 rounded-2xl shadow-md hover:shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {sending ? (
               <Send className="w-5 h-5 animate-spin" />
@@ -142,7 +142,7 @@ function SupportContent() {
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-gray-600">
+        <p className="mt-5 text-center text-sm text-ink-2">
           Notre équipe examine chaque signalement dans les plus brefs délais.
         </p>
       </div>

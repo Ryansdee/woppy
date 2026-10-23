@@ -11,8 +11,6 @@ import {
   Calendar, Sparkles, GitCommit, RefreshCw,
   ExternalLink, ChevronRight, ChevronDown, Loader2,
 } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
 
 const GITHUB_OWNER  = 'Ryansdee';
 const GITHUB_REPO   = 'woppy';
@@ -20,14 +18,14 @@ const GITHUB_REPO   = 'woppy';
 /* ── Tag par préfixe conventionnel ── */
 function parseCommit(msg: string): { tag: string; cls: string } {
   const m = msg.trim().toLowerCase();
-  if (m.startsWith('feat'))  return { tag: 'Nouveauté',   cls: 'bg-violet-50 text-violet-700 border-violet-200' };
+  if (m.startsWith('feat'))  return { tag: 'Nouveauté',   cls: 'bg-brand-soft text-brand-dark border-brand/30' };
   if (m.startsWith('fix'))   return { tag: 'Correctif',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
   if (m.startsWith('perf'))  return { tag: 'Performance', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
   if (m.startsWith('style')) return { tag: 'Interface',   cls: 'bg-pink-50 text-pink-700 border-pink-200' };
-  if (m.startsWith('chore')) return { tag: 'Maintenance', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+  if (m.startsWith('chore')) return { tag: 'Maintenance', cls: 'bg-paper-2 text-ink-2 border-line' };
   if (m.startsWith('docs'))  return { tag: 'Doc',         cls: 'bg-amber-50 text-amber-700 border-amber-200' };
   if (m.startsWith('refactor')) return { tag: 'Refacto',  cls: 'bg-cyan-50 text-cyan-700 border-cyan-200' };
-  return { tag: 'Mise à jour', cls: 'bg-violet-50 text-violet-700 border-violet-200' };
+  return { tag: 'Mise à jour', cls: 'bg-brand-soft text-brand-dark border-brand/30' };
 }
 
 const FILE_STATUS: Record<string, { label: string; cls: string }> = {
@@ -150,25 +148,17 @@ export default function UpdatesPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+        
         .mono { font-family: 'Geist Mono', 'Fira Code', monospace; }
       `}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
-        {/* ── Topbar ── */}
-        <div className="bg-white border-b border-slate-100 sticky top-16 z-40">
-          <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Link href="/" className="flex items-center gap-2">
-                <Image src="/images/logo.png" alt="Woppy" width={24} height={24} className="rounded-xl" />
-                <span className="font-bold text-sm text-violet-600" style={{ fontFamily: 'Sora, system-ui' }}>woppy</span>
-              </Link>
-              <span className="text-slate-300 mx-0.5">/</span>
-              <span className="text-sm font-semibold text-slate-500">updates</span>
-            </div>
+        {/* ── Synchronisation ── */}
+        <div className="max-w-3xl mx-auto px-6 pt-6 -mb-4 flex justify-end">
+          <div>
             <button onClick={() => syncAll(true)} disabled={syncing}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-600 transition-all disabled:opacity-50">
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border border-line bg-white text-ink-2 hover:border-brand/50 hover:text-brand transition-all disabled:opacity-50">
               <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Sync…' : 'Sync GitHub'}
             </button>
@@ -179,11 +169,11 @@ export default function UpdatesPage() {
 
           {/* ── Header ── */}
           <div className="mb-8">
-            <h1 className="font-bold text-2xl text-slate-900 tracking-tight mb-1"
-              style={{ fontFamily: 'Sora, system-ui' }}>
+            <h1 className="font-bold text-2xl text-ink tracking-tight mb-1"
+              style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
               Historique des commits
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted">
               Tous les déploiements et modifications de Woppy, synchronisés depuis GitHub.
             </p>
 
@@ -191,46 +181,46 @@ export default function UpdatesPage() {
             {syncType !== 'idle' && (
               <div className={`mt-3 inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border ${
                 syncType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                syncType === 'already' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                syncType === 'already' ? 'bg-paper-2 text-muted border-line' :
                 syncType === 'error'   ? 'bg-red-50 text-red-700 border-red-200' : ''
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${
                   syncType === 'success' ? 'bg-emerald-500' :
-                  syncType === 'already' ? 'bg-slate-400' : 'bg-red-500'
+                  syncType === 'already' ? 'bg-muted' : 'bg-red-500'
                 }`} />
                 {syncing ? <><Loader2 size={11} className="animate-spin" /> {syncMsg}</> : syncMsg}
               </div>
             )}
 
             {syncing && (
-              <div className="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
+              <div className="mt-2 text-xs text-muted flex items-center gap-1.5">
                 <Loader2 size={11} className="animate-spin" /> {syncMsg}
               </div>
             )}
 
             {/* Compteur */}
             {!loading && docs.length > 0 && (
-              <p className="mt-2 text-xs text-slate-400 mono">{docs.length} commits chargés</p>
+              <p className="mt-2 text-xs text-muted mono">{docs.length} commits chargés</p>
             )}
           </div>
 
           {/* ── Liste ── */}
           {loading ? (
             <div className="flex flex-col items-center py-20 gap-3">
-              <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center animate-pulse">
+              <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center animate-pulse">
                 <Sparkles size={16} className="text-white" />
               </div>
-              <p className="text-sm text-slate-500">Chargement…</p>
+              <p className="text-sm text-muted">Chargement…</p>
             </div>
           ) : docs.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                <GitCommit size={20} className="text-slate-400" />
+              <div className="w-12 h-12 rounded-2xl bg-paper-2 flex items-center justify-center mb-3">
+                <GitCommit size={20} className="text-muted" />
               </div>
-              <p className="text-sm font-semibold text-slate-700 mb-1">Aucun commit</p>
-              <p className="text-xs text-slate-400 mb-4">Clique sur "Sync GitHub" pour importer l'historique.</p>
+              <p className="text-sm font-semibold text-ink-2 mb-1">Aucun commit</p>
+              <p className="text-xs text-muted mb-4">Clique sur "Sync GitHub" pour importer l'historique.</p>
               <button onClick={() => syncAll(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl transition">
+                className="flex items-center gap-2 px-4 py-2 bg-ink hover:bg-ink-2 text-white text-xs font-semibold rounded-xl transition">
                 <RefreshCw size={12} /> Synchroniser maintenant
               </button>
             </div>
@@ -244,7 +234,7 @@ export default function UpdatesPage() {
 
                 return (
                   <div key={docSnap.id}
-                    className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:border-violet-200 transition-colors">
+                    className="bg-white rounded-2xl border border-line overflow-hidden hover:border-brand/30 transition-colors">
 
                     {/* ── Header ligne ── */}
                     <div className="flex items-center gap-3 px-5 py-4"
@@ -253,32 +243,32 @@ export default function UpdatesPage() {
 
                       {/* Avatar auteur */}
                       {u.authorAvatar
-                        ? <img src={u.authorAvatar} alt="" className="w-7 h-7 rounded-lg border border-slate-200 shrink-0" />
-                        : <div className="w-7 h-7 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
-                            <GitCommit size={13} className="text-violet-500" />
+                        ? <img src={u.authorAvatar} alt="" className="w-7 h-7 rounded-lg border border-line shrink-0" />
+                        : <div className="w-7 h-7 rounded-lg bg-brand-soft border border-brand-soft flex items-center justify-center shrink-0">
+                            <GitCommit size={13} className="text-brand" />
                           </div>
                       }
 
                       {/* Titre + meta */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate"
-                          style={{ fontFamily: 'Sora, system-ui' }}>
+                        <p className="text-sm font-semibold text-ink truncate"
+                          style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                           {u.title}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span className="mono text-[10px] text-slate-400">{u.version}</span>
-                          <span className="text-slate-200">·</span>
-                          <Calendar size={9} className="text-slate-400" />
-                          <span className="text-[11px] text-slate-400">{u.date}</span>
+                          <span className="mono text-[10px] text-muted">{u.version}</span>
+                          <span className="text-line">·</span>
+                          <Calendar size={9} className="text-muted" />
+                          <span className="text-[11px] text-muted">{u.date}</span>
                           {u.authorName && (
                             <>
-                              <span className="text-slate-200">·</span>
-                              <span className="text-[11px] text-slate-400">{u.authorName}</span>
+                              <span className="text-line">·</span>
+                              <span className="text-[11px] text-muted">{u.authorName}</span>
                             </>
                           )}
                           {u.stats && (
                             <>
-                              <span className="text-slate-200">·</span>
+                              <span className="text-line">·</span>
                               <span className="mono text-[10px] text-emerald-600 font-semibold">+{u.stats.additions}</span>
                               <span className="mono text-[10px] text-red-500 font-semibold">-{u.stats.deletions}</span>
                             </>
@@ -294,28 +284,28 @@ export default function UpdatesPage() {
                         {u.commitUrl && (
                           <a href={u.commitUrl} target="_blank" rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
-                            className="text-slate-400 hover:text-violet-600 transition-colors">
+                            className="text-muted hover:text-brand transition-colors">
                             <ExternalLink size={12} />
                           </a>
                         )}
                         {hasFiles && (
-                          <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown size={14} className={`text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         )}
                       </div>
                     </div>
 
                     {/* ── Détail fichiers (collapsible) ── */}
                     {isOpen && hasFiles && (
-                      <div className="border-t border-slate-50 px-5 py-4">
+                      <div className="border-t border-line px-5 py-4">
 
                         {/* Stats bar */}
                         {u.stats && (
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-paper-2 rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-400 rounded-full"
                                 style={{ width: `${Math.round((u.stats.additions / Math.max(u.stats.total, 1)) * 100)}%` }} />
                             </div>
-                            <span className="mono text-[10px] text-slate-400 shrink-0">
+                            <span className="mono text-[10px] text-muted shrink-0">
                               {u.stats.additions}+ / {u.stats.deletions}− / {u.stats.total} total
                             </span>
                           </div>
@@ -329,13 +319,13 @@ export default function UpdatesPage() {
                             const fname   = parts.pop();
                             const fdir    = parts.join('/');
                             return (
-                              <div key={i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                              <div key={i} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-paper-2 transition-colors">
                                 <span className={`w-4 h-4 rounded text-[9px] font-black flex items-center justify-center border shrink-0 ${fStatus.cls}`}>
                                   {fStatus.label}
                                 </span>
                                 <span className="mono text-[11px] flex-1 truncate">
-                                  {fdir && <span className="text-slate-400">{fdir}/</span>}
-                                  <span className="text-slate-800 font-medium">{fname}</span>
+                                  {fdir && <span className="text-muted">{fdir}/</span>}
+                                  <span className="text-ink font-medium">{fname}</span>
                                 </span>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {file.additions > 0 && <span className="mono text-[10px] text-emerald-600 font-semibold">+{file.additions}</span>}
@@ -354,11 +344,11 @@ export default function UpdatesPage() {
           )}
 
           {/* ── Footer ── */}
-          <p className="text-center text-xs text-slate-400 mt-10">
+          <p className="text-center text-xs text-muted mt-10">
             Synchronisé depuis{' '}
             <a href={`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`}
               target="_blank" rel="noopener noreferrer"
-              className="text-violet-600 hover:underline mono">
+              className="text-brand hover:underline mono">
               {GITHUB_OWNER}/{GITHUB_REPO}
             </a>
           </p>

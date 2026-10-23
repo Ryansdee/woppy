@@ -51,7 +51,7 @@ const STATUS_META: Record<string, {
   open:        { label: 'Ouvert',   dot: '#3b82f6', pill: 'bg-blue-50 text-blue-700 border-blue-200',     selectColor: '#1d4ed8' },
   in_progress: { label: 'En cours', dot: '#f59e0b', pill: 'bg-amber-50 text-amber-700 border-amber-200',   selectColor: '#b45309' },
   resolved:    { label: 'Résolu',   dot: '#10b981', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', selectColor: '#047857' },
-  closed:      { label: 'Fermé',    dot: '#9ca3af', pill: 'bg-slate-100 text-slate-500 border-slate-200',  selectColor: '#6b7280' },
+  closed:      { label: 'Fermé',    dot: '#6e6a7c', pill: 'bg-paper-2 text-muted border-line',  selectColor: '#6e6a7c' },
 };
 
 const SUPPORT_NAME = 'Woppy Support';
@@ -199,7 +199,7 @@ export default function ContactAdminPage() {
       <style>{`
         * { font-family: 'DM Sans', system-ui, sans-serif; box-sizing: border-box; }
         .mono { font-family: 'DM Mono', monospace !important; }
-        body { background: #f5f4f1 !important; margin: 0; }
+        body { background: #f3f1ec !important; margin: 0; }
         .ticket-row { transition: background 0.12s; }
         .ticket-row:hover { background: #f8f8f6 !important; }
         .pulse-blue { animation: pb 2.2s ease-in-out infinite; }
@@ -207,21 +207,21 @@ export default function ContactAdminPage() {
         .ring { transition: stroke-dashoffset 1s linear; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e2e0db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #e7e3ec; border-radius: 4px; }
         .status-select option { background: white; color: #1e293b; }
-        input::placeholder, textarea::placeholder { color: #b0aea8; }
+        input::placeholder, textarea::placeholder { color: #6e6a7c; }
       `}</style>
 
-      <div style={{ background: '#f5f4f1', minHeight: '100vh', color: '#1e1e26' }}>
+      <div style={{ background: '#f3f1ec', minHeight: '100vh', color: '#15131f' }}>
 
         {/* ── Topbar ── */}
-        <div style={{ background: '#ffffff', borderBottom: '1px solid #e8e6e1', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ background: '#ffffff', borderBottom: '1px solid #f3f1ec', position: 'sticky', top: 0, zIndex: 50 }}>
           <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 24px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#7357f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Inbox style={{ width: 14, height: 14, color: 'white' }} />
               </div>
-              <span style={{ fontWeight: 600, fontSize: 13, color: '#1e1e26' }}>Support · Tickets</span>
+              <span style={{ fontWeight: 600, fontSize: 13, color: '#15131f' }}>Support · Tickets</span>
               {stats.open > 0 && (
                 <span className="mono" style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}>
                   {stats.open} ouvert{stats.open > 1 ? 's' : ''}
@@ -231,10 +231,10 @@ export default function ContactAdminPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               {/* Ring countdown */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9ca3af' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6e6a7c' }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="10" cy="10" r="8" fill="none" stroke="#e8e6e1" strokeWidth="2" />
-                  <circle cx="10" cy="10" r="8" fill="none" stroke="#6366f1" strokeWidth="2"
+                  <circle cx="10" cy="10" r="8" fill="none" stroke="#f3f1ec" strokeWidth="2" />
+                  <circle cx="10" cy="10" r="8" fill="none" stroke="#7357f6" strokeWidth="2"
                     strokeDasharray={`${2 * Math.PI * 8}`}
                     strokeDashoffset={`${2 * Math.PI * 8 * (1 - countdown / (REFRESH_INTERVAL / 1000))}`}
                     strokeLinecap="round" className="ring" />
@@ -245,13 +245,13 @@ export default function ContactAdminPage() {
               <button
                 onClick={() => { fetchContacts(true); setCountdown(REFRESH_INTERVAL / 1000); }}
                 disabled={refreshing}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: '#f5f4f1', border: '1px solid #e2e0db', fontSize: 12, fontWeight: 500, color: refreshing ? '#c0bdb8' : '#4b4b58', cursor: refreshing ? 'not-allowed' : 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: '#f3f1ec', border: '1px solid #e7e3ec', fontSize: 12, fontWeight: 500, color: refreshing ? '#6e6a7c' : '#3a3747', cursor: refreshing ? 'not-allowed' : 'pointer' }}>
                 <RefreshCw style={{ width: 13, height: 13 }} className={refreshing ? 'animate-spin' : ''} />
                 Actualiser
               </button>
 
               {lastRefresh && (
-                <span className="mono" style={{ fontSize: 11, color: '#b0aea8' }}>
+                <span className="mono" style={{ fontSize: 11, color: '#6e6a7c' }}>
                   Sync {lastRefresh.toLocaleTimeString('fr-FR')}
                 </span>
               )}
@@ -264,20 +264,20 @@ export default function ContactAdminPage() {
           {/* ── Stats ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { label: 'Total',    value: stats.total,       color: '#6366f1', bg: '#eef2ff', icon: <BarChart2 style={{ width: 15, height: 15 }} /> },
+              { label: 'Total',    value: stats.total,       color: '#7357f6', bg: '#eef2ff', icon: <BarChart2 style={{ width: 15, height: 15 }} /> },
               { label: 'Ouverts',  value: stats.open,        color: '#2563eb', bg: '#eff6ff', icon: <Circle style={{ width: 15, height: 15 }} /> },
               { label: 'En cours', value: stats.in_progress, color: '#d97706', bg: '#fffbeb', icon: <Zap style={{ width: 15, height: 15 }} /> },
               { label: 'Résolus',  value: stats.resolved,    color: '#059669', bg: '#ecfdf5', icon: <CheckCircle2 style={{ width: 15, height: 15 }} /> },
             ].map((s, i) => (
               <motion.div key={s.label}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                style={{ background: '#ffffff', border: '1px solid #e8e6e1', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                style={{ background: '#ffffff', border: '1px solid #f3f1ec', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 9, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {s.icon}
                 </div>
                 <div>
                   <p className="mono" style={{ fontSize: '1.5rem', lineHeight: 1, fontWeight: 500, color: s.color }}>{s.value}</p>
-                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 3, color: '#9ca3af' }}>{s.label}</p>
+                  <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 3, color: '#6e6a7c' }}>{s.label}</p>
                 </div>
               </motion.div>
             ))}
@@ -290,18 +290,18 @@ export default function ContactAdminPage() {
             <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
               {/* Search + filter */}
-              <div style={{ background: '#ffffff', border: '1px solid #e8e6e1', borderRadius: 12, padding: 12 }}>
+              <div style={{ background: '#ffffff', border: '1px solid #f3f1ec', borderRadius: 12, padding: 12 }}>
                 <div style={{ position: 'relative', marginBottom: 8 }}>
-                  <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#b0aea8' }} />
+                  <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#6e6a7c' }} />
                   <input
                     value={search} onChange={e => setSearch(e.target.value)}
                     placeholder="Nom, email, ticket…"
-                    style={{ width: '100%', paddingLeft: 32, paddingRight: 32, paddingTop: 7, paddingBottom: 7, background: '#f9f8f6', border: '1px solid #e8e6e1', borderRadius: 8, fontSize: 13, color: '#1e1e26', outline: 'none' }}
-                    onFocus={e => e.target.style.borderColor = '#6366f1'}
-                    onBlur={e => e.target.style.borderColor = '#e8e6e1'}
+                    style={{ width: '100%', paddingLeft: 32, paddingRight: 32, paddingTop: 7, paddingBottom: 7, background: '#f9f8f6', border: '1px solid #f3f1ec', borderRadius: 8, fontSize: 13, color: '#15131f', outline: 'none' }}
+                    onFocus={e => e.target.style.borderColor = '#7357f6'}
+                    onBlur={e => e.target.style.borderColor = '#f3f1ec'}
                   />
                   {search && (
-                    <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#b0aea8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#6e6a7c', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       <X style={{ width: 13, height: 13 }} />
                     </button>
                   )}
@@ -311,9 +311,9 @@ export default function ContactAdminPage() {
                     <button key={f} onClick={() => setFilter(f)}
                       style={{
                         flex: 1, padding: '5px 2px', borderRadius: 7, fontSize: 10, fontWeight: 500,
-                        background: filter === f ? '#6366f1' : '#f5f4f1',
-                        color: filter === f ? '#ffffff' : '#9ca3af',
-                        border: `1px solid ${filter === f ? '#6366f1' : '#e8e6e1'}`,
+                        background: filter === f ? '#7357f6' : '#f3f1ec',
+                        color: filter === f ? '#ffffff' : '#6e6a7c',
+                        border: `1px solid ${filter === f ? '#7357f6' : '#f3f1ec'}`,
                         cursor: 'pointer', transition: 'all 0.12s',
                       }}>
                       {f === 'all' ? 'Tous' : f === 'open' ? 'Ouverts' : f === 'in_progress' ? 'En cours' : 'Résolus'}
@@ -322,7 +322,7 @@ export default function ContactAdminPage() {
                 </div>
               </div>
 
-              <p className="mono" style={{ fontSize: 10, color: '#b0aea8', paddingLeft: 2 }}>
+              <p className="mono" style={{ fontSize: 10, color: '#6e6a7c', paddingLeft: 2 }}>
                 {filtered.length} ticket{filtered.length !== 1 ? 's' : ''}
               </p>
 
@@ -330,10 +330,10 @@ export default function ContactAdminPage() {
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {loading ? (
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                    <div style={{ width: 28, height: 28, border: '2px solid #6366f1', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
+                    <div style={{ width: 28, height: 28, border: '2px solid #7357f6', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" />
                   </div>
                 ) : filtered.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '60px 0', color: '#c0bdb8' }}>
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: '#6e6a7c' }}>
                     <AlertCircle style={{ width: 24, height: 24, margin: '0 auto 10px', opacity: 0.5 }} />
                     <p style={{ fontSize: 13 }}>Aucun ticket</p>
                   </div>
@@ -351,7 +351,7 @@ export default function ContactAdminPage() {
                             style={{
                               width: '100%', textAlign: 'left', borderRadius: 10, padding: '11px 12px',
                               background: isActive ? '#ffffff' : '#ffffff',
-                              border: `1px solid ${isActive ? '#6366f1' : '#e8e6e1'}`,
+                              border: `1px solid ${isActive ? '#7357f6' : '#f3f1ec'}`,
                               boxShadow: isActive ? '0 0 0 3px rgba(99,102,241,0.08)' : 'none',
                               cursor: 'pointer',
                             }}>
@@ -363,13 +363,13 @@ export default function ContactAdminPage() {
                               }} />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-                                  <span style={{ fontWeight: 600, fontSize: 13, color: '#1e1e26', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                                  <span className="mono" style={{ fontSize: 10, color: '#b0aea8', flexShrink: 0 }}>{timeAgo(c.createdAt)}</span>
+                                  <span style={{ fontWeight: 600, fontSize: 13, color: '#15131f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                  <span className="mono" style={{ fontSize: 10, color: '#6e6a7c', flexShrink: 0 }}>{timeAgo(c.createdAt)}</span>
                                 </div>
                                 {c.subject && (
                                   <p style={{ fontSize: 12, color: '#6b6b7a', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.subject}</p>
                                 )}
-                                <p style={{ fontSize: 11, color: '#b0aea8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>{c.message}</p>
+                                <p style={{ fontSize: 11, color: '#6e6a7c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>{c.message}</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <span className={`mono`} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 5, border: '1px solid', fontWeight: 500 }}
                                     data-status={c.status}>
@@ -380,7 +380,7 @@ export default function ContactAdminPage() {
                                     <span className="mono" style={{ fontSize: 9, color: '#000000' }}>{c.ticketId}</span>
                                   )}
                                   {c.replies.length > 0 && (
-                                    <span style={{ fontSize: 10, color: '#c0bdb8', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    <span style={{ fontSize: 10, color: '#6e6a7c', display: 'flex', alignItems: 'center', gap: 3 }}>
                                       <MessageSquare style={{ width: 10, height: 10 }} />{c.replies.length}
                                     </span>
                                   )}
@@ -397,20 +397,20 @@ export default function ContactAdminPage() {
             </div>
 
             {/* RIGHT – detail */}
-            <div style={{ flex: 1, minWidth: 0, borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #e8e6e1' }}>
+            <div style={{ flex: 1, minWidth: 0, borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #f3f1ec' }}>
 
               {!selectedContact ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#d1cfc9' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f9f8f6', border: '1px solid #e8e6e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#e7e3ec' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f9f8f6', border: '1px solid #f3f1ec', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Inbox style={{ width: 22, height: 22, color: '#c8c5bf' }} />
                   </div>
-                  <p style={{ fontWeight: 500, fontSize: 13, color: '#b0aea8' }}>Sélectionnez un ticket</p>
-                  <p className="mono" style={{ fontSize: 11, color: '#d1cfc9' }}>{filtered.length} disponible{filtered.length !== 1 ? 's' : ''}</p>
+                  <p style={{ fontWeight: 500, fontSize: 13, color: '#6e6a7c' }}>Sélectionnez un ticket</p>
+                  <p className="mono" style={{ fontSize: 11, color: '#e7e3ec' }}>{filtered.length} disponible{filtered.length !== 1 ? 's' : ''}</p>
                 </div>
               ) : (
                 <>
                   {/* Header */}
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0ede8', flexShrink: 0 }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f1ec', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -439,37 +439,37 @@ export default function ContactAdminPage() {
                           </div>
 
                           {selectedContact.category && (
-                            <span className="mono" style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, background: '#f5f4f1', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span className="mono" style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, background: '#f3f1ec', color: '#6e6a7c', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Tag style={{ width: 10, height: 10 }} />{CAT[selectedContact.category] ?? selectedContact.category}
                             </span>
                           )}
                           {selectedContact.ticketId && (
-                            <span className="mono" style={{ fontSize: 10, color: '#c0bdb8' }}>#{selectedContact.ticketId}</span>
+                            <span className="mono" style={{ fontSize: 10, color: '#6e6a7c' }}>#{selectedContact.ticketId}</span>
                           )}
                         </div>
 
-                        <h2 style={{ fontWeight: 600, fontSize: 15, color: '#1e1e26', lineHeight: 1.3, marginBottom: 8 }}>
+                        <h2 style={{ fontWeight: 600, fontSize: 15, color: '#15131f', lineHeight: 1.3, marginBottom: 8 }}>
                           {selectedContact.subject || selectedContact.message.slice(0, 70) + '…'}
                         </h2>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 20px' }}>
-                          <span style={{ fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 12, color: '#6e6a7c', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <User style={{ width: 11, height: 11 }} />{selectedContact.name}
                           </span>
                           <a href={`mailto:${selectedContact.email}`} className="mono"
-                            style={{ fontSize: 11, color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#6366f1')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}>
+                            style={{ fontSize: 11, color: '#6e6a7c', display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#7357f6')}
+                            onMouseLeave={e => (e.currentTarget.style.color = '#6e6a7c')}>
                             <Mail style={{ width: 11, height: 11 }} />{selectedContact.email}
                           </a>
-                          <span className="mono" style={{ fontSize: 11, color: '#c0bdb8' }}>{timeAgo(selectedContact.createdAt)}</span>
+                          <span className="mono" style={{ fontSize: 11, color: '#6e6a7c' }}>{timeAgo(selectedContact.createdAt)}</span>
                         </div>
                       </div>
 
                       <Link href={`/contact/support/${selectedContact.id}`} target="_blank"
-                        style={{ padding: 7, borderRadius: 8, background: '#f5f4f1', border: '1px solid #e8e6e1', color: '#b0aea8', textDecoration: 'none', flexShrink: 0 }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#6366f1')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b0aea8')}
+                        style={{ padding: 7, borderRadius: 8, background: '#f3f1ec', border: '1px solid #f3f1ec', color: '#6e6a7c', textDecoration: 'none', flexShrink: 0 }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#7357f6')}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#6e6a7c')}
                         title="Vue utilisateur">
                         <ExternalLink style={{ width: 13, height: 13 }} />
                       </Link>
@@ -481,16 +481,16 @@ export default function ContactAdminPage() {
 
                     {/* Message initial */}
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 9, background: '#f5f4f1', border: '1px solid #e8e6e1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <User style={{ width: 13, height: 13, color: '#9ca3af' }} />
+                      <div style={{ width: 30, height: 30, borderRadius: 9, background: '#f3f1ec', border: '1px solid #f3f1ec', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <User style={{ width: 13, height: 13, color: '#6e6a7c' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 600, fontSize: 12, color: '#4b4b58' }}>{selectedContact.name}</span>
-                          <span className="mono" style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#f5f4f1', color: '#b0aea8' }}>initial</span>
-                          <span className="mono" style={{ fontSize: 10, color: '#c0bdb8' }}>{timeAgo(selectedContact.createdAt)}</span>
+                          <span style={{ fontWeight: 600, fontSize: 12, color: '#3a3747' }}>{selectedContact.name}</span>
+                          <span className="mono" style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#f3f1ec', color: '#6e6a7c' }}>initial</span>
+                          <span className="mono" style={{ fontSize: 10, color: '#6e6a7c' }}>{timeAgo(selectedContact.createdAt)}</span>
                         </div>
-                        <div style={{ borderRadius: '10px 10px 10px 2px', padding: '10px 14px', background: '#f9f8f6', border: '1px solid #ece9e4', fontSize: 13, color: '#4b4b58', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                        <div style={{ borderRadius: '10px 10px 10px 2px', padding: '10px 14px', background: '#f9f8f6', border: '1px solid #ece9e4', fontSize: 13, color: '#3a3747', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                           {selectedContact.message}
                         </div>
                       </div>
@@ -504,25 +504,25 @@ export default function ContactAdminPage() {
                           style={{ display: 'flex', gap: 10, flexDirection: isSupport ? 'row-reverse' : 'row' }}>
                           <div style={{
                             width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: isSupport ? '#6366f1' : '#f5f4f1',
-                            border: isSupport ? 'none' : '1px solid #e8e6e1',
+                            background: isSupport ? '#7357f6' : '#f3f1ec',
+                            border: isSupport ? 'none' : '1px solid #f3f1ec',
                           }}>
                             {isSupport
                               ? <ShieldCheck style={{ width: 13, height: 13, color: 'white' }} />
-                              : <User style={{ width: 13, height: 13, color: '#9ca3af' }} />}
+                              : <User style={{ width: 13, height: 13, color: '#6e6a7c' }} />}
                           </div>
                           <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', gap: 5, alignItems: isSupport ? 'flex-end' : 'flex-start' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexDirection: isSupport ? 'row-reverse' : 'row' }}>
-                              <span style={{ fontWeight: 600, fontSize: 12, color: isSupport ? '#6366f1' : '#4b4b58' }}>
+                              <span style={{ fontWeight: 600, fontSize: 12, color: isSupport ? '#7357f6' : '#3a3747' }}>
                                 {isSupport ? SUPPORT_NAME : r.name}
                               </span>
-                              <span className="mono" style={{ fontSize: 10, color: '#c0bdb8' }}>{fmtDateTime(r.createdAt)}</span>
+                              <span className="mono" style={{ fontSize: 10, color: '#6e6a7c' }}>{fmtDateTime(r.createdAt)}</span>
                             </div>
                             <div style={{
                               padding: '10px 14px', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                               borderRadius: isSupport ? '10px 2px 10px 10px' : '2px 10px 10px 10px',
-                              background: isSupport ? '#6366f1' : '#f9f8f6',
-                              color: isSupport ? '#ffffff' : '#4b4b58',
+                              background: isSupport ? '#7357f6' : '#f9f8f6',
+                              color: isSupport ? '#ffffff' : '#3a3747',
                               border: isSupport ? 'none' : '1px solid #ece9e4',
                             }}>
                               {r.message}
@@ -534,13 +534,13 @@ export default function ContactAdminPage() {
                   </div>
 
                   {/* Reply box */}
-                  <div style={{ padding: '14px 20px', borderTop: '1px solid #f0ede8', flexShrink: 0 }}>
+                  <div style={{ padding: '14px 20px', borderTop: '1px solid #f3f1ec', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, background: '#7357f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <ShieldCheck style={{ width: 11, height: 11, color: 'white' }} />
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#6366f1' }}>{SUPPORT_NAME}</span>
-                      <span className="mono" style={{ fontSize: 10, color: '#c0bdb8', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#7357f6' }}>{SUPPORT_NAME}</span>
+                      <span className="mono" style={{ fontSize: 10, color: '#6e6a7c', marginLeft: 'auto' }}>
                         {(answers[selectedContact.id] ?? '').length} car. · ⌘↵ envoyer
                       </span>
                     </div>
@@ -550,15 +550,15 @@ export default function ContactAdminPage() {
                       onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(selectedContact); }}
                       rows={3}
                       placeholder="Rédigez votre réponse…"
-                      style={{ width: '100%', borderRadius: 10, padding: '10px 14px', fontSize: 13, background: '#f9f8f6', border: '1px solid #e8e6e1', color: '#1e1e26', outline: 'none', resize: 'none', lineHeight: 1.5 }}
-                      onFocus={e => (e.target.style.borderColor = '#6366f1')}
-                      onBlur={e => (e.target.style.borderColor = '#e8e6e1')}
+                      style={{ width: '100%', borderRadius: 10, padding: '10px 14px', fontSize: 13, background: '#f9f8f6', border: '1px solid #f3f1ec', color: '#15131f', outline: 'none', resize: 'none', lineHeight: 1.5 }}
+                      onFocus={e => (e.target.style.borderColor = '#7357f6')}
+                      onBlur={e => (e.target.style.borderColor = '#f3f1ec')}
                     />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 10 }}>
                       <a href={`mailto:${selectedContact.email}`}
-                        style={{ fontSize: 12, color: '#b0aea8', display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#6366f1')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#b0aea8')}>
+                        style={{ fontSize: 12, color: '#6e6a7c', display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none' }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#7357f6')}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#6e6a7c')}>
                         <Mail style={{ width: 13, height: 13 }} /> Email direct
                       </a>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -567,8 +567,8 @@ export default function ContactAdminPage() {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10,
                           fontSize: 13, fontWeight: 600, border: 'none', cursor: answers[selectedContact.id]?.trim() ? 'pointer' : 'not-allowed',
-                          background: answers[selectedContact.id]?.trim() ? '#6366f1' : '#f0ede8',
-                          color: answers[selectedContact.id]?.trim() ? '#ffffff' : '#c0bdb8',
+                          background: answers[selectedContact.id]?.trim() ? '#7357f6' : '#f3f1ec',
+                          color: answers[selectedContact.id]?.trim() ? '#ffffff' : '#6e6a7c',
                           transition: 'all 0.12s',
                         }}>
                         {sending === selectedContact.id

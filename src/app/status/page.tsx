@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, RefreshCw, CheckCircle, AlertCircle, XCircle, Clock, Activity } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertCircle, XCircle, Clock, Activity } from 'lucide-react';
 import { db, storage, auth } from '@/lib/firebase';
 import {
   collection, getDocs, query, limit, getCountFromServer,
@@ -232,26 +231,11 @@ export default function StatusPage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+      <style>{`
         .mono { font-family: 'Geist Mono', 'Fira Code', monospace; }
       `}</style>
 
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-
-        {/* ── Navbar ── */}
-        <nav className="bg-white border-b border-slate-100 sticky top-16 z-40">
-          <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Image src="/images/logo.png" alt="Woppy" width={26} height={26} className="rounded-xl" />
-              <span className="font-bold text-base text-violet-600" style={{ fontFamily: 'Sora, system-ui' }}>woppy</span>
-              <span className="text-slate-300 mx-1">/</span>
-              <span className="text-sm font-semibold text-slate-500">status</span>
-            </Link>
-            <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors font-medium">
-              <ArrowLeft size={14} /> Accueil
-            </Link>
-          </div>
-        </nav>
+      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
 
         <div className="max-w-4xl mx-auto px-6 py-10">
 
@@ -267,7 +251,7 @@ export default function StatusPage() {
                 {gStatus === 'checking'    && <Clock       size={20} style={{ color: gCfg.dot }} />}
               </div>
               <div>
-                <h1 className="font-bold text-base" style={{ color: gCfg.text, fontFamily: 'Sora, system-ui' }}>
+                <h1 className="font-bold text-base" style={{ color: gCfg.text, fontFamily: 'var(--font-bricolage), system-ui' }}>
                   {globalMessages[gStatus]}
                 </h1>
                 <p className="text-xs mt-0.5" style={{ color: gCfg.text, opacity: 0.7 }}>
@@ -277,7 +261,7 @@ export default function StatusPage() {
               </div>
             </div>
             <button onClick={runChecks} disabled={running}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:border-violet-300 hover:text-violet-600 transition-all disabled:opacity-50">
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-line rounded-xl text-sm font-semibold text-ink-2 hover:border-brand/50 hover:text-brand transition-all disabled:opacity-50">
               <RefreshCw size={14} className={running ? 'animate-spin' : ''} />
               {running ? 'En cours…' : 'Relancer'}
             </button>
@@ -286,9 +270,9 @@ export default function StatusPage() {
           {/* ── Groups ── */}
           <div className="space-y-5">
             {groups.map(group => (
-              <div key={group.name} className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">{group.name}</h2>
+              <div key={group.name} className="bg-white rounded-2xl border border-line overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+                  <h2 className="text-xs font-bold text-muted uppercase tracking-widest">{group.name}</h2>
                   <div className="flex items-center gap-1.5">
                     {group.checks.map(c => (
                       <div key={c.id} className="w-2 h-2 rounded-full transition-colors"
@@ -298,11 +282,11 @@ export default function StatusPage() {
                   </div>
                 </div>
 
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-line">
                   {group.checks.map(check => {
                     const cfg = statusColor(check.status);
                     return (
-                      <div key={check.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition-colors">
+                      <div key={check.id} className="flex items-center justify-between px-6 py-4 hover:bg-paper-2/50 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
                           {/* Status dot animé pour "checking" */}
                           <div className="relative shrink-0">
@@ -312,8 +296,8 @@ export default function StatusPage() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">{check.name}</p>
-                            <p className="text-xs text-slate-400 truncate">
+                            <p className="text-sm font-semibold text-ink truncate">{check.name}</p>
+                            <p className="text-xs text-muted truncate">
                               {check.detail || check.description}
                             </p>
                           </div>
@@ -321,7 +305,7 @@ export default function StatusPage() {
 
                         <div className="flex items-center gap-3 shrink-0 ml-4">
                           {check.latency !== undefined && (
-                            <span className="mono text-[11px] text-slate-400">
+                            <span className="mono text-[11px] text-muted">
                               {check.latency} ms
                             </span>
                           )}
@@ -339,10 +323,10 @@ export default function StatusPage() {
           </div>
 
           {/* ── Uptime fake bars ── */}
-          <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
+          <div className="mt-6 bg-white rounded-2xl border border-line p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Disponibilité — 90 derniers jours</h2>
-              <span className="mono text-xs text-slate-400">99.8 %</span>
+              <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Disponibilité — 90 derniers jours</h2>
+              <span className="mono text-xs text-muted">99.8 %</span>
             </div>
             <div className="flex gap-0.5">
               {Array.from({ length: 90 }).map((_, i) => {
@@ -361,22 +345,22 @@ export default function StatusPage() {
               })}
             </div>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-slate-400">Il y a 90 jours</span>
-              <div className="flex items-center gap-4 text-[10px] text-slate-400">
+              <span className="text-[10px] text-muted">Il y a 90 jours</span>
+              <div className="flex items-center gap-4 text-[10px] text-muted">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-300 inline-block" /> Opérationnel</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-200 inline-block" /> Dégradé</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-300 inline-block" /> Incident</span>
               </div>
-              <span className="text-[10px] text-slate-400">Aujourd'hui</span>
+              <span className="text-[10px] text-muted">Aujourd'hui</span>
             </div>
           </div>
 
           {/* ── Footer ── */}
-          <div className="mt-6 flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-6 flex items-center justify-between text-xs text-muted">
             <span>Woppy Status · Louvain-la-Neuve, Belgique</span>
             <div className="flex gap-4">
-              <Link href="/terms" className="hover:text-violet-600 transition-colors">CGU</Link>
-              <Link href="/privacy" className="hover:text-violet-600 transition-colors">Confidentialité</Link>
+              <Link href="/terms" className="hover:text-brand transition-colors">CGU</Link>
+              <Link href="/privacy" className="hover:text-brand transition-colors">Confidentialité</Link>
             </div>
           </div>
         </div>

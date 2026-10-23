@@ -11,13 +11,13 @@ export const metadata: Metadata = {
     "L'histoire de Woppy : une plateforme de jobs étudiants pensée en Belgique, reprise et développée par son créateur, à l'écoute des étudiants.",
 };
 
-const VIOLET = '#8a6bfe';
+const VIOLET = '#7357f6';
 
 const working = [
   'Publication d\'annonces et candidatures en un clic',
   'Messagerie en temps réel entre étudiants et particuliers',
   'Notifications push pour ne rater aucune mission',
-  'Profils étudiants vérifiés manuellement',
+  'Profils étudiants publics : études, expériences, avis reçus',
   'Système d\'avis et de notation publics',
   'Carte des missions autour de chez toi',
 ];
@@ -25,6 +25,7 @@ const working = [
 const coming = [
   'Application Android disponible publiquement sur le Play Store',
   'Paiement intégré et sécurisé, dès que la structure juridique sera en place',
+  'Vérification manuelle des cartes étudiantes',
   'Lancement ville par ville, avec des étudiants ambassadeurs',
   'Les fonctionnalités que vous me demanderez (oui, vraiment)',
 ];
@@ -48,7 +49,7 @@ const commitments = [
   {
     icon: ShieldCheck,
     title: 'La confiance des deux côtés',
-    desc: 'Les étudiants sont vérifiés manuellement, les avis sont modérés et seules les missions réellement terminées peuvent être évaluées. Un particulier doit pouvoir faire confiance, un étudiant doit être respecté.',
+    desc: 'Les profils et les avis sont publics, les avis sont modérés et seules les missions réellement terminées peuvent être évaluées. Un particulier doit pouvoir faire confiance, un étudiant doit être respecté.',
   },
   {
     icon: Lock,
@@ -59,11 +60,11 @@ const commitments = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen" style={{ background: '#f9f8f5' }}>
+    <main className="min-h-screen" style={{ background: '#fbfaf7' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        
         .about-root, .about-root * { font-family: 'DM Sans', system-ui, sans-serif; }
-        .about-root h1, .about-root h2, .about-root h3, .about-root .font-sora { font-family: 'Sora', system-ui, sans-serif; }
+        .about-root h1, .about-root h2, .about-root h3, .about-root .font-sora { font-family: var(--font-bricolage),system-ui, sans-serif; }
       `}</style>
 
       <div className="about-root">
@@ -76,11 +77,11 @@ export default function AboutPage() {
             >
               <Sparkles size={14} /> À propos de Woppy
             </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-5">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-ink leading-tight tracking-tight mb-5">
               Une plateforme pensée pour les étudiants,
               <span style={{ color: VIOLET }}> construite à leur écoute.</span>
             </h1>
-            <p className="text-lg text-slate-500 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-lg text-muted leading-relaxed max-w-2xl mx-auto">
               Woppy met en relation des étudiants à la recherche de petits jobs flexibles avec des
               particuliers qui ont besoin d&apos;un coup de main, près de chez eux. Voici comment
               le projet est né, pourquoi il continue, et ce que je m&apos;engage à faire.
@@ -90,14 +91,14 @@ export default function AboutPage() {
 
         <div className="max-w-3xl mx-auto px-5 pb-24 space-y-6">
           {/* ── Origine ── */}
-          <article className="bg-white border border-slate-200/70 rounded-2xl p-7 md:p-9">
+          <article className="bg-white border border-line/70 rounded-2xl p-7 md:p-9">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(138,107,254,0.1)' }}>
                 <Code2 size={20} style={{ color: VIOLET }} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">D&apos;où vient Woppy</h2>
+              <h2 className="text-2xl font-bold text-ink">D&apos;où vient Woppy</h2>
             </div>
-            <div className="space-y-4 text-slate-600 leading-relaxed">
+            <div className="space-y-4 text-ink-2 leading-relaxed">
               <p>
                 Au départ, Woppy était un projet développé pour un client : un porteur d&apos;idée
                 qui voulait créer une plateforme simple pour connecter les étudiants et les
@@ -113,14 +114,14 @@ export default function AboutPage() {
           </article>
 
           {/* ── Reprise ── */}
-          <article className="bg-white border border-slate-200/70 rounded-2xl p-7 md:p-9">
+          <article className="bg-white border border-line/70 rounded-2xl p-7 md:p-9">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(138,107,254,0.1)' }}>
                 <RotateCcw size={20} style={{ color: VIOLET }} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">Pourquoi je reprends les rênes</h2>
+              <h2 className="text-2xl font-bold text-ink">Pourquoi je reprends les rênes</h2>
             </div>
-            <div className="space-y-4 text-slate-600 leading-relaxed">
+            <div className="space-y-4 text-ink-2 leading-relaxed">
               <p>
                 Avec le temps, je n&apos;ai plus eu aucun retour de la part du client à l&apos;origine
                 du projet. Pendant ce temps, Woppy, lui, tournait : de vraies missions ont été
@@ -132,7 +133,7 @@ export default function AboutPage() {
                 le projet en main et de le porter moi-même.
               </p>
               <p>
-                Ma ligne directrice est simple : faire avancer Woppy <strong className="text-slate-900">dans le bon sens</strong>,
+                Ma ligne directrice est simple : faire avancer Woppy <strong className="text-ink">dans le bon sens</strong>,
                 pas le plus vite possible, et toujours en partant de ce dont les étudiants ont
                 réellement besoin.
               </p>
@@ -140,9 +141,9 @@ export default function AboutPage() {
           </article>
 
           {/* ── État actuel ── */}
-          <article className="bg-white border border-slate-200/70 rounded-2xl p-7 md:p-9">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Où en est Woppy, honnêtement</h2>
-            <p className="text-slate-500 mb-7 leading-relaxed">
+          <article className="bg-white border border-line/70 rounded-2xl p-7 md:p-9">
+            <h2 className="text-2xl font-bold text-ink mb-2">Où en est Woppy, honnêtement</h2>
+            <p className="text-muted mb-7 leading-relaxed">
               Pas de promesses en l&apos;air : voici ce qui fonctionne déjà et ce qui arrive.
             </p>
             <div className="grid md:grid-cols-2 gap-5">
@@ -152,7 +153,7 @@ export default function AboutPage() {
                 </p>
                 <ul className="space-y-2.5">
                   {working.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                    <li key={item} className="flex items-start gap-2 text-sm text-ink-2">
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                       {item}
                     </li>
@@ -165,7 +166,7 @@ export default function AboutPage() {
                 </p>
                 <ul className="space-y-2.5">
                   {coming.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                    <li key={item} className="flex items-start gap-2 text-sm text-ink-2">
                       <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: VIOLET }} />
                       {item}
                     </li>
@@ -173,7 +174,7 @@ export default function AboutPage() {
                 </ul>
               </div>
             </div>
-            <p className="mt-6 text-sm text-slate-500 leading-relaxed">
+            <p className="mt-6 text-sm text-muted leading-relaxed">
               Pendant la phase de lancement, l&apos;utilisation de Woppy est gratuite et le paiement
               de chaque mission se fait directement entre le particulier et l&apos;étudiant, une fois
               la mission terminée.
@@ -182,33 +183,33 @@ export default function AboutPage() {
 
           {/* ── Engagements ── */}
           <section className="pt-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-ink mb-2 text-center">
               Mes engagements envers les étudiants
             </h2>
-            <p className="text-slate-500 text-center mb-8 max-w-xl mx-auto">
+            <p className="text-muted text-center mb-8 max-w-xl mx-auto">
               Ce sont les règles que je me fixe pour chaque décision prise sur Woppy.
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               {commitments.map(({ icon: Icon, title, desc }, i) => (
                 <div
                   key={title}
-                  className={`bg-white border border-slate-200/70 rounded-2xl p-6 ${i === commitments.length - 1 ? 'sm:col-span-2' : ''}`}
+                  className={`bg-white border border-line/70 rounded-2xl p-6 ${i === commitments.length - 1 ? 'sm:col-span-2' : ''}`}
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(138,107,254,0.1)' }}>
                     <Icon size={18} style={{ color: VIOLET }} />
                   </div>
-                  <h3 className="font-bold text-slate-900 mb-2">{title}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{desc}</p>
+                  <h3 className="font-bold text-ink mb-2">{title}</h3>
+                  <p className="text-sm text-ink-2 leading-relaxed">{desc}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 text-center mt-5">
+            <p className="text-xs text-muted text-center mt-5">
               Pour vérifier ta situation de job étudiant (heures restantes, impact fiscal) :{' '}
               <a
                 href="https://www.studentatwork.be/fr/quota-heures-et-impact.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:text-violet-600"
+                className="underline hover:text-brand"
               >
                 Student@Work
               </a>
@@ -217,7 +218,7 @@ export default function AboutPage() {
           </section>
 
           {/* ── Mot du fondateur + CTA ── */}
-          <section className="rounded-2xl p-8 md:p-10 text-white" style={{ background: 'linear-gradient(135deg, #8a6bfe 0%, #6a4fe0 100%)' }}>
+          <section className="rounded-2xl p-8 md:p-10 text-white" style={{ background: 'linear-gradient(135deg, #7357f6 0%, #6a4fe0 100%)' }}>
             <Heart size={22} className="mb-4 opacity-90" />
             <h2 className="text-2xl md:text-3xl font-bold mb-4">Ta voix compte vraiment</h2>
             <p className="leading-relaxed text-white/90 mb-3">
@@ -232,7 +233,7 @@ export default function AboutPage() {
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 bg-white font-semibold px-6 py-3 rounded-2xl hover:bg-violet-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white font-semibold px-6 py-3 rounded-2xl hover:bg-brand-soft transition-colors"
                 style={{ color: '#6a4fe0' }}
               >
                 <MessageCircle size={17} /> Donner mon avis

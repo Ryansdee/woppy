@@ -116,7 +116,7 @@ export default function ApplicationsDashboardPage() {
                 className={`rounded-2xl p-4 text-center border transition-all duration-150
                   ${filterStatus === s.key
                     ? `${s.activeBg} border-transparent shadow-md`
-                    : "bg-white border-stone-200 hover:border-brand/30 hover:shadow-sm"
+                    : "bg-white border-line hover:border-brand/30 hover:shadow-sm"
                   }`}
               >
                 <p className={`font-[var(--font-bricolage),system-ui] font-bold text-2xl
@@ -135,7 +135,7 @@ export default function ApplicationsDashboardPage() {
         <div className="max-w-[960px] mx-auto px-5 pb-20 space-y-4">
 
           {/* ── Search bar ── */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-4">
+          <div className="bg-white border border-line rounded-2xl p-4">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
@@ -143,7 +143,7 @@ export default function ApplicationsDashboardPage() {
                 placeholder="Rechercher par nom ou email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm text-ink-2 placeholder:text-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-all"
+                className="w-full pl-10 pr-10 py-2.5 bg-paper-2 border border-line rounded-xl text-sm text-ink-2 placeholder:text-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-all"
               />
               {searchTerm && (
                 <button
@@ -162,7 +162,7 @@ export default function ApplicationsDashboardPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-2 mt-3 pt-3 border-t border-stone-100 flex-wrap"
+                  className="flex items-center gap-2 mt-3 pt-3 border-t border-line flex-wrap"
                 >
                   <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
                   <span className="text-[12px] text-muted">Filtres actifs :</span>
@@ -176,7 +176,7 @@ export default function ApplicationsDashboardPage() {
                     </span>
                   )}
                   {searchTerm && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-muted border border-stone-200">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-paper-2 text-muted border border-line">
                       "{searchTerm}"
                       <button onClick={() => setSearchTerm("")}>
                         <X className="w-3 h-3" />
@@ -199,7 +199,7 @@ export default function ApplicationsDashboardPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-stone-200 rounded-2xl p-16 text-center"
+              className="bg-white border border-line rounded-2xl p-16 text-center"
             >
               <div className="w-14 h-14 bg-brand-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Inbox className="w-7 h-7 text-brand" />
@@ -236,7 +236,7 @@ export default function ApplicationsDashboardPage() {
                   >
                     <Link
                       href={`/dashboard/applications/${app.id}`}
-                      className="group block bg-white border border-stone-200 rounded-2xl p-5 hover:border-brand/30 hover:shadow-[0_2px_20px_rgba(138,107,254,0.08)] transition-all duration-150 no-underline"
+                      className="group block bg-white border border-line rounded-2xl p-5 hover:border-brand/30 hover:shadow-[0_2px_20px_rgba(138,107,254,0.08)] transition-all duration-150 no-underline"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
 
@@ -304,7 +304,7 @@ export default function ApplicationsDashboardPage() {
 
           {/* Footer count */}
           {filtered.length > 0 && (
-            <p className="text-center text-[12px] text-stone-300 pt-2">
+            <p className="text-center text-[12px] text-muted pt-2">
               {filtered.length} candidature{filtered.length > 1 ? "s" : ""} affichée{filtered.length > 1 ? "s" : ""} sur {applications.length}
             </p>
           )}

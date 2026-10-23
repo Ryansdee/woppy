@@ -13,14 +13,14 @@ export default function DemoPage() {
 
 
       {/* Hero Section */}
-      <section className="pt-20 pb-12 px-4 sm:px-6 bg-gradient-to-br from-[#f5e5ff] to-white">
+      <section className="pt-20 pb-12 px-4 sm:px-6 bg-gradient-to-br from-[#fbfaf7] to-white">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-6">
-            <Play className="text-[#8a6bfe]" size={20} />
-            <span className="text-sm font-medium text-gray-700">Démo interactive</span>
+            <Play className="text-[#7357f6]" size={20} />
+            <span className="text-sm font-medium text-ink-2">Démo interactive</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Découvrez Woppy en action</h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-ink-2 mb-8 max-w-3xl mx-auto">
             Explorez toutes les fonctionnalités de la plateforme à travers cette démo interactive. 
             Voyez comment Woppy simplifie la mise en relation entre étudiants et employeurs.
           </p>
@@ -32,7 +32,7 @@ export default function DemoPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4">Choisissez votre profil</h2>
-            <p className="text-gray-600 text-sm sm:text-base">
+            <p className="text-ink-2 text-sm sm:text-base">
               Explorez Woppy selon votre perspective
             </p>
           </div>
@@ -42,34 +42,34 @@ export default function DemoPage() {
               onClick={() => setActiveTab('employer')}
               className={`p-8 rounded-2xl border-2 transition-all ${
                 activeTab === 'employer'
-                  ? 'border-[#8a6bfe] bg-[#f5e5ff] shadow-lg'
-                  : 'border-gray-200 hover:border-[#8a6bfe]/50'
+                  ? 'border-[#7357f6] bg-[#fbfaf7] shadow-lg'
+                  : 'border-line hover:border-[#7357f6]/50'
               }`}
             >
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
-                activeTab === 'employer' ? 'bg-[#8a6bfe]' : 'bg-gray-100'
+                activeTab === 'employer' ? 'bg-[#7357f6]' : 'bg-paper-2'
               }`}>
-                <Briefcase className={activeTab === 'employer' ? 'text-white' : 'text-gray-400'} size={32} />
+                <Briefcase className={activeTab === 'employer' ? 'text-white' : 'text-muted'} size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-2">Je cherche de l'aide</h3>
-              <p className="text-gray-600">Vous êtes un particulier ou une entreprise qui cherche un étudiant</p>
+              <p className="text-ink-2">Vous êtes un particulier ou une entreprise qui cherche un étudiant</p>
             </button>
 
             <button
               onClick={() => setActiveTab('student')}
               className={`p-8 rounded-2xl border-2 transition-all ${
                 activeTab === 'student'
-                  ? 'border-[#8a6bfe] bg-[#f5e5ff] shadow-lg'
-                  : 'border-gray-200 hover:border-[#8a6bfe]/50'
+                  ? 'border-[#7357f6] bg-[#fbfaf7] shadow-lg'
+                  : 'border-line hover:border-[#7357f6]/50'
               }`}
             >
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
-                activeTab === 'student' ? 'bg-[#8a6bfe]' : 'bg-gray-100'
+                activeTab === 'student' ? 'bg-[#7357f6]' : 'bg-paper-2'
               }`}>
-                <Users className={activeTab === 'student' ? 'text-white' : 'text-gray-400'} size={32} />
+                <Users className={activeTab === 'student' ? 'text-white' : 'text-muted'} size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-2">Je cherche un job</h3>
-              <p className="text-gray-600">Vous êtes un étudiant qui cherche des missions flexibles</p>
+              <p className="text-ink-2">Vous êtes un étudiant qui cherche des missions flexibles</p>
             </button>
           </div>
         </div>
@@ -77,11 +77,11 @@ export default function DemoPage() {
 
       {/* Démo pour Employeur */}
       {activeTab === 'employer' && (
-        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#f5e5ff]/30">
+        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#fbfaf7]/30">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Parcours Employeur</h2>
-              <p className="text-xl text-gray-600">Publiez une annonce et trouvez le candidat idéal en 4 étapes</p>
+              <p className="text-xl text-ink-2">Publiez une annonce et trouvez le candidat idéal en 4 étapes</p>
             </div>
 
             {/* Étapes */}
@@ -94,17 +94,17 @@ export default function DemoPage() {
                       onClick={() => setCurrentStep(step)}
                       className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition ${
                         currentStep === step
-                          ? 'bg-[#8a6bfe] text-white scale-110'
+                          ? 'bg-[#7357f6] text-white scale-110'
                           : currentStep > step
                           ? 'bg-green-500 text-white'
-                          : 'bg-gray-200 text-gray-500'
+                          : 'bg-line text-muted'
                       }`}
                     >
                       {currentStep > step ? <Check size={24} /> : step}
                     </button>
                     {step < 4 && (
                       <div className={`w-16 md:w-32 h-1 mx-2 ${
-                        currentStep > step ? 'bg-green-500' : 'bg-gray-200'
+                        currentStep > step ? 'bg-green-500' : 'bg-line'
                       }`} />
                     )}
                   </div>
@@ -114,14 +114,14 @@ export default function DemoPage() {
 
               {/* Étape 1 : Créer une annonce */}
               {currentStep === 1 && (
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
                   <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div>
-                      <div className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
+                      <div className="bg-[#7357f6] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
                         Étape 1
                       </div>
                       <h3 className="text-3xl font-bold mb-4">Créez votre annonce</h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-2 mb-6">
                         Décrivez votre besoin en quelques clics : titre, description, localisation, rémunération et durée. 
                         Simple et rapide, sans formulaire compliqué.
                       </p>
@@ -141,7 +141,7 @@ export default function DemoPage() {
                       </ul>
                       <button 
                         onClick={() => setCurrentStep(2)}
-                        className="mt-6 bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
+                        className="mt-6 bg-gradient-to-r from-[#7357f6] to-[#a996fa] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
                       >
                         Étape suivante
                         <ArrowRight size={20} />
@@ -149,7 +149,7 @@ export default function DemoPage() {
                     </div>
                     <div>
                       {/* Mockup formulaire */}
-                      <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                      <div className="bg-paper-2 rounded-xl p-6 border-2 border-line">
                         <h4 className="font-bold mb-4 text-lg">Nouvelle annonce</h4>
                         <div className="space-y-4">
                           <div>
@@ -158,7 +158,7 @@ export default function DemoPage() {
                               type="text" 
                               value="Aide au déménagement de meubles"
                               readOnly
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                              className="w-full px-4 py-2 border border-line rounded-lg bg-white"
                             />
                           </div>
                           <div>
@@ -167,7 +167,7 @@ export default function DemoPage() {
                               value="Besoin d'aide pour déplacer des meubles..."
                               readOnly
                               rows={3}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                              className="w-full px-4 py-2 border border-line rounded-lg bg-white"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-3">
@@ -177,7 +177,7 @@ export default function DemoPage() {
                                 type="text" 
                                 value="Louvain-la-Neuve"
                                 readOnly
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                                className="w-full px-4 py-2 border border-line rounded-lg bg-white"
                               />
                             </div>
                             <div>
@@ -186,11 +186,11 @@ export default function DemoPage() {
                                 type="text" 
                                 value="12€"
                                 readOnly
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                                className="w-full px-4 py-2 border border-line rounded-lg bg-white"
                               />
                             </div>
                           </div>
-                          <button className="w-full bg-[#8a6bfe] text-white py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed">
+                          <button className="w-full bg-[#7357f6] text-white py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed">
                             Publier l'annonce
                           </button>
                         </div>
@@ -202,14 +202,14 @@ export default function DemoPage() {
 
               {/* Étape 2 : Recevoir des candidatures */}
               {currentStep === 2 && (
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
                   <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div>
-                      <div className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
+                      <div className="bg-[#7357f6] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
                         Étape 2
                       </div>
                       <h3 className="text-3xl font-bold mb-4">Recevez des candidatures</h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-2 mb-6">
                         Les étudiants intéressés postulent à votre annonce. Vous recevez une notification 
                         et pouvez consulter leur profil complet : expériences, notes, avis.
                       </p>
@@ -230,13 +230,13 @@ export default function DemoPage() {
                       <div className="flex gap-3 mt-6">
                         <button 
                           onClick={() => setCurrentStep(1)}
-                          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                          className="bg-paper-2 text-ink-2 px-6 py-3 rounded-xl font-semibold hover:bg-line transition"
                         >
                           Retour
                         </button>
                         <button 
                           onClick={() => setCurrentStep(3)}
-                          className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
+                          className="bg-gradient-to-r from-[#7357f6] to-[#a996fa] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
                         >
                           Étape suivante
                           <ArrowRight size={20} />
@@ -245,10 +245,10 @@ export default function DemoPage() {
                     </div>
                     <div>
                       {/* Mockup candidatures */}
-                      <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                      <div className="bg-paper-2 rounded-xl p-6 border-2 border-line">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-bold text-lg">Candidatures (3)</h4>
-                          <span className="bg-[#8a6bfe] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-[#7357f6] text-white px-3 py-1 rounded-full text-sm font-semibold">
                             Nouvelles
                           </span>
                         </div>
@@ -258,12 +258,12 @@ export default function DemoPage() {
                             { name: 'Marc Dubois', note: '4.7', missions: '15' },
                             { name: 'Emma Martin', note: '5.0', missions: '31' }
                           ].map((candidate, i) => (
-                            <div key={i} className="bg-white rounded-lg p-4 border border-gray-200 hover:border-[#8a6bfe] transition cursor-pointer">
+                            <div key={i} className="bg-white rounded-lg p-4 border border-line hover:border-[#7357f6] transition cursor-pointer">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-full"></div>
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#7357f6] to-[#a996fa] rounded-full"></div>
                                 <div className="flex-1">
                                   <p className="font-semibold">{candidate.name}</p>
-                                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                                  <div className="flex items-center gap-3 text-sm text-ink-2">
                                     <div className="flex items-center gap-1">
                                       <Star size={14} className="fill-yellow-400 text-yellow-400" />
                                       <span>{candidate.note}</span>
@@ -272,7 +272,7 @@ export default function DemoPage() {
                                     <span>{candidate.missions} missions</span>
                                   </div>
                                 </div>
-                                <button className="text-[#8a6bfe] font-semibold text-sm hover:underline">
+                                <button className="text-[#7357f6] font-semibold text-sm hover:underline">
                                   Voir profil
                                 </button>
                               </div>
@@ -287,14 +287,14 @@ export default function DemoPage() {
 
               {/* Étape 3 : Choisir et contacter */}
               {currentStep === 3 && (
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
                   <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div>
-                      <div className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
+                      <div className="bg-[#7357f6] text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
                         Étape 3
                       </div>
                       <h3 className="text-3xl font-bold mb-4">Choisissez et contactez</h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-2 mb-6">
                         Sélectionnez le candidat qui vous convient le mieux et contactez-le directement 
                         via la messagerie intégrée. Organisez les détails de la mission en toute simplicité.
                       </p>
@@ -315,13 +315,13 @@ export default function DemoPage() {
                       <div className="flex gap-3 mt-6">
                         <button 
                           onClick={() => setCurrentStep(2)}
-                          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                          className="bg-paper-2 text-ink-2 px-6 py-3 rounded-xl font-semibold hover:bg-line transition"
                         >
                           Retour
                         </button>
                         <button 
                           onClick={() => setCurrentStep(4)}
-                          className="bg-gradient-to-r from-[#8a6bfe] to-[#b89fff] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
+                          className="bg-gradient-to-r from-[#7357f6] to-[#a996fa] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition flex items-center gap-2"
                         >
                           Étape suivante
                           <ArrowRight size={20} />
@@ -330,35 +330,35 @@ export default function DemoPage() {
                     </div>
                     <div>
                       {/* Mockup messagerie */}
-                      <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                      <div className="bg-paper-2 rounded-xl p-6 border-2 border-line">
                         <div className="flex items-center gap-3 pb-4 border-b mb-4">
-                          <div className="w-10 h-10 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-full"></div>
+                          <div className="w-10 h-10 bg-gradient-to-br from-[#7357f6] to-[#a996fa] rounded-full"></div>
                           <div>
                             <p className="font-semibold">Sarah Johnson</p>
-                            <p className="text-xs text-gray-500">En ligne</p>
+                            <p className="text-xs text-muted">En ligne</p>
                           </div>
                         </div>
                         <div className="space-y-3 mb-4">
-                          <div className="bg-[#f5e5ff] rounded-lg p-3 ml-auto max-w-[80%]">
+                          <div className="bg-[#fbfaf7] rounded-lg p-3 ml-auto max-w-[80%]">
                             <p className="text-sm">Bonjour Sarah ! Votre profil m'intéresse 😊</p>
-                            <p className="text-xs text-gray-500 mt-1">14:23</p>
+                            <p className="text-xs text-muted mt-1">14:23</p>
                           </div>
-                          <div className="bg-white rounded-lg p-3 mr-auto max-w-[80%] border border-gray-200">
+                          <div className="bg-white rounded-lg p-3 mr-auto max-w-[80%] border border-line">
                             <p className="text-sm">Bonjour ! Je suis disponible samedi matin.</p>
-                            <p className="text-xs text-gray-500 mt-1">14:24</p>
+                            <p className="text-xs text-muted mt-1">14:24</p>
                           </div>
-                          <div className="bg-[#f5e5ff] rounded-lg p-3 ml-auto max-w-[80%]">
+                          <div className="bg-[#fbfaf7] rounded-lg p-3 ml-auto max-w-[80%]">
                             <p className="text-sm">Parfait ! On se retrouve à 9h ?</p>
-                            <p className="text-xs text-gray-500 mt-1">14:26</p>
+                            <p className="text-xs text-muted mt-1">14:26</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <input 
                             type="text" 
                             placeholder="Votre message..."
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                            className="flex-1 px-4 py-2 border border-line rounded-lg bg-white"
                           />
-                          <button className="bg-[#8a6bfe] text-white px-4 py-2 rounded-lg">
+                          <button className="bg-[#7357f6] text-white px-4 py-2 rounded-lg">
                             <MessageCircle size={20} />
                           </button>
                         </div>
@@ -370,14 +370,14 @@ export default function DemoPage() {
 
               {/* Étape 4 : Noter et valider */}
               {currentStep === 4 && (
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
                   <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div>
                       <div className="bg-green-500 text-white px-4 py-2 rounded-lg inline-block mb-4 font-semibold">
                         Étape 4
                       </div>
                       <h3 className="text-3xl font-bold mb-4">Validez et notez</h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-2 mb-6">
                         Une fois la mission terminée, validez-la et laissez une note et un avis. 
                         Cela aide la communauté à identifier les meilleurs prestataires.
                       </p>
@@ -398,7 +398,7 @@ export default function DemoPage() {
                       <div className="flex gap-3 mt-6">
                         <button 
                           onClick={() => setCurrentStep(3)}
-                          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                          className="bg-paper-2 text-ink-2 px-6 py-3 rounded-xl font-semibold hover:bg-line transition"
                         >
                           Retour
                         </button>
@@ -413,14 +413,14 @@ export default function DemoPage() {
                     </div>
                     <div>
                       {/* Mockup notation */}
-                      <div className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
+                      <div className="bg-paper-2 rounded-xl p-6 border-2 border-line">
                         <h4 className="font-bold text-lg mb-4">Mission terminée ✅</h4>
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+                        <div className="bg-white rounded-lg p-4 border border-line mb-4">
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-full"></div>
+                            <div className="w-12 h-12 bg-gradient-to-br from-[#7357f6] to-[#a996fa] rounded-full"></div>
                             <div>
                               <p className="font-semibold">Sarah Johnson</p>
-                              <p className="text-sm text-gray-500">Aide au déménagement</p>
+                              <p className="text-sm text-muted">Aide au déménagement</p>
                             </div>
                           </div>
                           <div className="mb-4">
@@ -440,14 +440,14 @@ export default function DemoPage() {
                             <textarea 
                               placeholder="Excellent travail, ponctuelle et efficace !"
                               rows={3}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                              className="w-full px-4 py-2 border border-line rounded-lg"
                             />
                           </div>
                           <button className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
                             Valider la mission
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 text-center">
+                        <p className="text-xs text-muted text-center">
                           Sarah recevra également une notification pour vous noter
                         </p>
                       </div>
@@ -462,26 +462,26 @@ export default function DemoPage() {
 
       {/* Démo pour Étudiant */}
       {activeTab === 'student' && (
-        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#f5e5ff]/30">
+        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#fbfaf7]/30">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Parcours Étudiant</h2>
-              <p className="text-xl text-gray-600">Trouvez des missions et gagnez de l'argent facilement</p>
+              <p className="text-xl text-ink-2">Trouvez des missions et gagnez de l'argent facilement</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               {/* Option 1 : Postuler aux annonces */}
-              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                <div className="bg-[#8a6bfe] text-white w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
+                <div className="bg-[#7357f6] text-white w-12 h-12 rounded-xl flex items-center justify-center mb-4">
                   <Eye size={24} />
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Option 1 : Parcourir les annonces</h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-ink-2 mb-6">
                   Consultez les annonces disponibles et postulez à celles qui vous intéressent.
                 </p>
                 
                 {/* Mockup liste d'annonces */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="bg-paper-2 rounded-xl p-4 mb-4">
                   <h4 className="font-semibold mb-3 text-sm">Annonces près de vous</h4>
                   <div className="space-y-2">
                     {[
@@ -489,13 +489,13 @@ export default function DemoPage() {
                       { title: 'Garde d\'enfants', lieu: 'Ottignies', prix: '10€/h' },
                       { title: 'Jardinage', lieu: 'Wavre', prix: '11€/h' }
                     ].map((job, i) => (
-                      <div key={i} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-[#8a6bfe] transition cursor-pointer">
+                      <div key={i} className="bg-white rounded-lg p-3 border border-line hover:border-[#7357f6] transition cursor-pointer">
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-semibold text-sm">{job.title}</p>
-                            <p className="text-xs text-gray-500">{job.lieu}</p>
+                            <p className="text-xs text-muted">{job.lieu}</p>
                           </div>
-                          <span className="text-[#8a6bfe] font-bold text-sm">{job.prix}</span>
+                          <span className="text-[#7357f6] font-bold text-sm">{job.prix}</span>
                         </div>
                       </div>
                     ))}
@@ -519,30 +519,30 @@ export default function DemoPage() {
               </div>
 
               {/* Option 2 : Se rendre disponible */}
-              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                <div className="bg-[#b89fff] text-white w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-line">
+                <div className="bg-[#a996fa] text-white w-12 h-12 rounded-xl flex items-center justify-center mb-4">
                   <MousePointer size={24} />
                 </div>
                 <h3 className="text-2xl font-bold mb-4">Option 2 : Me rendre disponible</h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-ink-2 mb-6">
                   Créez votre profil public et laissez les employeurs vous contacter directement.
                 </p>
                 
                 {/* Mockup profil public */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="bg-paper-2 rounded-xl p-4 mb-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-full"></div>
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#7357f6] to-[#a996fa] rounded-full"></div>
                     <div>
                       <p className="font-bold">Votre Profil</p>
                       <div className="flex items-center gap-1 text-sm">
                         <Star size={12} className="fill-yellow-400 text-yellow-400" />
                         <span className="font-semibold">4.9</span>
-                        <span className="text-gray-500">(23 avis)</span>
+                        <span className="text-muted">(23 avis)</span>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white rounded-lg p-3 mb-2">
-                    <p className="text-xs text-gray-600 mb-2">Disponibilités</p>
+                    <p className="text-xs text-ink-2 mb-2">Disponibilités</p>
                     <div className="flex gap-2">
                       <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">Soirs</span>
                       <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">Week-ends</span>
@@ -571,7 +571,7 @@ export default function DemoPage() {
             </div>
 
             {/* Avantages étudiant */}
-            <div className="bg-gradient-to-br from-[#8a6bfe] to-[#b89fff] rounded-2xl p-8 text-white text-center">
+            <div className="bg-gradient-to-br from-[#7357f6] to-[#a996fa] rounded-2xl p-8 text-white text-center">
               <h3 className="text-3xl font-bold mb-4">Pourquoi devenir prestataire Woppy ?</h3>
               <div className="grid md:grid-cols-3 gap-6 mt-8">
                 <div>
@@ -596,7 +596,7 @@ export default function DemoPage() {
       )}
 
       {/* CTA Final */}
-      <section className="py-20 px-6 bg-gradient-to-br from-[#8a6bfe] via-[#9b7bff] to-[#b89fff] text-white">
+      <section className="py-20 px-6 bg-gradient-to-br from-[#7357f6] via-[#9b7bff] to-[#a996fa] text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Convaincu ? Lancez-vous !
@@ -607,7 +607,7 @@ export default function DemoPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
               href="/auth/register" 
-              className="bg-white text-[#8a6bfe] px-10 py-5 rounded-xl font-bold text-xl hover:bg-gray-50 transition shadow-xl inline-flex items-center justify-center gap-2"
+              className="bg-white text-[#7357f6] px-10 py-5 rounded-xl font-bold text-xl hover:bg-paper-2 transition shadow-xl inline-flex items-center justify-center gap-2"
             >
               Créer mon compte
               <ArrowRight size={24} />
