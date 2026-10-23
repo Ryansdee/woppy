@@ -67,7 +67,7 @@ function SupportContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fbfaf7] via-white to-[#e8d5ff]/70 py-10 px-4 sm:px-6 text-ink">
+    <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-white to-[#e8d5ff]/70 py-10 px-4 sm:px-6 text-ink">
 
       <div className="max-w-xl mx-auto bg-white/80 backdrop-blur-xl shadow-xl border border-[#e5d5ff] rounded-3xl p-6 sm:p-8">
 
@@ -85,7 +85,7 @@ function SupportContent() {
 
         {/* Chat Summary */}
         {chatData && otherUser && (
-          <div className="mb-6 bg-[#fbfaf7]/40 border border-[#e5d5ff] rounded-2xl p-4">
+          <div className="mb-6 bg-[#ffffff]/40 border border-[#e5d5ff] rounded-2xl p-4">
             <h2 className="font-semibold text-ink text-lg mb-3 flex items-center gap-2">
               <MessageSquare size={18} /> Conversation concernée
             </h2>
@@ -123,7 +123,7 @@ function SupportContent() {
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
               placeholder="Ex : comportement inapproprié, spam, problème sur le job, etc."
-              className="mt-2 w-full border border-[#ddc2ff] bg-[#fbfaf7]/30 rounded-2xl p-4 focus:ring-2 focus:ring-[#7357f6] outline-none resize-none"
+              className="mt-2 w-full border border-[#ddc2ff] bg-[#ffffff]/30 rounded-2xl p-4 focus:ring-2 focus:ring-[#7357f6] outline-none resize-none"
             />
           </div>
 

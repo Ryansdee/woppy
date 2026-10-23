@@ -32,7 +32,7 @@ function formatDescription(text: string): React.ReactNode[] {
         {bulletBuffer.map((b, i) => (
           <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 7 }}>
             <span style={{ marginTop: 7, width: 5, height: 5, borderRadius: "50%", background: "#7357f6", flexShrink: 0 }} />
-            <span style={{ fontSize: 15, color: "#3a3747", lineHeight: 1.65 }}>{b}</span>
+            <span style={{ fontSize: 15, color: "#3d3d48", lineHeight: 1.65 }}>{b}</span>
           </li>
         ))}
       </ul>
@@ -83,7 +83,7 @@ function formatDescription(text: string): React.ReactNode[] {
           marginBottom: 10,
           marginTop: nodes.length > 0 ? 28 : 0,
           paddingBottom: 8,
-          borderBottom: "1px solid #efebff",
+          borderBottom: "1px solid #f1eeff",
         }}>
           {label}
         </h3>
@@ -96,10 +96,10 @@ function formatDescription(text: string): React.ReactNode[] {
     if (hasBold) {
       const parts = line.split(/(\*\*[^*]+\*\*|__[^_]+__)/);
       nodes.push(
-        <p key={idx} style={{ fontSize: 15, color: "#3a3747", lineHeight: 1.7, marginBottom: 12 }}>
+        <p key={idx} style={{ fontSize: 15, color: "#3d3d48", lineHeight: 1.7, marginBottom: 12 }}>
           {parts.map((p, i) => {
             const m = p.match(/^\*\*(.+)\*\*$/) || p.match(/^__(.+)__$/);
-            return m ? <strong key={i} style={{ color: "#15131f", fontWeight: 700 }}>{m[1]}</strong> : p;
+            return m ? <strong key={i} style={{ color: "#111118", fontWeight: 700 }}>{m[1]}</strong> : p;
           })}
         </p>
       );
@@ -107,7 +107,7 @@ function formatDescription(text: string): React.ReactNode[] {
     }
 
     nodes.push(
-      <p key={idx} style={{ fontSize: 15, color: "#3a3747", lineHeight: 1.75, marginBottom: 12 }}>
+      <p key={idx} style={{ fontSize: 15, color: "#3d3d48", lineHeight: 1.75, marginBottom: 12 }}>
         {line}
       </p>
     );
@@ -122,10 +122,10 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 14px",
   borderRadius: 10,
-  border: "1px solid #e7e3ec",
-  background: "#fbfaf7",
+  border: "1px solid #e6e6eb",
+  background: "#ffffff",
   fontSize: 14,
-  color: "#15131f",
+  color: "#111118",
   outline: "none",
   transition: "border-color 0.15s",
   fontFamily: "'DM Sans', system-ui",
@@ -136,7 +136,7 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.07em",
-  color: "#6e6a7c",
+  color: "#6b6b78",
   marginBottom: 7,
 };
 
@@ -205,10 +205,10 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
 
   /* ── Loading ── */
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fbfaf7" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 36, height: 36, border: "3px solid #e7e3ec", borderTopColor: "#7357f6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-        <p style={{ fontSize: 13, color: "#6e6a7c", fontFamily: "'DM Sans',system-ui" }}>Chargement…</p>
+        <div style={{ width: 36, height: 36, border: "3px solid #e6e6eb", borderTopColor: "#7357f6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+        <p style={{ fontSize: 13, color: "#6b6b78", fontFamily: "'DM Sans',system-ui" }}>Chargement…</p>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>
@@ -216,13 +216,13 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
 
   /* ── Not found ── */
   if (!job) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fbfaf7", padding: 24 }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#ffffff", padding: 24 }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ width: 56, height: 56, borderRadius: 16, background: "#fff0f0", border: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <AlertCircle style={{ width: 22, height: 22, color: "#ef4444" }} />
         </div>
-        <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 20, color: "#15131f", marginBottom: 8 }}>Offre introuvable</h2>
-        <p style={{ fontSize: 14, color: "#6e6a7c" }}>Cette offre n'existe pas ou a été supprimée.</p>
+        <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 20, color: "#111118", marginBottom: 8 }}>Offre introuvable</h2>
+        <p style={{ fontSize: 14, color: "#6b6b78" }}>Cette offre n'existe pas ou a été supprimée.</p>
         <Link href="/careers" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 20, fontSize: 13, fontWeight: 600, color: "#7357f6", textDecoration: "none" }}>
           <ArrowLeft style={{ width: 13, height: 13 }} /> Retour aux offres
         </Link>
@@ -235,14 +235,14 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
     "CDD": { bg: "#f0fdf4", text: "#15803d" }, "Temps partiel": { bg: "#f0fdf4", text: "#15803d" },
     "Stage": { bg: "#fff7ed", text: "#c2410c" }, "Freelance": { bg: "#fdf4ff", text: "#9333ea" },
   };
-  const ts = TYPE_COLORS[job.type] ?? { bg: "#f3f1ec", text: "#6e6a7c" };
+  const ts = TYPE_COLORS[job.type] ?? { bg: "#f6f6f8", text: "#6b6b78" };
   const formatted = formatDescription(job.description ?? "");
 
   return (
     <>
       <style>{`
         
-        body { background: #fbfaf7 !important; margin: 0; }
+        body { background: #ffffff !important; margin: 0; }
         * { box-sizing: border-box; font-family: 'DM Sans', system-ui; }
         h1,h2,h3 { font-family: var(--font-bricolage),system-ui; }
         .apply-btn { transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
@@ -258,40 +258,40 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
         @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
 
-      <main style={{ minHeight: "100vh", background: "#fbfaf7" }}>
+      <main style={{ minHeight: "100vh", background: "#ffffff" }}>
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "40px 24px 80px" }}>
 
           {/* Back */}
           <Link href="/careers" className="back-link" style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 13, fontWeight: 600, color: "#6e6a7c",
+            fontSize: 13, fontWeight: 600, color: "#6b6b78",
             textDecoration: "none", marginBottom: 28,
           }}>
             <ArrowLeft style={{ width: 13, height: 13 }} /> Toutes les offres
           </Link>
 
           {/* ── Job header card ── */}
-          <div style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, padding: "28px 32px", marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "1px solid #f6f6f8", borderRadius: 20, padding: "28px 32px", marginBottom: 16 }}>
 
             {/* Type + location row */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: ts.bg, color: ts.text }}>
                 {job.type}
               </span>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#e7e3ec" }} />
-              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "#6e6a7c" }}>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#e6e6eb" }} />
+              <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "#6b6b78" }}>
                 <MapPin style={{ width: 12, height: 12 }} />{job.location}
               </span>
               {job.salary && (
                 <>
-                  <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#e7e3ec" }} />
-                  <span style={{ fontSize: 13, color: "#6e6a7c" }}>{job.salary}</span>
+                  <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#e6e6eb" }} />
+                  <span style={{ fontSize: 13, color: "#6b6b78" }}>{job.salary}</span>
                 </>
               )}
             </div>
 
             {/* Title */}
-            <h1 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: "clamp(1.6rem,4vw,2.2rem)", color: "#15131f", letterSpacing: "-0.025em", marginBottom: 24, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: "clamp(1.6rem,4vw,2.2rem)", color: "#111118", letterSpacing: "-0.025em", marginBottom: 24, lineHeight: 1.2 }}>
               {job.title}
             </h1>
 
@@ -306,19 +306,19 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
               }}>
                 <Send style={{ width: 14, height: 14 }} /> Postuler maintenant
               </button>
-              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6e6a7c" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6b6b78" }}>
                 <Clock style={{ width: 11, height: 11 }} /> Réponse sous 5 jours ouvrables
               </span>
             </div>
           </div>
 
           {/* ── Description card ── */}
-          <div style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, padding: "28px 32px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #f3f1ec" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "#efebff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#fff", border: "1px solid #f6f6f8", borderRadius: 20, padding: "28px 32px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #f6f6f8" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "#f1eeff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Briefcase style={{ width: 14, height: 14, color: "#7357f6" }} />
               </div>
-              <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 16, color: "#15131f" }}>
+              <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 16, color: "#111118" }}>
                 Description du poste
               </h2>
             </div>
@@ -329,15 +329,15 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
           {/* ── Bottom CTA ── */}
           <div style={{
             marginTop: 20, padding: "22px 28px", borderRadius: 16,
-            background: "linear-gradient(135deg,#efebff 0%,#faf5ff 100%)",
+            background: "linear-gradient(135deg,#f1eeff 0%,#faf5ff 100%)",
             border: "1px solid #d9d0fd",
             display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16,
           }}>
             <div>
-              <p style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 15, color: "#15131f", marginBottom: 4 }}>
+              <p style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 15, color: "#111118", marginBottom: 4 }}>
                 Ce poste vous intéresse ?
               </p>
-              <p style={{ fontSize: 13, color: "#6e6a7c" }}>Envoyez votre candidature en moins de 2 minutes.</p>
+              <p style={{ fontSize: 13, color: "#6b6b78" }}>Envoyez votre candidature en moins de 2 minutes.</p>
             </div>
             <button onClick={() => setIsOpen(true)} className="apply-btn" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
@@ -366,16 +366,16 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
           }}>
 
             {/* Modal header */}
-            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #f3f1ec", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #f6f6f8", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "#7357f6", marginBottom: 4 }}>
                   Candidature
                 </p>
-                <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 17, color: "#15131f", lineHeight: 1.3 }}>
+                <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 17, color: "#111118", lineHeight: 1.3 }}>
                   {job.title}
                 </h2>
               </div>
-              <button onClick={() => setIsOpen(false)} style={{ padding: 7, borderRadius: 9, background: "#f3f1ec", border: "1px solid #f3f1ec", cursor: "pointer", color: "#6e6a7c", flexShrink: 0 }}>
+              <button onClick={() => setIsOpen(false)} style={{ padding: 7, borderRadius: 9, background: "#f6f6f8", border: "1px solid #f6f6f8", cursor: "pointer", color: "#6b6b78", flexShrink: 0 }}>
                 <X style={{ width: 14, height: 14 }} />
               </button>
             </div>
@@ -387,10 +387,10 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
                   <div style={{ width: 60, height: 60, borderRadius: 18, background: "#f0fdf4", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
                     <Check style={{ width: 24, height: 24, color: "#22c55e" }} />
                   </div>
-                  <h3 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 18, color: "#15131f", marginBottom: 8 }}>
+                  <h3 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 700, fontSize: 18, color: "#111118", marginBottom: 8 }}>
                     Candidature envoyée !
                   </h3>
-                  <p style={{ fontSize: 14, color: "#6e6a7c", lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 14, color: "#6b6b78", lineHeight: 1.6 }}>
                     Merci ! Nous reviendrons vers vous très bientôt.
                   </p>
                 </div>
@@ -409,14 +409,14 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
                       <input style={inputStyle} placeholder="Jean Dupont" required value={fullName}
                         onChange={e => setFullName(e.target.value)}
                         onFocus={e => e.target.style.borderColor = "#7357f6"}
-                        onBlur={e => e.target.style.borderColor = "#e7e3ec"} />
+                        onBlur={e => e.target.style.borderColor = "#e6e6eb"} />
                     </div>
                     <div>
                       <label style={labelStyle}>Email *</label>
                       <input style={inputStyle} type="email" placeholder="jean@mail.com" required value={email}
                         onChange={e => setEmail(e.target.value)}
                         onFocus={e => e.target.style.borderColor = "#7357f6"}
-                        onBlur={e => e.target.style.borderColor = "#e7e3ec"} />
+                        onBlur={e => e.target.style.borderColor = "#e6e6eb"} />
                     </div>
                   </div>
 
@@ -428,9 +428,9 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
                       required value={message}
                       onChange={e => setMessage(e.target.value)}
                       onFocus={e => e.target.style.borderColor = "#7357f6"}
-                      onBlur={e => e.target.style.borderColor = "#e7e3ec"}
+                      onBlur={e => e.target.style.borderColor = "#e6e6eb"}
                     />
-                    <p style={{ fontSize: 11, color: "#6e6a7c", marginTop: 5, textAlign: "right" }}>{message.length} caractères</p>
+                    <p style={{ fontSize: 11, color: "#6b6b78", marginTop: 5, textAlign: "right" }}>{message.length} caractères</p>
                   </div>
 
                   <div>
@@ -440,13 +440,13 @@ export default function CareerDetails({ params }: { params: Promise<{ id: string
                     <label htmlFor="cv-upload" className="cv-drop" style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                       padding: "14px 16px", borderRadius: 12, cursor: "pointer",
-                      border: `2px dashed ${cv ? "#7357f6" : "#e7e3ec"}`,
-                      background: cv ? "#f8f6ff" : "#fbfaf7",
+                      border: `2px dashed ${cv ? "#7357f6" : "#e6e6eb"}`,
+                      background: cv ? "#f8f6ff" : "#ffffff",
                       transition: "all 0.15s",
                     }}>
                       {cv
                         ? <><FileText style={{ width: 15, height: 15, color: "#7357f6" }} /><span style={{ fontSize: 13, fontWeight: 600, color: "#7357f6" }}>{cv.name}</span></>
-                        : <><Upload style={{ width: 14, height: 14, color: "#6e6a7c" }} /><span style={{ fontSize: 13, color: "#6e6a7c" }}>Cliquez pour ajouter votre CV</span></>
+                        : <><Upload style={{ width: 14, height: 14, color: "#6b6b78" }} /><span style={{ fontSize: 13, color: "#6b6b78" }}>Cliquez pour ajouter votre CV</span></>
                       }
                     </label>
                   </div>

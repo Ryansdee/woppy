@@ -27,7 +27,7 @@ export default function CareersPage() {
         }
       `}</style>
 
-      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
+      <main className="min-h-screen bg-[#ffffff] ">
 
         {/* ── Hero ── */}
         <section className="max-w-[960px] mx-auto px-5 pt-14 pb-14 sm:pt-20 sm:pb-16">
@@ -40,7 +40,7 @@ export default function CareersPage() {
           </div>
 
           {/* Title */}
-          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[2rem] sm:text-[3rem] lg:text-[4rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-5">
+          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[2rem] sm:text-[3rem] lg:text-[4rem] leading-[1.15] tracking-[-0.03em] text-[#111118] mb-5">
             Rejoins l'équipe{" "}
             <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
               Woppy
@@ -63,7 +63,7 @@ export default function CareersPage() {
             </a>
             <a
               href="#culture"
-              className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#3a3747] font-semibold text-sm border border-line hover:border-brand hover:text-brand transition-all duration-150 no-underline"
+              className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#3d3d48] font-semibold text-sm border border-line hover:border-brand hover:text-brand transition-all duration-150 no-underline"
             >
               Notre culture
             </a>
@@ -101,7 +101,7 @@ export default function CareersPage() {
                   {v.icon}
                 </div>
                 <div>
-                  <p className="font-[var(--font-bricolage),system-ui] font-bold text-[14px] text-[#15131f] mb-[5px]">
+                  <p className="font-[var(--font-bricolage),system-ui] font-bold text-[14px] text-[#111118] mb-[5px]">
                     {v.title}
                   </p>
                   <p className="text-[13px] text-muted leading-relaxed">
@@ -120,10 +120,10 @@ export default function CareersPage() {
   {/* Section header */}
   <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-7">
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand mb-1.5">
+      <p className="text-xs font-semibold text-brand mb-1.5">
         Postes ouverts
       </p>
-      <h2 className="font-[var(--font-bricolage),system-ui] font-extrabold text-[22px] sm:text-[26px] text-[#15131f] tracking-[-0.02em]">
+      <h2 className="font-[var(--font-bricolage),system-ui] font-extrabold text-[22px] sm:text-[26px] text-[#111118] tracking-[-0.02em]">
         Trouve ton rôle
       </h2>
     </div>
@@ -141,7 +141,7 @@ export default function CareersPage() {
 </section>    
 
         {/* ── Candidature spontanée ── */}
-        <section id="culture" className="bg-[#15131f] px-5 py-16 sm:py-[72px]">
+        <section id="culture" className="bg-[#111118] px-5 py-16 sm:py-[72px]">
           <div className="max-w-[640px] mx-auto text-center">
             <div className="w-12 h-12 rounded-2xl bg-brand/15 border border-brand/30 flex items-center justify-center mx-auto mb-5">
               <Mail className="w-5 h-5 text-brand/50" />
@@ -155,7 +155,7 @@ export default function CareersPage() {
             </p>
             <a
               href="mailto:careers@woppy.com"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-[#15131f] font-bold text-sm hover:bg-brand-soft hover:text-brand hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)] transition-all duration-150 no-underline"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-[#111118] font-bold text-sm hover:bg-brand-soft hover:text-brand hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(0,0,0,0.1)] transition-all duration-150 no-underline"
             >
               Candidature spontanée
               <Rocket className="w-[15px] h-[15px]" />

@@ -43,13 +43,13 @@ export default function Footer() {
   if (HIDDEN_ON.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <footer className="mt-auto border-t border-line bg-paper">
+    <footer className="mt-auto border-t border-line bg-paper-2">
       <div className="container-w py-14">
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
             <Link href="/" className="inline-flex items-center gap-2">
               <Image src="/images/logo.png" alt="" width={28} height={28} />
-              <span className="font-display text-xl font-bold tracking-tight">woppy</span>
+              <span className="text-lg font-semibold tracking-tight">woppy</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
               Des petits jobs près de chez vous, entre étudiants et particuliers.

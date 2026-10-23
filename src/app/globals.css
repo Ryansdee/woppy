@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
-/* ── Identité Woppy ──
-   Papier chaud, encre profonde, violet du logo pour les actions,
-   citron pour les points d'attention. */
+/* ── Identité Woppy : sobre, blanc et gris neutres, violet du logo comme seul accent ──
+   Les noms historiques (paper, ink, lime…) sont conservés pour que toutes les pages
+   suivent automatiquement ; « lime » est désormais une teinte d'accent douce. */
 @theme {
-  --color-paper: #fbfaf7;
-  --color-paper-2: #f3f1ec;
-  --color-ink: #15131f;
-  --color-ink-2: #3a3747;
-  --color-muted: #6e6a7c;
-  --color-line: #e7e3ec;
+  --color-paper: #ffffff;
+  --color-paper-2: #f6f6f8;
+  --color-ink: #111118;
+  --color-ink-2: #3d3d48;
+  --color-muted: #6b6b78;
+  --color-line: #e6e6eb;
   --color-brand: #7357f6;
-  --color-brand-dark: #5a3fe0;
-  --color-brand-soft: #efebff;
-  --color-lime: #d8f36a;
-  --color-lime-soft: #f4fbd6;
-  --color-success: #1f9d55;
-  --color-danger: #d93a3a;
+  --color-brand-dark: #5b3fe0;
+  --color-brand-soft: #f1eeff;
+  --color-lime: #ece7ff;
+  --color-lime-soft: #f6f4ff;
+  --color-success: #15803d;
+  --color-danger: #dc2626;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-bricolage), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 1.25rem;
+  --radius-card: 0.75rem;
 }
 
 html {
@@ -29,13 +29,16 @@ html {
 }
 
 body {
+  /* Anciennes références à la police de titre : elles pointent désormais sur Inter */
+  --font-bricolage: var(--font-inter);
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
 }
 
 ::selection {
-  background: var(--color-lime);
+  background: var(--color-brand-soft);
   color: var(--color-ink);
 }
 
@@ -46,49 +49,62 @@ body {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold
-      transition-[background-color,color,border-color,transform] duration-150
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium whitespace-nowrap
+      transition-colors duration-150
       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
-      disabled:pointer-events-none disabled:opacity-50 active:translate-y-px;
+      disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-sm {
+    @apply h-8 px-3 text-[13px];
   }
   .btn-lg {
-    @apply px-6 py-3.5 text-base;
+    @apply h-11 px-5 text-[15px];
   }
   .btn-primary {
-    @apply bg-ink text-paper hover:bg-ink-2;
+    @apply bg-brand text-white shadow-sm hover:bg-brand-dark;
   }
   .btn-brand {
-    @apply bg-brand text-white hover:bg-brand-dark;
+    @apply bg-brand text-white shadow-sm hover:bg-brand-dark;
+  }
+  .btn-dark {
+    @apply bg-ink text-white hover:bg-ink-2;
   }
   .btn-outline {
-    @apply border border-line bg-white text-ink hover:border-ink;
+    @apply border border-line bg-white text-ink shadow-sm hover:bg-paper-2;
   }
   .btn-ghost {
     @apply text-ink-2 hover:bg-paper-2 hover:text-ink;
   }
+  .btn-danger {
+    @apply bg-danger text-white shadow-sm hover:bg-red-700;
+  }
 
   .card {
-    @apply rounded-[var(--radius-card)] border border-line bg-white;
+    @apply rounded-[var(--radius-card)] border border-line bg-white shadow-[0_1px_2px_rgba(17,17,24,0.04)];
   }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-ink-2;
+    @apply inline-flex items-center gap-1 rounded-md border border-line bg-white px-2 py-0.5 text-xs font-medium text-ink-2;
   }
 
   .input {
-    @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted
-      transition-colors focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft;
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-muted
+      transition-[border-color,box-shadow] focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-ink-2;
+    @apply mb-1.5 block text-sm font-medium text-ink;
   }
 
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted;
+    @apply text-xs font-medium uppercase tracking-wide text-muted;
   }
 
   .display {
-    @apply font-display font-bold tracking-[-0.03em] text-ink;
+    @apply font-display font-semibold tracking-tight text-ink;
+  }
+
+  .link {
+    @apply font-medium text-brand hover:text-brand-dark;
   }
 }

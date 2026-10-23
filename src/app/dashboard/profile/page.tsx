@@ -2,39 +2,32 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  doc, getDoc, updateDoc, serverTimestamp,
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import NextImage from 'next/image';
-import {
-  Loader2, Save, Upload, Plus, Trash2, User, Calendar,
-  Briefcase, GraduationCap, CheckCircle, Clock, MapPin, X,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, storage } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { CheckCircle2, ExternalLink, GraduationCap, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import Cropper from 'react-easy-crop';
+import { Alert, Avatar, Loading, Page, PageHeader, Section } from '@/components/ui';
 
 /* ── types ── */
-interface Experience {
-  title: string; company: string;
-  startDate: string; endDate: string; description: string;
-}
+interface Experience { title: string; company: string; startDate: string; endDate: string; description: string }
+type Slot = { start: string; end: string };
+type Schedule = Record<string, { enabled: boolean; slots: Slot[] }>;
 interface UserProfile {
-  availabilitySchedule: any;
+  availabilitySchedule?: Schedule;
   experiences?: Experience[];
   firstName?: string; lastName?: string;
   bio?: string; city?: string; photoURL?: string;
-  hasStudentProfile?: boolean; isAvailable?: boolean;
-  studentProfile?: {
-    age?: string; description?: string;
-    cardURL?: string; verificationStatus?: 'pending' | 'verified' | 'rejected';
-  };
+  hasStudentProfile?: boolean;
 }
-type CroppedArea = { x: number; y: number; width: number; height: number; };
+type CroppedArea = { x: number; y: number; width: number; height: number };
 
-/* ── crop helpers ── */
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+const BIO_MAX = 500;
+
+/* ── recadrage ── */
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = document.createElement('img');
@@ -44,449 +37,309 @@ function createImage(url: string): Promise<HTMLImageElement> {
     img.onerror = reject;
   });
 }
-async function getCroppedImage(imageSrc: string, pixelCrop: CroppedArea) {
+async function getCroppedImage(imageSrc: string, c: CroppedArea) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas context not found');
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas is empty')), 'image/jpeg');
-  });
+  if (!ctx) throw new Error('Canvas indisponible');
+  canvas.width = c.width;
+  canvas.height = c.height;
+  ctx.drawImage(image, c.x, c.y, c.width, c.height, 0, 0, c.width, c.height);
+  return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image vide'))), 'image/jpeg'));
 }
 
-/* ── shared input style ── */
-const inputCls = "w-full px-3.5 py-2.5 text-sm border border-line rounded-xl bg-white text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl border border-line overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-line">
-        <div className="w-7 h-7 rounded-lg bg-brand-soft border border-brand-soft flex items-center justify-center text-brand">
-          {icon}
-        </div>
-        <h2 className="text-sm font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>{title}</h2>
-      </div>
-      <div className="p-6">{children}</div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════
-   COMPOSANT PRINCIPAL
-══════════════════════════════════════════════════════════ */
 export default function DashboardProfilePage() {
-  const [user, setUser]       = useState<any>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving]   = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const router  = useRouter();
-  const storage = getStorage();
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
 
-  /* crop */
-  const [showCropper, setShowCropper]             = useState(false);
-  const [selectedImage, setSelectedImage]         = useState<string | null>(null);
-  const [rawFile, setRawFile]                     = useState<File | null>(null);
-  const [crop, setCrop]                           = useState({ x: 0, y: 0 });
-  const [zoom, setZoom]                           = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedArea | null>(null);
-  const onCropComplete = useCallback((_: any, cp: CroppedArea) => setCroppedAreaPixels(cp), []);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState<CroppedArea | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const onCropComplete = useCallback((_: unknown, c: CroppedArea) => setCroppedArea(c), []);
 
-  /* auth */
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => { if (!u) router.push('/auth/login'); else setUser(u); });
-    return () => unsub();
-  }, [router]);
+  useEffect(() => onAuthStateChanged(auth, (u) => (u ? setUser(u) : router.push('/auth/login'))), [router]);
 
-  /* load */
   useEffect(() => {
     if (!user) return;
-    getDoc(doc(db, 'users', user.uid)).then(snap => {
-      if (snap.exists()) setProfile(snap.data() as UserProfile);
-    }).finally(() => setLoading(false));
+    getDoc(doc(db, 'users', user.uid))
+      .then((snap) => setProfile((snap.data() as UserProfile) ?? {}))
+      .catch(() => setProfile({}))
+      .finally(() => setLoading(false));
   }, [user]);
 
-  /* save */
+  const patch = (p: Partial<UserProfile>) => setProfile((prev) => ({ ...prev, ...p }));
+
+  /* N'enregistre que les champs modifiables depuis cette page */
   const handleSave = async () => {
     if (!user || !profile) return;
     setSaving(true);
+    setNotice(null);
     try {
-      await updateDoc(doc(db, 'users', user.uid), { ...profile, updatedAt: serverTimestamp() });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) { console.error(e); }
-    setSaving(false);
+      await updateDoc(doc(db, 'users', user.uid), {
+        firstName: profile.firstName ?? '',
+        lastName: profile.lastName ?? '',
+        city: profile.city ?? '',
+        bio: (profile.bio ?? '').slice(0, BIO_MAX),
+        experiences: profile.experiences ?? [],
+        availabilitySchedule: profile.availabilitySchedule ?? {},
+        updatedAt: serverTimestamp(),
+      });
+      setNotice({ tone: 'success', text: 'Profil enregistré.' });
+    } catch {
+      setNotice({ tone: 'danger', text: 'Le profil n’a pas pu être enregistré. Réessayez.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  /* photo */
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setRawFile(file);
-    setSelectedImage(URL.createObjectURL(file));
-    setShowCropper(true);
-  };
-  const handleCropSave = async () => {
-    if (!rawFile || !selectedImage || !user || !croppedAreaPixels) return;
+  /* Active le profil étudiant, sans se déclarer « vérifié » */
+  const activateStudent = async () => {
+    if (!user) return;
     try {
-      const blob = await getCroppedImage(selectedImage, croppedAreaPixels);
+      await updateDoc(doc(db, 'users', user.uid), { hasStudentProfile: true, updatedAt: serverTimestamp() });
+      patch({ hasStudentProfile: true });
+    } catch {
+      setNotice({ tone: 'danger', text: 'Le profil étudiant n’a pas pu être activé.' });
+    }
+  };
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setSelectedImage(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const saveCrop = async () => {
+    if (!selectedImage || !user || !croppedArea) return;
+    setUploading(true);
+    try {
+      const blob = await getCroppedImage(selectedImage, croppedArea);
       const r = ref(storage, `profilePhotos/${user.uid}/profile.jpg`);
       await uploadBytes(r, blob);
       const url = await getDownloadURL(r);
       await updateDoc(doc(db, 'users', user.uid), { photoURL: url, updatedAt: serverTimestamp() });
-      setProfile(p => ({ ...p!, photoURL: url }));
-      setShowCropper(false); setSelectedImage(null); setRawFile(null);
-    } catch (e) { console.error(e); }
+      patch({ photoURL: url });
+      setSelectedImage(null);
+    } catch {
+      setNotice({ tone: 'danger', text: 'La photo n’a pas pu être envoyée.' });
+    } finally {
+      setUploading(false);
+    }
   };
 
-  /* student activation */
-  const activateStudentAccount = async () => {
-    if (!user || !profile) return;
-    const updated = { ...profile, hasStudentProfile: true, studentProfile: { verificationStatus: 'verified' as const } };
-    await updateDoc(doc(db, 'users', user.uid), { hasStudentProfile: true, studentProfile: updated.studentProfile });
-    setProfile(updated);
-  };
+  const experiences = profile?.experiences ?? [];
+  const setExperience = (i: number, field: keyof Experience, value: string) =>
+    patch({ experiences: experiences.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)) });
 
-  /* experiences */
-  const addExp    = () => setProfile(p => ({ ...p!, experiences: [...(p?.experiences || []), { title: '', company: '', startDate: '', endDate: '', description: '' }] }));
-  const removeExp = (i: number) => setProfile(p => { const e = [...(p?.experiences || [])]; e.splice(i, 1); return { ...p!, experiences: e }; });
-  const updateExp = (i: number, field: keyof Experience, value: string) =>
-    setProfile(p => { const e = [...(p?.experiences || [])]; e[i] = { ...e[i], [field]: value }; return { ...p!, experiences: e }; });
+  const schedule = profile?.availabilitySchedule ?? {};
+  const setDay = (day: string, value: { enabled: boolean; slots: Slot[] }) => patch({ availabilitySchedule: { ...schedule, [day]: value } });
 
-  /* availability */
-  const updateDaySlots = (day: string, slots: any[]) =>
-    setProfile(p => ({ ...p!, availabilitySchedule: { ...p!.availabilitySchedule, [day]: { enabled: true, slots } } }));
-
-  /* ── loaders ── */
-  if (loading) return (
-    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
-          <User size={18} className="text-white" />
-        </div>
-        <p className="text-sm text-muted font-medium">Chargement…</p>
-      </div>
-    </div>
-  );
-
-  if (!profile) return (
-    <div className="min-h-screen bg-paper-2 flex items-center justify-center">
-      <p className="text-sm text-muted">Aucun profil trouvé.</p>
-    </div>
-  );
+  if (loading || !profile) return <Loading full />;
 
   const isStudent = profile.hasStudentProfile === true;
-  const fullName  = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Mon profil';
-  const days      = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Mon profil';
+
+  const saveButton = (
+    <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+      {saving && <Loader2 size={15} className="animate-spin" />} Enregistrer
+    </button>
+  );
 
   return (
-    <>
-      <style>{``}</style>
+    <Page>
+      <PageHeader
+        title="Mon profil"
+        description="Ces informations sont visibles sur votre profil public."
+        actions={
+          <>
+            {user && (
+              <Link href={`/profile/${user.uid}`} className="btn btn-outline">
+                <ExternalLink size={15} /> Voir mon profil public
+              </Link>
+            )}
+            {saveButton}
+          </>
+        }
+      />
 
-      <div className="min-h-screen bg-paper-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {notice && <div className="mb-6"><Alert tone={notice.tone}>{notice.text}</Alert></div>}
 
-        {/* ── Topbar ── */}
-        <div className="bg-white border-b border-line sticky top-16 z-40">
-          <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-            <h1 className="text-sm font-bold text-ink" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
-              Mon profil
-            </h1>
-            <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-ink hover:bg-ink-2 text-white
-                         text-sm font-semibold rounded-xl transition disabled:opacity-60 shadow-sm shadow-brand/30">
-              {saving
-                ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</>
-                : saved
-                ? <><CheckCircle size={14} /> Enregistré</>
-                : <><Save size={14} /> Enregistrer</>
-              }
-            </button>
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="space-y-4">
+          <div className="card flex flex-col items-center p-6 text-center">
+            <Avatar name={fullName} src={profile.photoURL} size={80} />
+            <p className="mt-4 font-semibold">{fullName}</p>
+            {profile.city && <p className="text-sm text-muted">{profile.city}</p>}
+            <label className="btn btn-outline btn-sm mt-4 cursor-pointer">
+              <Upload size={14} /> Changer la photo
+              <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+            </label>
           </div>
-        </div>
 
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <div className="grid lg:grid-cols-3 gap-5">
+          <div className="card p-5">
+            <p className="text-sm font-semibold">Profil étudiant</p>
+            {isStudent ? (
+              <p className="mt-2 flex items-center gap-2 text-sm text-success">
+                <CheckCircle2 size={16} /> Actif : vous pouvez postuler.
+              </p>
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-muted">Activez-le pour postuler aux missions et indiquer vos disponibilités.</p>
+                <button onClick={activateStudent} className="btn btn-primary btn-sm mt-4 w-full">
+                  <GraduationCap size={15} /> Activer
+                </button>
+              </>
+            )}
+          </div>
+        </aside>
 
-            {/* ── Sidebar ── */}
-            <div className="space-y-4">
-
-              {/* Avatar card */}
-              <div className="bg-white rounded-2xl border border-line p-5 flex flex-col items-center text-center">
-                <div className="relative mb-4">
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-line bg-paper-2">
-                    <NextImage
-                      src={profile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=7c5fe6&color=fff&size=80`}
-                      alt="Photo de profil" width={80} height={80} className="object-cover w-full h-full"
-                    />
-                  </div>
-                  {isStudent && (
-                    <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center border-2 border-white">
-                      <GraduationCap size={11} className="text-white" />
-                    </div>
-                  )}
-                </div>
-                <p className="font-bold text-sm text-ink mb-0.5" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>{fullName}</p>
-                {profile.city && (
-                  <p className="text-xs text-muted flex items-center gap-1 mb-3">
-                    <MapPin size={10} /> {profile.city}
-                  </p>
-                )}
-                <label className="flex items-center gap-1.5 px-3.5 py-2 bg-paper-2 hover:bg-line text-ink-2
-                                   text-xs font-semibold rounded-xl cursor-pointer transition w-full justify-center">
-                  <Upload size={12} /> Changer la photo
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                </label>
+        <div className="space-y-6">
+          <Section title="Informations générales">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="firstName" className="label">Prénom</label>
+                <input id="firstName" className="input" value={profile.firstName ?? ''} onChange={(e) => patch({ firstName: e.target.value })} />
               </div>
-
-              {/* Type de compte */}
-              <div className="bg-white rounded-2xl border border-line p-5">
-                <h3 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Type de compte</h3>
-                {isStudent ? (
-                  <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
-                    <CheckCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-emerald-800">Compte étudiant actif</p>
-                      <p className="text-[11px] text-emerald-600 mt-0.5">Accès aux missions et au calendrier.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted leading-relaxed">
-                      Active ton compte étudiant pour postuler aux missions et gérer tes disponibilités.
-                    </p>
-                    <button onClick={activateStudentAccount}
-                      className="w-full py-2.5 bg-ink hover:bg-ink-2 text-white text-xs font-bold
-                                 rounded-xl transition shadow-sm shadow-brand/30">
-                      Activer le profil étudiant
-                    </button>
-                  </div>
-                )}
+              <div>
+                <label htmlFor="lastName" className="label">Nom</label>
+                <input id="lastName" className="input" value={profile.lastName ?? ''} onChange={(e) => patch({ lastName: e.target.value })} />
               </div>
-
-              {/* Résumé */}
-              <div className="bg-white rounded-2xl border border-line p-5">
-                <h3 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Résumé</h3>
-                <div className="space-y-2.5">
-                  {[
-                    { label: 'Expériences', value: profile.experiences?.length || 0 },
-                    { label: 'Bio', value: profile.bio ? '✓' : '—' },
-                    ...(isStudent ? [{ label: 'Jours dispo', value: Object.values(profile.availabilitySchedule || {}).filter((d: any) => d?.enabled).length }] : []),
-                  ].map(item => (
-                    <div key={item.label} className="flex items-center justify-between text-sm">
-                      <span className="text-muted text-xs">{item.label}</span>
-                      <span className="font-bold text-brand text-xs">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="city" className="label">Ville</label>
+                <input id="city" className="input" value={profile.city ?? ''} placeholder="Wavre" onChange={(e) => patch({ city: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="bio" className="label">Bio</label>
+                <textarea id="bio" className="input resize-y" rows={4} maxLength={BIO_MAX} value={profile.bio ?? ''}
+                  placeholder="Présentez-vous en quelques lignes." onChange={(e) => patch({ bio: e.target.value })} />
+                <p className="mt-1 text-right text-xs text-muted">{(profile.bio ?? '').length} / {BIO_MAX}</p>
               </div>
             </div>
+          </Section>
 
-            {/* ── Main ── */}
-            <div className="lg:col-span-2 space-y-4">
-
-              {/* Infos générales */}
-              <Section title="Informations générales" icon={<User size={14} />}>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Prénom">
-                      <input className={inputCls} value={profile.firstName || ''} placeholder="Jean"
-                        onChange={e => setProfile(p => ({ ...p!, firstName: e.target.value }))} />
-                    </Field>
-                    <Field label="Nom">
-                      <input className={inputCls} value={profile.lastName || ''} placeholder="Dupont"
-                        onChange={e => setProfile(p => ({ ...p!, lastName: e.target.value }))} />
-                    </Field>
-                  </div>
-                  <Field label="Ville">
-                    <div className="relative">
-                      <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-                      <input className={inputCls + " pl-9"} value={profile.city || ''} placeholder="Louvain-la-Neuve"
-                        onChange={e => setProfile(p => ({ ...p!, city: e.target.value }))} />
-                    </div>
-                  </Field>
-                  <Field label="Bio">
-                    <textarea className={inputCls + " resize-none"} rows={4}
-                      value={profile.bio || ''} placeholder="Parle de toi, tes compétences, ta motivation…"
-                      onChange={e => setProfile(p => ({ ...p!, bio: e.target.value }))} />
-                    <p className="text-[11px] text-muted mt-1 text-right">{profile.bio?.length || 0} / 500</p>
-                  </Field>
-                </div>
-              </Section>
-
-              {/* Disponibilités — uniquement pour les étudiants */}
-              {isStudent && (
-                <Section title="Disponibilités" icon={<Calendar size={14} />}>
-                  <div className="space-y-2">
-                    {days.map(day => {
-                      const slots     = profile.availabilitySchedule?.[day]?.slots || [];
-                      const isEnabled = profile.availabilitySchedule?.[day]?.enabled || false;
-                      return (
-                        <div key={day} className="border border-line rounded-xl overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-3 bg-paper-2">
-                            <label className="flex items-center gap-3 cursor-pointer select-none">
-                              <div className="relative">
-                                <input type="checkbox" className="sr-only peer" checked={isEnabled}
-                                  onChange={e => setProfile(p => ({
-                                    ...p!,
-                                    availabilitySchedule: {
-                                      ...p!.availabilitySchedule,
-                                      [day]: { enabled: e.target.checked, slots: slots.length > 0 ? slots : [{ start: '', end: '' }] }
-                                    }
-                                  }))} />
-                                <div className="w-9 h-5 bg-line peer-checked:bg-ink rounded-full transition
-                                                after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                                                after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all
-                                                peer-checked:after:translate-x-4" />
-                              </div>
-                              <span className="text-sm font-semibold text-ink">{day}</span>
-                            </label>
-                            {isEnabled && (
-                              <button onClick={() => updateDaySlots(day, [...slots, { start: '', end: '' }])}
-                                className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-dark transition">
-                                <Plus size={13} /> Ajouter
+          {isStudent && (
+            <Section title="Disponibilités" description="Indiquez les jours et créneaux où vous êtes disponible.">
+              <div className="divide-y divide-line">
+                {DAYS.map((day) => {
+                  const d = schedule[day] ?? { enabled: false, slots: [] };
+                  return (
+                    <div key={day} className="flex flex-wrap items-start gap-4 py-3 first:pt-0 last:pb-0">
+                      <label className="flex w-32 cursor-pointer items-center gap-2.5 pt-2 text-sm font-medium">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-brand"
+                          checked={d.enabled}
+                          onChange={(e) => setDay(day, { enabled: e.target.checked, slots: d.slots.length ? d.slots : [{ start: '', end: '' }] })}
+                        />
+                        {day}
+                      </label>
+                      {d.enabled ? (
+                        <div className="flex-1 space-y-2">
+                          {d.slots.map((slot, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <input type="time" aria-label="Début" className="input w-auto" value={slot.start}
+                                onChange={(e) => setDay(day, { ...d, slots: d.slots.map((s, j) => (j === i ? { ...s, start: e.target.value } : s)) })} />
+                              <span className="text-muted">–</span>
+                              <input type="time" aria-label="Fin" className="input w-auto" value={slot.end}
+                                onChange={(e) => setDay(day, { ...d, slots: d.slots.map((s, j) => (j === i ? { ...s, end: e.target.value } : s)) })} />
+                              <button onClick={() => setDay(day, { ...d, slots: d.slots.filter((_, j) => j !== i) })}
+                                aria-label="Retirer le créneau" className="btn btn-ghost btn-sm">
+                                <X size={14} />
                               </button>
-                            )}
-                          </div>
-                          {isEnabled && (
-                            <div className="px-4 py-3 space-y-2">
-                              {slots.map((slot: any, i: number) => (
-                                <div key={i} className="flex items-center gap-2">
-                                  <input type="time" value={slot.start}
-                                    onChange={e => { const s = [...slots]; s[i].start = e.target.value; updateDaySlots(day, s); }}
-                                    className="border border-line rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
-                                  <span className="text-muted text-sm">→</span>
-                                  <input type="time" value={slot.end}
-                                    onChange={e => { const s = [...slots]; s[i].end = e.target.value; updateDaySlots(day, s); }}
-                                    className="border border-line rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
-                                  <button onClick={() => { const s = [...slots]; s.splice(i, 1); updateDaySlots(day, s); }}
-                                    className="ml-auto text-muted hover:text-red-500 transition"><X size={14} /></button>
-                                </div>
-                              ))}
                             </div>
-                          )}
+                          ))}
+                          <button onClick={() => setDay(day, { ...d, slots: [...d.slots, { start: '', end: '' }] })} className="btn btn-ghost btn-sm">
+                            <Plus size={14} /> Ajouter un créneau
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                </Section>
-              )}
+                      ) : (
+                        <p className="pt-2 text-sm text-muted">Indisponible</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
 
-              {/* Expériences */}
-              <Section title="Expériences professionnelles" icon={<Briefcase size={14} />}>
-                <div className="space-y-3">
-                  {(profile.experiences || []).map((exp, i) => (
-                    <div key={i} className="border border-line rounded-xl p-4 relative group bg-paper-2/50">
-                      <button onClick={() => removeExp(i)}
-                        className="absolute top-3 right-3 w-6 h-6 rounded-lg bg-white border border-line text-muted
-                                   hover:text-red-500 hover:border-red-200 flex items-center justify-center
-                                   opacity-0 group-hover:opacity-100 transition-all">
-                        <Trash2 size={12} />
-                      </button>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <Field label="Titre du poste">
-                            <input className={inputCls} value={exp.title} placeholder="Ex : Tuteur"
-                              onChange={e => updateExp(i, 'title', e.target.value)} />
-                          </Field>
-                          <Field label="Entreprise / Organisation">
-                            <input className={inputCls} value={exp.company} placeholder="Ex : UCLouvain"
-                              onChange={e => updateExp(i, 'company', e.target.value)} />
-                          </Field>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <Field label="Date de début">
-                            <input type="month" className={inputCls} value={exp.startDate}
-                              onChange={e => updateExp(i, 'startDate', e.target.value)} />
-                          </Field>
-                          <Field label="Date de fin">
-                            <input type="month" className={inputCls} value={exp.endDate}
-                              onChange={e => updateExp(i, 'endDate', e.target.value)} />
-                          </Field>
-                        </div>
-                        <Field label="Description">
-                          <textarea className={inputCls + " resize-none"} rows={2} value={exp.description}
-                            placeholder="Tes missions, réalisations…"
-                            onChange={e => updateExp(i, 'description', e.target.value)} />
-                        </Field>
+          <Section
+            title="Expériences"
+            actions={
+              <button onClick={() => patch({ experiences: [...experiences, { title: '', company: '', startDate: '', endDate: '', description: '' }] })} className="btn btn-outline btn-sm">
+                <Plus size={14} /> Ajouter
+              </button>
+            }
+          >
+            {experiences.length === 0 ? (
+              <p className="text-sm text-muted">Aucune expérience pour l’instant.</p>
+            ) : (
+              <div className="space-y-4">
+                {experiences.map((exp, i) => (
+                  <div key={i} className="rounded-lg border border-line p-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="label" htmlFor={`exp-title-${i}`}>Poste</label>
+                        <input id={`exp-title-${i}`} className="input" value={exp.title} placeholder="Tuteur" onChange={(e) => setExperience(i, 'title', e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`exp-company-${i}`}>Organisation</label>
+                        <input id={`exp-company-${i}`} className="input" value={exp.company} onChange={(e) => setExperience(i, 'company', e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`exp-start-${i}`}>Début</label>
+                        <input id={`exp-start-${i}`} type="month" className="input" value={exp.startDate} onChange={(e) => setExperience(i, 'startDate', e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`exp-end-${i}`}>Fin</label>
+                        <input id={`exp-end-${i}`} type="month" className="input" value={exp.endDate} onChange={(e) => setExperience(i, 'endDate', e.target.value)} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="label" htmlFor={`exp-desc-${i}`}>Description</label>
+                        <textarea id={`exp-desc-${i}`} className="input resize-y" rows={2} value={exp.description} onChange={(e) => setExperience(i, 'description', e.target.value)} />
                       </div>
                     </div>
-                  ))}
-                </div>
-                <button onClick={addExp}
-                  className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 border-2 border-dashed border-line
-                             hover:border-brand/50 hover:bg-brand-soft/30 text-muted hover:text-brand
-                             rounded-xl text-sm font-semibold transition-all">
-                  <Plus size={15} /> Ajouter une expérience
-                </button>
-              </Section>
-
-              {/* Save bottom */}
-              <div className="flex justify-end pb-4">
-                <button onClick={handleSave} disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-ink hover:bg-ink-2 text-white
-                             text-sm font-bold rounded-xl transition shadow-sm shadow-brand/30 disabled:opacity-60"
-                  style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
-                  {saving ? <><Loader2 size={14} className="animate-spin" /> Enregistrement…</> : saved ? <><CheckCircle size={14} /> Enregistré</> : <><Save size={14} /> Enregistrer les modifications</>}
-                </button>
+                    <button onClick={() => patch({ experiences: experiences.filter((_, j) => j !== i) })} className="btn btn-ghost btn-sm mt-3 !text-danger">
+                      <Trash2 size={14} /> Supprimer
+                    </button>
+                  </div>
+                ))}
               </div>
+            )}
+          </Section>
+
+          <div className="flex justify-end">{saveButton}</div>
+        </div>
+      </div>
+
+      {/* ── Recadrage de la photo ── */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-ink/50 p-4" role="dialog" aria-modal="true" aria-label="Recadrer la photo">
+          <div className="card w-full max-w-md p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Recadrer la photo</h2>
+              <button onClick={() => setSelectedImage(null)} aria-label="Fermer" className="btn btn-ghost btn-sm"><X size={16} /></button>
+            </div>
+            <div className="relative mt-4 h-72 overflow-hidden rounded-lg bg-paper-2">
+              <Cropper image={selectedImage} crop={crop} zoom={zoom} aspect={1} cropShape="round"
+                onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />
+            </div>
+            <label htmlFor="zoom" className="label mt-4">Zoom</label>
+            <input id="zoom" type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full accent-brand" />
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setSelectedImage(null)} className="btn btn-outline">Annuler</button>
+              <button onClick={saveCrop} disabled={uploading} className="btn btn-primary">
+                {uploading && <Loader2 size={15} className="animate-spin" />} Enregistrer
+              </button>
             </div>
           </div>
         </div>
-
-        {/* ── Crop modal ── */}
-        <AnimatePresence>
-          {showCropper && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-bold text-ink text-base" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>Recadrer la photo</h2>
-                  <button onClick={() => { setShowCropper(false); setSelectedImage(null); setRawFile(null); }}
-                    className="w-7 h-7 rounded-lg hover:bg-paper-2 text-muted flex items-center justify-center transition">
-                    <X size={15} />
-                  </button>
-                </div>
-                <div className="relative w-full h-72 bg-paper-2 rounded-xl overflow-hidden mb-5">
-                  <Cropper image={selectedImage!} crop={crop} zoom={zoom} aspect={1}
-                    onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />
-                </div>
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-muted font-medium">Zoom</span>
-                    <span className="text-xs text-muted">{zoom.toFixed(1)}×</span>
-                  </div>
-                  <input type="range" min={1} max={3} step={0.1} value={zoom}
-                    onChange={e => setZoom(Number(e.target.value))}
-                    className="w-full accent-brand" />
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => { setShowCropper(false); setSelectedImage(null); setRawFile(null); }}
-                    className="flex-1 py-2.5 border border-line rounded-xl text-sm font-semibold text-ink-2 hover:bg-paper-2 transition">
-                    Annuler
-                  </button>
-                  <button onClick={handleCropSave}
-                    className="flex-1 py-2.5 bg-ink hover:bg-ink-2 text-white rounded-xl text-sm font-bold transition">
-                    Enregistrer
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+      )}
+    </Page>
   );
 }

@@ -13,7 +13,7 @@ export default function DemoPage() {
 
 
       {/* Hero Section */}
-      <section className="pt-20 pb-12 px-4 sm:px-6 bg-gradient-to-br from-[#fbfaf7] to-white">
+      <section className="pt-20 pb-12 px-4 sm:px-6 bg-gradient-to-br from-[#ffffff] to-white">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-6">
             <Play className="text-[#7357f6]" size={20} />
@@ -42,7 +42,7 @@ export default function DemoPage() {
               onClick={() => setActiveTab('employer')}
               className={`p-8 rounded-2xl border-2 transition-all ${
                 activeTab === 'employer'
-                  ? 'border-[#7357f6] bg-[#fbfaf7] shadow-lg'
+                  ? 'border-[#7357f6] bg-[#ffffff] shadow-lg'
                   : 'border-line hover:border-[#7357f6]/50'
               }`}
             >
@@ -59,7 +59,7 @@ export default function DemoPage() {
               onClick={() => setActiveTab('student')}
               className={`p-8 rounded-2xl border-2 transition-all ${
                 activeTab === 'student'
-                  ? 'border-[#7357f6] bg-[#fbfaf7] shadow-lg'
+                  ? 'border-[#7357f6] bg-[#ffffff] shadow-lg'
                   : 'border-line hover:border-[#7357f6]/50'
               }`}
             >
@@ -77,7 +77,7 @@ export default function DemoPage() {
 
       {/* Démo pour Employeur */}
       {activeTab === 'employer' && (
-        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#fbfaf7]/30">
+        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#ffffff]/30">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Parcours Employeur</h2>
@@ -339,7 +339,7 @@ export default function DemoPage() {
                           </div>
                         </div>
                         <div className="space-y-3 mb-4">
-                          <div className="bg-[#fbfaf7] rounded-lg p-3 ml-auto max-w-[80%]">
+                          <div className="bg-[#ffffff] rounded-lg p-3 ml-auto max-w-[80%]">
                             <p className="text-sm">Bonjour Sarah ! Votre profil m'intéresse 😊</p>
                             <p className="text-xs text-muted mt-1">14:23</p>
                           </div>
@@ -347,7 +347,7 @@ export default function DemoPage() {
                             <p className="text-sm">Bonjour ! Je suis disponible samedi matin.</p>
                             <p className="text-xs text-muted mt-1">14:24</p>
                           </div>
-                          <div className="bg-[#fbfaf7] rounded-lg p-3 ml-auto max-w-[80%]">
+                          <div className="bg-[#ffffff] rounded-lg p-3 ml-auto max-w-[80%]">
                             <p className="text-sm">Parfait ! On se retrouve à 9h ?</p>
                             <p className="text-xs text-muted mt-1">14:26</p>
                           </div>
@@ -462,7 +462,7 @@ export default function DemoPage() {
 
       {/* Démo pour Étudiant */}
       {activeTab === 'student' && (
-        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#fbfaf7]/30">
+        <section className="py-16 px-6 bg-gradient-to-b from-white to-[#ffffff]/30">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Parcours Étudiant</h2>

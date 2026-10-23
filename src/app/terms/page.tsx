@@ -1,6 +1,6 @@
 'use client';
 
-import { Scale, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const sections = [
   {
@@ -198,7 +198,7 @@ const sections = [
           { label: "Données personnelles", value: "privacy@woppy.be", href: "mailto:privacy@woppy.be" },
         ].map(item => (
           <div key={item.label} className="bg-paper-2 border border-line rounded-xl p-4">
-            <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-1">{item.label}</p>
+            <p className="text-xs font-medium text-muted mb-1">{item.label}</p>
             {item.href
               ? <a href={item.href} className="text-sm font-medium text-brand hover:text-brand-dark transition-colors">{item.value}</a>
               : <p className="text-sm text-ink-2">{item.value}</p>
@@ -219,11 +219,8 @@ export default function TermsPage() {
 
         {/* ── Hero ── */}
         <section className="pt-12 pb-12 px-6 bg-paper-2 border-b border-line">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="w-14 h-14 bg-ink rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <Scale className="text-white" size={24} />
-            </div>
-            <h1 className="font-bold text-3xl text-ink mb-2 tracking-tight" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
+          <div className="max-w-3xl mx-auto">
+            <h1 className="display text-3xl mb-2">
               Conditions Générales d'Utilisation
             </h1>
             <p className="text-muted text-sm mb-1">Woppy — Plateforme d'économie collaborative</p>
@@ -242,7 +239,7 @@ export default function TermsPage() {
         {/* ── TOC ── */}
         <section className="bg-white border-b border-line">
           <div className="max-w-3xl mx-auto px-6 py-6">
-            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Sommaire</p>
+            <p className="text-sm font-semibold text-ink mb-3">Sommaire</p>
             <div className="grid sm:grid-cols-2 gap-1">
               {sections.map(s => (
                 <a key={s.n} href={`#section-${s.n}`}

@@ -304,7 +304,7 @@ export default function FinanceDashboard() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#5a3fe0] via-[#7357f6] to-[#7b5bef] text-white shadow-xl"
+        className="bg-gradient-to-r from-[#5b3fe0] via-[#7357f6] to-[#7b5bef] text-white shadow-xl"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <Link
@@ -346,7 +346,7 @@ export default function FinanceDashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-2xl shadow-md p-8 sm:p-12 text-center border border-line"
           >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#7357f6] to-[#5b3fe0] rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
               <Wallet className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
             <h3 className="text-xl sm:text-2xl font-bold text-ink mb-2 sm:mb-3">
@@ -357,7 +357,7 @@ export default function FinanceDashboard() {
             </p>
             <Link
               href="/jobs"
-              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] text-white rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
             >
               Voir les annonces
               <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -404,7 +404,7 @@ export default function FinanceDashboard() {
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#7357f6]/10 to-transparent rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#7357f6] to-[#5b3fe0] rounded-xl flex items-center justify-center text-white shadow-lg">
                       <Euro className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <span className="text-[#7357f6] text-xs font-semibold bg-brand-soft px-2 py-1 rounded-full">
@@ -414,7 +414,7 @@ export default function FinanceDashboard() {
                   <p className="text-xs sm:text-sm text-ink-2 mb-1 font-medium">
                     Total net estimé
                   </p>
-                  <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] bg-clip-text text-transparent">
+                  <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] bg-clip-text text-transparent">
                     {summary.totalNet.toFixed(2)} €
                   </p>
                 </div>
@@ -542,7 +542,7 @@ export default function FinanceDashboard() {
                             {/* Barre de progression visuelle */}
                             <div className="w-full bg-line rounded-full h-2">
                               <div 
-                                className="bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] h-2 rounded-full transition-all duration-500"
+                                className="bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.min((stat.net / Math.max(...monthlyStats.map(s => s.net))) * 100, 100)}%` }}
                               />
                             </div>
@@ -581,7 +581,7 @@ export default function FinanceDashboard() {
                         </div>
                         <div className="w-full bg-line rounded-full h-3">
                           <div 
-                            className="bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] h-3 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                            className="bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] h-3 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
                             style={{ width: `${Math.min(objectivesProgress.earningsProgress, 100)}%` }}
                           >
                             {objectivesProgress.earningsProgress >= 10 && (
@@ -764,7 +764,7 @@ export default function FinanceDashboard() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#7357f6] to-[#5b3fe0] rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
                 <Euro className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
 
@@ -795,7 +795,7 @@ export default function FinanceDashboard() {
                     <Euro className="w-5 h-5 text-[#7357f6]" />
                     <span className="font-semibold text-ink">Total net</span>
                   </div>
-                  <span className="text-lg font-bold bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] bg-clip-text text-transparent">
+                  <span className="text-lg font-bold bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] bg-clip-text text-transparent">
                     {(
                       Number(selectedMission.annonce?.remuneration) *
                       Number(selectedMission.annonce?.duree || 1) *
@@ -808,7 +808,7 @@ export default function FinanceDashboard() {
 
               <button
                 onClick={() => setSelectedMission(null)}
-                className="w-full bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base"
+                className="w-full bg-gradient-to-r from-[#7357f6] to-[#5b3fe0] text-white px-6 py-3 sm:py-4 rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base"
               >
                 Fermer
               </button>

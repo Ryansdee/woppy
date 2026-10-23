@@ -109,7 +109,7 @@ function Applications() {
                   }`}
               >
                 <p className={`font-[var(--font-bricolage),system-ui] font-bold text-2xl
-                  ${filterStatus === s.key ? "text-white" : "text-[#15131f]"}`}>
+                  ${filterStatus === s.key ? "text-white" : "text-[#111118]"}`}>
                   {s.value}
                 </p>
                 <p className={`text-[11px] font-medium mt-0.5
@@ -192,7 +192,7 @@ function Applications() {
               <div className="w-14 h-14 bg-brand-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Inbox className="w-7 h-7 text-brand" />
               </div>
-              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
+              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#111118] mb-1">
                 {searchTerm || filterStatus !== "all"
                   ? "Aucune candidature trouvée"
                   : "Aucune candidature pour le moment"}
@@ -238,16 +238,16 @@ function Applications() {
                         {/* Infos */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <p className="font-[var(--font-bricolage),system-ui] font-bold text-[14px] text-[#15131f] group-hover:text-brand transition-colors">
+                            <p className="font-[var(--font-bricolage),system-ui] font-bold text-[14px] text-[#111118] group-hover:text-brand transition-colors">
                               {app.fullName}
                             </p>
                             {isNew && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-200">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-200">
                                 <Clock className="w-2.5 h-2.5" /> Nouveau
                               </span>
                             )}
                             {app.status === "seen" && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
                                 <CheckCircle className="w-2.5 h-2.5" /> Vue
                               </span>
                             )}

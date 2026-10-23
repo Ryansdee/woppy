@@ -2,13 +2,12 @@ import NotificationsProvider from './providers/NotificationsProvider';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import './globals.css';
-import { Bricolage_Grotesque, Inter } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import AuthBootstrap from './providers/AuthBootstrap';
 import AuthRedirect from './providers/AuthRedirect';
 import EnablePushClient from './providers/EnablePushClient';
 
 const inter = Inter({ variable: '--font-inter', subsets: ['latin'] });
-const bricolage = Bricolage_Grotesque({ variable: '--font-bricolage', subsets: ['latin'] });
 
 export const metadata = {
   title: 'Woppy · Petits jobs entre étudiants et particuliers',
@@ -20,7 +19,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className={`${inter.variable} ${bricolage.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <AuthBootstrap />
         <AuthRedirect />
 

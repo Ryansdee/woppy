@@ -10,7 +10,7 @@ const woppyMarkerSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 45">
   <path fill="#7357f6" stroke="#ddc2ff" stroke-width="2"
         d="M16 2C8.3 2 2 8.2 2 16c0 9.6 14 26 14 26s14-16.4 14-26C30 8.2 23.7 2 16 2z"/>
-  <circle cx="16" cy="16" r="6" fill="#fbfaf7" />
+  <circle cx="16" cy="16" r="6" fill="#ffffff" />
 </svg>
 `;
 

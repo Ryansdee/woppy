@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, LayerGroup } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MAP_TILES_URL, MAP_TILES_OPTIONS } from "@/lib/mapTiles";
+import { formatRate } from "@/lib/annonce";
 
 interface Annonce {
   id: string;
@@ -19,6 +20,7 @@ interface Annonce {
   lieu: string;
   coords: { lat: number; lon: number } | null;
   remuneration: number;
+  rateMode?: string;
   statut: "ouverte" | "en cours" | "fini";
   photos?: string[];
 }
@@ -30,9 +32,9 @@ interface Props {
 const BELGIUM_CENTER: [number, number] = [50.5039, 4.4699];
 
 const STATUS = {
-  ouverte: { label: "Ouverte", bg: "#15131f", fg: "#fbfaf7" },
-  "en cours": { label: "En cours", bg: "#d8f36a", fg: "#15131f" },
-  fini: { label: "Terminée", bg: "#e7e3ec", fg: "#6e6a7c" },
+  ouverte: { label: "Ouverte", bg: "#7357f6", fg: "#ffffff" },
+  "en cours": { label: "En cours", bg: "#fef3c7", fg: "#92400e" },
+  fini: { label: "Terminée", bg: "#f6f6f8", fg: "#6b6b78" },
 } as const;
 
 /* Les champs viennent des utilisateurs : tout est échappé avant d'entrer dans le HTML */
@@ -57,7 +59,7 @@ function safeUrl(url: string | undefined): string | null {
 
 function pinHTML(a: Annonce): string {
   const s = STATUS[a.statut] ?? STATUS.ouverte;
-  return `<div class="woppy-pin" style="background:${s.bg};color:${s.fg}">${esc(a.remuneration)}&nbsp;€/h</div>`;
+  return `<div class="woppy-pin" style="background:${s.bg};color:${s.fg}">${esc(formatRate(a.remuneration, a.rateMode)).replace(" ", "&nbsp;")}</div>`;
 }
 
 function popupHTML(a: Annonce): string {
@@ -72,7 +74,7 @@ function popupHTML(a: Annonce): string {
       <p class="woppy-pop-desc">${esc(a.description)}</p>
       <p class="woppy-pop-meta">${esc(a.lieu || "—")}${a.duree ? ` · ${esc(a.duree)} h` : ""}${a.date ? ` · ${esc(a.date)}` : ""}</p>
       <div class="woppy-pop-foot">
-        <strong>${esc(a.remuneration)} €/h</strong>
+        <strong>${esc(formatRate(a.remuneration, a.rateMode))}</strong>
         <a href="/jobs/${encodeURIComponent(a.id)}">Voir l’annonce</a>
       </div>
     </div>
@@ -180,7 +182,7 @@ export default function AnnoncesMap({ annonces }: Props) {
           padding: 5px 10px;
           border-radius: 999px;
           font: 700 12px/1 var(--font-inter), system-ui, sans-serif;
-          box-shadow: 0 4px 14px rgba(21,19,31,.22);
+          box-shadow: 0 4px 14px rgba(17,17,24,.18);
           border: 2px solid #fff;
           cursor: pointer;
           transition: transform .12s;
@@ -188,21 +190,21 @@ export default function AnnoncesMap({ annonces }: Props) {
         .woppy-pin:hover { transform: translate(-50%, -100%) scale(1.08); }
         .woppy-popup .leaflet-popup-content-wrapper {
           border-radius: 18px; padding: 0; overflow: hidden;
-          box-shadow: 0 12px 36px rgba(21,19,31,.18); border: 1px solid #e7e3ec;
+          box-shadow: 0 12px 36px rgba(17,17,24,.14); border: 1px solid #e6e6eb;
         }
         .woppy-popup .leaflet-popup-content { margin: 0; width: 250px !important; }
         .woppy-popup .leaflet-popup-tip { box-shadow: none; }
-        .woppy-popup a.leaflet-popup-close-button { top: 8px; right: 8px; color: #6e6a7c; }
-        .woppy-pop { font: 400 13px/1.4 var(--font-inter), system-ui, sans-serif; color: #15131f; }
+        .woppy-popup a.leaflet-popup-close-button { top: 8px; right: 8px; color: #6b6b78; }
+        .woppy-pop { font: 400 13px/1.4 var(--font-inter), system-ui, sans-serif; color: #111118; }
         .woppy-pop-img { display: block; width: 100%; height: 110px; object-fit: cover; }
         .woppy-pop-body { padding: 14px; }
         .woppy-pop-status { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
         .woppy-pop h3 { margin: 8px 0 4px; font: 700 15px/1.25 var(--font-bricolage), system-ui, sans-serif; letter-spacing: -.01em; }
-        .woppy-pop-desc { margin: 0 0 6px; color: #3a3747; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .woppy-pop-meta { margin: 0; font-size: 12px; color: #6e6a7c; }
-        .woppy-pop-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e7e3ec; }
+        .woppy-pop-desc { margin: 0 0 6px; color: #3d3d48; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .woppy-pop-meta { margin: 0; font-size: 12px; color: #6b6b78; }
+        .woppy-pop-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6e6eb; }
         .woppy-pop-foot strong { font-size: 16px; white-space: nowrap; }
-        .woppy-pop-foot a { white-space: nowrap; background: #15131f; color: #fbfaf7 !important; padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 12px; text-decoration: none; }
+        .woppy-pop-foot a { white-space: nowrap; background: #7357f6; color: #ffffff !important; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 12px; text-decoration: none; }
         .leaflet-container { font-family: var(--font-inter), system-ui, sans-serif; }
       `}</style>
     </div>

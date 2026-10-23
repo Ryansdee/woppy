@@ -48,7 +48,7 @@ const VIOLET = "#7357f6";
 const GREEN = "#22c55e";
 const RED = "#ef4444";
 const AMBER = "#f59e0b";
-const DARK = "#15131f";
+const DARK = "#111118";
 
 function startOf(period: Period): Date {
   const d = new Date();
@@ -144,7 +144,7 @@ function buildTimeline(docs: any[], period: Period, dateField = "createdAt") {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-line rounded-xl px-3 py-2 shadow-lg text-sm font-['DM_Sans',system-ui]">
+    <div className="bg-white border border-line rounded-xl px-3 py-2 shadow-lg text-sm ">
       <p className="text-muted text-[11px] mb-1">{label}</p>
       {payload.map((p: any, i: number) => (
         <p key={i} style={{ color: p.color }} className="font-semibold">
@@ -167,7 +167,7 @@ function SectionHeader({
       <div className="w-7 h-7 bg-paper-2 rounded-lg flex items-center justify-center">
         {icon}
       </div>
-      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-[16px] text-[#15131f]">
+      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-[16px] text-[#111118]">
         {title}
       </h2>
       <div className="flex-1 h-px bg-line ml-1" />
@@ -184,7 +184,7 @@ function ChartCard({
 }) {
   return (
     <div className="bg-white border border-line rounded-2xl p-5">
-      <p className="font-['DM_Sans',system-ui] font-semibold text-[13px] text-ink-2 mb-4">
+      <p className=" font-semibold text-[13px] text-ink-2 mb-4">
         {title}
       </p>
       {children}
@@ -473,7 +473,7 @@ const heuresMoyennes = annoncesAvecData.length
                     >
                       {s.icon}
                     </div>
-                    <p className="font-[var(--font-bricolage),system-ui] font-bold text-2xl text-[#15131f]">
+                    <p className="font-[var(--font-bricolage),system-ui] font-bold text-2xl text-[#111118]">
                       {s.value}
                     </p>
                     <p className="text-[12px] font-semibold text-ink-2 mt-0.5">
@@ -564,15 +564,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f6f6f8" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
@@ -652,15 +652,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f6f6f8" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
@@ -712,17 +712,17 @@ const heuresMoyennes = annoncesAvecData.length
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#f3f1ec"
+                        stroke="#f6f6f8"
                         vertical={false}
                       />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 11, fill: "#6e6a7c" }}
+                        tick={{ fontSize: 11, fill: "#6b6b78" }}
                         tickLine={false}
                         axisLine={false}
                       />
                       <YAxis
-                        tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                        tick={{ fontSize: 10, fill: "#6b6b78" }}
                         tickLine={false}
                         axisLine={false}
                         allowDecimals={false}
@@ -865,15 +865,15 @@ const heuresMoyennes = annoncesAvecData.length
                             />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f1ec" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f6f6f8" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 10, fill: "#6e6a7c" }}
+                          tick={{ fontSize: 10, fill: "#6b6b78" }}
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}

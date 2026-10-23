@@ -272,7 +272,7 @@ export default function StatusPage() {
             {groups.map(group => (
               <div key={group.name} className="bg-white rounded-2xl border border-line overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-                  <h2 className="text-xs font-bold text-muted uppercase tracking-widest">{group.name}</h2>
+                  <h2 className="text-sm font-semibold text-ink">{group.name}</h2>
                   <div className="flex items-center gap-1.5">
                     {group.checks.map(c => (
                       <div key={c.id} className="w-2 h-2 rounded-full transition-colors"
@@ -325,7 +325,7 @@ export default function StatusPage() {
           {/* ── Uptime fake bars ── */}
           <div className="mt-6 bg-white rounded-2xl border border-line p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Disponibilité — 90 derniers jours</h2>
+              <h2 className="text-sm font-semibold text-ink">Disponibilité — 90 derniers jours</h2>
               <span className="mono text-xs text-muted">99.8 %</span>
             </div>
             <div className="flex gap-0.5">

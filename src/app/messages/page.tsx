@@ -64,14 +64,14 @@ async function fetchProfile(uid: string): Promise<UserProfile> {
     const p: UserProfile = {
       uid,
       displayName: d.displayName || `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Utilisateur',
-      photoURL: d.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.firstName || 'U')}&background=7c5fe6&color=fff`,
+      photoURL: d.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.firstName || 'U')}&background=f1eeff&color=5b3fe0`,
       isOnline: !!d.isOnline,
       lastSeen: d.lastSeen,
     };
     cache.set(uid, p);
     return p;
   } catch {
-    return { uid, displayName: 'Utilisateur', photoURL: `https://ui-avatars.com/api/?name=U&background=7c5fe6&color=fff` };
+    return { uid, displayName: 'Utilisateur', photoURL: `https://ui-avatars.com/api/?name=U&background=f1eeff&color=5b3fe0` };
   }
 }
 
@@ -275,7 +275,7 @@ export default function MessagesPage() {
   if (loading) return (
     <div className="h-screen bg-paper-2 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
+        <div className="w-10 h-10 rounded-full bg-paper-2 flex items-center justify-center animate-pulse">
           <MessageSquare size={18} className="text-white" />
         </div>
         <p className="text-sm text-muted">Chargement…</p>
@@ -343,7 +343,7 @@ export default function MessagesPage() {
                       className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-paper-2 ${isActive ? 'bg-brand-soft border-r-2 border-brand' : ''}`}>
                       <div className="relative shrink-0">
                         <img src={o?.photoURL} alt={o?.displayName}
-                          className="w-10 h-10 rounded-xl object-cover border border-line" />
+                          className="w-10 h-10 rounded-full object-cover border border-line" />
                         {o?.isOnline && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                         )}
@@ -362,7 +362,7 @@ export default function MessagesPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-xs text-muted truncate flex-1">{c.lastMessage}</p>
                           {(c.unreadCount ?? 0) > 0 && (
-                            <span className="shrink-0 w-4 h-4 bg-ink text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            <span className="shrink-0 w-4 h-4 bg-brand text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                               {c.unreadCount}
                             </span>
                           )}
@@ -405,7 +405,7 @@ export default function MessagesPage() {
                     <Link href={`/profile/${other.uid}`} className="flex items-center gap-3 min-w-0 flex-1 group">
                       <div className="relative shrink-0">
                         <img src={other.photoURL} alt={other.displayName}
-                          className="w-8 h-8 rounded-xl object-cover border border-line" />
+                          className="w-8 h-8 rounded-full object-cover border border-line" />
                         {other.isOnline && (
                           <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
                         )}
@@ -427,7 +427,7 @@ export default function MessagesPage() {
                     <button onClick={() => setShowJobs(s => !s)}
                       className={`relative p-2 rounded-lg transition-colors ${showJobs ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-paper-2'}`}>
                       <Briefcase size={15} />
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-ink text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-brand text-white text-[8px] font-bold rounded-full flex items-center justify-center">
                         {commonJobs.length}
                       </span>
                     </button>
@@ -454,7 +454,7 @@ export default function MessagesPage() {
               {showJobs && commonJobs.length > 0 && (
                 <div className="bg-paper-2 border-b border-line px-5 py-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-muted uppercase tracking-widest">
+                    <p className="text-sm font-semibold text-ink">
                       Missions en commun
                     </p>
                     <button onClick={() => setShowJobs(false)} className="text-muted hover:text-ink-2">
@@ -515,7 +515,7 @@ export default function MessagesPage() {
                                   <div className="w-7 h-7 shrink-0 mt-auto">
                                     {showAv && (
                                       <img src={other?.photoURL} alt=""
-                                        className="w-7 h-7 rounded-lg object-cover border border-line" />
+                                        className="w-7 h-7 rounded-full object-cover border border-line" />
                                     )}
                                   </div>
                                 )}
@@ -533,7 +533,7 @@ export default function MessagesPage() {
                                       /* Bubble */
                                       <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                                         isOwn
-                                          ? 'bg-ink text-white rounded-br-sm'
+                                          ? 'bg-brand text-white rounded-br-sm'
                                           : 'bg-white text-ink border border-line shadow-sm rounded-bl-sm'
                                       } ${isFirst && isOwn ? 'rounded-tr-2xl' : ''} ${isFirst && !isOwn ? 'rounded-tl-2xl' : ''}`}>
                                         {msg.type === 'file'
@@ -586,7 +586,7 @@ export default function MessagesPage() {
                   {otherTyping && (
                     <div className="flex justify-start">
                       <div className="flex gap-2.5">
-                        <img src={other?.photoURL} alt="" className="w-7 h-7 rounded-lg object-cover border border-line mt-auto" />
+                        <img src={other?.photoURL} alt="" className="w-7 h-7 rounded-full object-cover border border-line mt-auto" />
                         <div className="bg-white border border-line shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
                           <div className="flex gap-1">
                             {[0, 0.2, 0.4].map((d, i) => (
@@ -625,7 +625,7 @@ export default function MessagesPage() {
 
                   <button onClick={() => sendMessage()}
                     disabled={sending || !newMessage.trim()}
-                    className="p-2.5 bg-ink hover:bg-ink-2 text-white rounded-xl transition-all shadow-sm shadow-brand/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
+                    className="p-2.5 bg-brand hover:bg-brand-dark text-white rounded-lg transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
                     {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                   </button>
                 </div>

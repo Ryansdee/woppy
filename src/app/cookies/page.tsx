@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { Cookie, Settings, Eye, BarChart, Shield, ChevronRight } from 'lucide-react';
+import { Settings, Eye, BarChart, Shield, ChevronRight } from 'lucide-react';
 
 const summaryCards = [
   {
@@ -210,8 +209,8 @@ const sections = [
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-paper-2 border-b border-line">
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted uppercase tracking-widest">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted uppercase tracking-widest">Durée</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-ink">Type</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-ink">Durée</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -249,12 +248,12 @@ const sections = [
           { label: "Support général", value: "support@woppy.be", href: "mailto:support@woppy.be" },
         ].map(item => (
           <div key={item.label} className="bg-paper-2 border border-line rounded-xl p-4">
-            <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-1">{item.label}</p>
+            <p className="text-xs font-medium text-muted mb-1">{item.label}</p>
             <a href={item.href} className="text-sm font-medium text-brand hover:text-brand-dark transition-colors">{item.value}</a>
           </div>
         ))}
         <div className="sm:col-span-2 bg-paper-2 border border-line rounded-xl p-4">
-          <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-1">Autorité de contrôle belge</p>
+          <p className="text-xs font-medium text-muted mb-1">Autorité de contrôle belge</p>
           <p className="text-sm font-semibold text-ink">Autorité de Protection des Données (APD)</p>
           <a href="https://www.autoriteprotectiondonnees.be" target="_blank" rel="noopener noreferrer"
             className="text-xs text-brand hover:underline">autoriteprotectiondonnees.be</a>
@@ -273,11 +272,8 @@ export default function CookiesPage() {
 
         {/* ── Hero ── */}
         <section className="pt-24 pb-10 px-6 bg-paper-2 border-b border-line">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="w-14 h-14 bg-ink rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <Cookie className="text-white" size={24} />
-            </div>
-            <h1 className="font-bold text-3xl text-ink mb-2 tracking-tight" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
+          <div className="max-w-3xl mx-auto">
+            <h1 className="display text-3xl mb-2">
               Politique des Cookies
             </h1>
             <p className="text-muted text-sm mb-1">Woppy — Plateforme d'économie collaborative</p>
@@ -288,7 +284,7 @@ export default function CookiesPage() {
         {/* ── Summary cards ── */}
         <section className="bg-white border-b border-line">
           <div className="max-w-3xl mx-auto px-6 py-8">
-            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">En bref</p>
+            <p className="text-sm font-semibold text-ink mb-4">En bref</p>
             <div className="grid sm:grid-cols-3 gap-4">
               {summaryCards.map(card => (
                 <div key={card.title} className={`flex items-start gap-3 border rounded-xl p-4 ${card.color}`}>
@@ -308,7 +304,7 @@ export default function CookiesPage() {
         {/* ── TOC ── */}
         <section className="bg-white border-b border-line">
           <div className="max-w-3xl mx-auto px-6 py-5">
-            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Sommaire</p>
+            <p className="text-sm font-semibold text-ink mb-3">Sommaire</p>
             <div className="grid sm:grid-cols-2 gap-1">
               {sections.map(s => (
                 <a key={s.n} href={`#section-${s.n}`}

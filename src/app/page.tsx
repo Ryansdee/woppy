@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   ArrowRight,
-  ArrowUpRight,
   BadgeCheck,
+  Check,
   Clock,
-  Euro,
   GraduationCap,
   Home,
   MapPin,
@@ -28,6 +26,8 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Avatar, Badge } from "@/components/ui";
+import { formatRate, shortPlace } from "@/lib/annonce";
 
 /* ─────────────── TYPES ─────────────── */
 
@@ -37,17 +37,9 @@ type Annonce = {
   description: string;
   lieu: string;
   remuneration: number | string;
+  rateMode?: string;
   duree?: number | string;
-  date?: string;
   statut: string;
-};
-
-type Review = {
-  id: string;
-  name: string;
-  role: string;
-  text: string;
-  rating: number;
 };
 
 type RawReview = {
@@ -61,6 +53,8 @@ type RawReview = {
   comment?: string;
 };
 
+type Review = { id: string; name: string; role: string; text: string; rating: number };
+
 type Stats = { users: number; annonces: number; finished: number; students: number };
 
 /* ─────────────── CONTENU ─────────────── */
@@ -68,93 +62,74 @@ type Stats = { users: number; annonces: number; finished: number; students: numb
 const MIN_USERS_FOR_STATS = 50;
 
 const STEPS = [
-  {
-    title: "Créez votre compte",
-    desc: "Gratuit. Les étudiants complètent leur profil : études, disponibilités, expériences.",
-  },
-  {
-    title: "Publiez ou trouvez une mission",
-    desc: "Le particulier décrit la mission, le lieu, la date et la rémunération. Tout est clair dès le départ.",
-  },
-  {
-    title: "Discutez et choisissez",
-    desc: "L'étudiant postule, la messagerie s'ouvre, le particulier accepte la candidature qui lui convient.",
-  },
-  {
-    title: "Mission faite, avis laissé",
-    desc: "Une fois la mission terminée, chacun note l'autre. Les avis restent visibles sur les profils.",
-  },
+  { title: "Créez votre compte", desc: "Gratuit. Les étudiants complètent leur profil : études, disponibilités, expériences." },
+  { title: "Publiez ou trouvez une mission", desc: "L'annonce indique la mission, le lieu, la date et la rémunération." },
+  { title: "Discutez et choisissez", desc: "L'étudiant postule, la messagerie s'ouvre, le particulier accepte une candidature." },
+  { title: "Laissez un avis", desc: "Une fois la mission terminée, chacun note l'autre. Les avis restent sur les profils." },
 ];
 
-const AUDIENCES = {
-  student: {
-    label: "Je suis étudiant",
+const AUDIENCES = [
+  {
     icon: GraduationCap,
-    title: "Des jobs qui rentrent dans votre horaire",
+    title: "Pour les étudiants",
     points: [
       "Des missions courtes, près de chez vous ou de votre campus",
-      "La rémunération est affichée dans l'annonce, sans négociation",
+      "La rémunération est affichée dans l'annonce",
       "Pas de CV : votre profil et vos avis parlent pour vous",
-      "Vous choisissez vos missions, quand vous êtes disponible",
+      "Vous choisissez vos missions selon vos disponibilités",
     ],
-    cta: { href: "/auth/register", label: "Créer mon profil étudiant" },
+    cta: { href: "/auth/register", label: "Créer mon profil" },
   },
-  client: {
-    label: "Je cherche de l'aide",
+  {
     icon: Home,
-    title: "Un coup de main, sans prise de tête",
+    title: "Pour les particuliers",
     points: [
       "Publiez une annonce en quelques minutes",
-      "Consultez le profil de chaque candidat avant de choisir",
+      "Consultez le profil de chaque candidat",
       "Lisez les avis laissés après les missions précédentes",
       "Échangez dans la messagerie avant de confirmer",
     ],
     cta: { href: "/jobs/create", label: "Publier une annonce" },
   },
-} as const;
+];
+
+const TRUST = [
+  { icon: BadgeCheck, title: "Profils et avis publics", desc: "Études, expériences et avis reçus sont visibles avant de choisir." },
+  { icon: MessageSquare, title: "Messagerie intégrée", desc: "Fixez les détails sans partager votre numéro de téléphone." },
+  { icon: ShieldCheck, title: "Signalement et support", desc: "Signalez un message ou ouvrez un ticket : l'équipe vous répond." },
+];
 
 /* ─────────────── COMPOSANTS ─────────────── */
 
-function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5" aria-label={`${rating} sur 5`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={size}
-          className={n <= Math.round(rating) ? "fill-ink text-ink" : "fill-line text-line"}
-        />
+        <Star key={n} size={14} className={n <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-line text-line"} />
       ))}
     </div>
   );
 }
 
-function JobCard({ a }: { a: Annonce }) {
+function JobRow({ a }: { a: Annonce }) {
   return (
-    <Link
-      href={`/jobs/${a.id}`}
-      className="card group flex h-full flex-col p-5 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-ink"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <h3 className="font-display text-lg font-semibold leading-snug tracking-tight">{a.titre}</h3>
-        <ArrowUpRight size={18} className="shrink-0 text-muted transition-colors group-hover:text-ink" />
+    <Link href={`/jobs/${a.id}`} className="group flex items-start justify-between gap-4 p-4 transition-colors hover:bg-paper-2">
+      <div className="min-w-0">
+        <p className="truncate font-medium group-hover:text-brand">{a.titre}</p>
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+          {a.lieu && (
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <MapPin size={13} className="shrink-0" /> <span className="truncate">{shortPlace(a.lieu)}</span>
+            </span>
+          )}
+          {a.duree && (
+            <span className="inline-flex items-center gap-1">
+              <Clock size={13} /> {a.duree} h
+            </span>
+          )}
+        </p>
       </div>
-      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{a.description}</p>
-      <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
-        <span className="chip !border-transparent !bg-lime-soft font-semibold !text-ink">
-          <Euro size={12} /> {a.remuneration} €/h
-        </span>
-        {a.lieu && (
-          <span className="chip">
-            <MapPin size={12} /> {a.lieu}
-          </span>
-        )}
-        {a.duree && (
-          <span className="chip">
-            <Clock size={12} /> {a.duree} h
-          </span>
-        )}
-      </div>
+      <span className="shrink-0 text-sm font-semibold">{formatRate(a.remuneration, a.rateMode)}</span>
     </Link>
   );
 }
@@ -164,7 +139,6 @@ function JobCard({ a }: { a: Annonce }) {
 export default function HomePage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [audience, setAudience] = useState<keyof typeof AUDIENCES>("student");
   const [stats, setStats] = useState<Stats | null>(null);
   const [annonces, setAnnonces] = useState<Annonce[] | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -179,12 +153,7 @@ export default function HomePage() {
       getCountFromServer(query(collection(db, "users"), where("hasStudentProfile", "==", true))),
     ])
       .then(([u, a, f, s]) =>
-        setStats({
-          users: u.data().count,
-          annonces: a.data().count,
-          finished: f.data().count,
-          students: s.data().count,
-        })
+        setStats({ users: u.data().count, annonces: a.data().count, finished: f.data().count, students: s.data().count })
       )
       .catch(() => setStats(null));
   }, []);
@@ -197,7 +166,7 @@ export default function HomePage() {
           snap.docs
             .map((d) => ({ id: d.id, ...(d.data() as Omit<Annonce, "id">) }))
             .filter((a) => a.statut !== "fini" && a.titre)
-            .slice(0, 3)
+            .slice(0, 4)
         )
       )
       .catch(() => setAnnonces([]));
@@ -212,10 +181,7 @@ export default function HomePage() {
           .filter((d) => d.status !== "pending");
         const rated = published.filter((d) => typeof d.rating === "number");
         if (rated.length) {
-          setRating({
-            avg: rated.reduce((s, d) => s + (d.rating ?? 0), 0) / rated.length,
-            count: rated.length,
-          });
+          setRating({ avg: rated.reduce((s, d) => s + (d.rating ?? 0), 0) / rated.length, count: rated.length });
         }
         setReviews(
           published
@@ -239,222 +205,150 @@ export default function HomePage() {
     router.push(q ? `/jobs?q=${encodeURIComponent(q)}` : "/jobs");
   };
 
-  const aud = AUDIENCES[audience];
   /* Les chiffres ne s'affichent qu'à partir d'une communauté significative */
-  const statItems = stats && stats.users >= MIN_USERS_FOR_STATS
-    ? [
-        { value: stats.users, label: "membres inscrits" },
-        { value: stats.students, label: "profils étudiants" },
-        { value: stats.annonces, label: "missions publiées" },
-        { value: stats.finished, label: "missions terminées" },
-      ].filter((s) => s.value > 0)
-    : [];
+  const statItems =
+    stats && stats.users >= MIN_USERS_FOR_STATS
+      ? [
+          { value: stats.users, label: "membres inscrits" },
+          { value: stats.students, label: "profils étudiants" },
+          { value: stats.annonces, label: "missions publiées" },
+          { value: stats.finished, label: "missions terminées" },
+        ].filter((s) => s.value > 0)
+      : [];
 
   return (
     <main className="overflow-x-hidden">
       {/* ══════════ HERO ══════════ */}
-      <section className="container-w pb-16 pt-14 sm:pt-20">
-        <div className="grid items-end gap-10 lg:grid-cols-[1.25fr_1fr]">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <span className="chip">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" /> Petits jobs étudiants en Belgique
-            </span>
-            <h1 className="display mt-6 text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-7xl">
-              Un coup de main,
-              <br />
-              <span className="relative inline-block">
-                <span className="relative z-10">un étudiant</span>
-                <span className="absolute inset-x-[-0.1em] bottom-[0.08em] z-0 h-[0.38em] -rotate-1 rounded-sm bg-lime" />
-              </span>{" "}
-              du coin.
+      <section className="border-b border-line bg-gradient-to-b from-brand-soft/60 to-white">
+        <div className="container-w grid items-center gap-12 py-16 sm:py-20 lg:grid-cols-[1.1fr_1fr]">
+          <div>
+            <Badge tone="brand">Petits jobs étudiants en Belgique</Badge>
+            <h1 className="display mt-5 text-4xl leading-[1.1] sm:text-5xl">
+              Des petits jobs près de chez vous, entre étudiants et particuliers.
             </h1>
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-2">
-              Woppy met en relation des particuliers qui ont besoin d&apos;aide et des étudiants qui
-              cherchent des missions courtes et rémunérées.
+            <p className="mt-5 max-w-xl text-lg text-ink-2">
+              Woppy met en relation les particuliers qui ont besoin d&apos;un coup de main et les étudiants qui cherchent des
+              missions courtes et rémunérées.
             </p>
 
-            <form onSubmit={onSearch} className="mt-8 flex max-w-lg gap-2 rounded-full border border-line bg-white p-1.5 shadow-sm">
-              <label className="flex flex-1 items-center gap-2 pl-3">
-                <Search size={18} className="shrink-0 text-muted" />
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/jobs/create" className="btn btn-primary btn-lg">
+                Publier une annonce <ArrowRight size={16} />
+              </Link>
+              <Link href="/auth/register" className="btn btn-outline btn-lg">
+                <GraduationCap size={16} /> Je suis étudiant
+              </Link>
+            </div>
+
+            <form onSubmit={onSearch} className="mt-6 flex max-w-xl gap-2">
+              <label className="relative flex-1">
                 <span className="sr-only">Rechercher une mission</span>
+                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Déménagement, cours, jardin…"
-                  className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted"
+                  placeholder="Rechercher une mission : déménagement, cours, jardin…"
+                  className="input pl-9"
                 />
               </label>
-              <button type="submit" className="btn btn-primary">
-                Chercher
-              </button>
+              <button type="submit" className="btn btn-dark">Rechercher</button>
             </form>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="grid gap-3"
-          >
-            <Link
-              href="/auth/register"
-              className="group flex items-center justify-between rounded-[var(--radius-card)] bg-ink p-6 text-paper transition-transform hover:-translate-y-0.5"
-            >
-              <div>
-                <GraduationCap size={22} className="text-lime" />
-                <p className="mt-4 font-display text-2xl font-semibold tracking-tight">Je suis étudiant</p>
-                <p className="mt-1 text-sm text-paper/70">Trouver des missions près de chez moi</p>
-              </div>
-              <ArrowRight className="transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/jobs/create"
-              className="group flex items-center justify-between rounded-[var(--radius-card)] bg-brand p-6 text-white transition-transform hover:-translate-y-0.5"
-            >
-              <div>
-                <Home size={22} />
-                <p className="mt-4 font-display text-2xl font-semibold tracking-tight">Je cherche de l&apos;aide</p>
-                <p className="mt-1 text-sm text-white/75">Publier une annonce gratuitement</p>
-              </div>
-              <ArrowRight className="transition-transform group-hover:translate-x-1" />
-            </Link>
-          </motion.div>
+          {/* Aperçu des vraies annonces */}
+          <div className="card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3">
+              <p className="text-sm font-semibold">Dernières missions publiées</p>
+              <Link href="/jobs" className="text-sm link">Tout voir</Link>
+            </div>
+            <div className="divide-y divide-line">
+              {annonces === null &&
+                [0, 1, 2].map((i) => (
+                  <div key={i} className="space-y-2 p-4">
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-paper-2" />
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-paper-2" />
+                  </div>
+                ))}
+              {annonces?.map((a) => <JobRow key={a.id} a={a} />)}
+              {annonces?.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-muted">Aucune mission ouverte pour l&apos;instant.</p>
+                  <Link href="/jobs/create" className="btn btn-outline btn-sm mt-4">Publier la première</Link>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Chiffres réels, affichés seulement s'ils sont disponibles */}
         {statItems.length > 0 && (
-          <dl className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-4">
-            {statItems.map((s) => (
-              <div key={s.label} className="bg-paper px-5 py-5">
-                <dt className="text-sm text-muted">{s.label}</dt>
-                <dd className="display mt-1 text-3xl">{s.value.toLocaleString("fr-BE")}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="container-w pb-12">
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {statItems.map((s) => (
+                <div key={s.label} className="card p-4">
+                  <dt className="text-sm text-muted">{s.label}</dt>
+                  <dd className="mt-1 text-2xl font-semibold">{s.value.toLocaleString("fr-BE")}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         )}
       </section>
 
-      {/* ══════════ ANNONCES RÉCENTES ══════════ */}
-      <section id="jobs" className="border-y border-line bg-white py-20">
-        <div className="container-w">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow">En ce moment</p>
-              <h2 className="display mt-2 text-3xl sm:text-4xl">Dernières missions publiées</h2>
-            </div>
-            <Link href="/jobs" className="btn btn-outline">
-              Toutes les annonces <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {annonces === null &&
-              [0, 1, 2].map((i) => <div key={i} className="card h-48 animate-pulse bg-paper-2" />)}
-            {annonces?.map((a) => <JobCard key={a.id} a={a} />)}
-          </div>
-
-          {annonces?.length === 0 && (
-            <div className="card mt-2 flex flex-col items-center gap-4 px-6 py-12 text-center">
-              <p className="text-ink-2">Aucune mission ouverte pour l&apos;instant.</p>
-              <Link href="/jobs/create" className="btn btn-brand">
-                Publier la première
-              </Link>
-            </div>
-          )}
+      {/* ══════════ COMMENT ÇA MARCHE ══════════ */}
+      <section id="comment" className="container-w py-20">
+        <div className="max-w-2xl">
+          <p className="eyebrow">Comment ça marche</p>
+          <h2 className="display mt-2 text-3xl">Quatre étapes, de l&apos;annonce à l&apos;avis.</h2>
         </div>
+        <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s, i) => (
+            <li key={s.title} className="card p-5">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-soft text-sm font-semibold text-brand-dark">
+                {i + 1}
+              </span>
+              <h3 className="mt-4 font-semibold">{s.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.desc}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       {/* ══════════ POUR QUI ══════════ */}
-      <section className="container-w py-20">
-        <div className="flex justify-center">
-          <div className="inline-flex rounded-full border border-line bg-white p-1" role="tablist">
-            {(Object.keys(AUDIENCES) as (keyof typeof AUDIENCES)[]).map((key) => {
-              const Icon = AUDIENCES[key].icon;
-              return (
-                <button
-                  key={key}
-                  role="tab"
-                  aria-selected={audience === key}
-                  onClick={() => setAudience(key)}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors sm:px-5 ${
-                    audience === key ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"
-                  }`}
-                >
-                  <Icon size={16} /> {AUDIENCES[key].label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <motion.div
-          key={audience}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-auto mt-10 grid max-w-5xl items-center gap-10 md:grid-cols-2"
-        >
-          <div>
-            <h2 className="display text-4xl leading-tight sm:text-5xl">{aud.title}</h2>
-            <Link href={aud.cta.href} className="btn btn-primary btn-lg mt-8">
-              {aud.cta.label} <ArrowRight size={18} />
-            </Link>
-          </div>
-          <ul className="grid gap-3">
-            {aud.points.map((p, i) => (
-              <li key={p} className="card flex items-start gap-4 p-5">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime text-xs font-bold">
-                  {i + 1}
-                </span>
-                <span className="pt-0.5 text-ink-2">{p}</span>
-              </li>
-            ))}
-          </ul>
-        </motion.div>
-      </section>
-
-      {/* ══════════ COMMENT ÇA MARCHE ══════════ */}
-      <section id="comment" className="bg-ink py-20 text-paper">
-        <div className="container-w">
-          <p className="eyebrow !text-paper/60">Comment ça marche</p>
-          <h2 className="display mt-2 max-w-xl text-4xl !text-paper sm:text-5xl">Quatre étapes, pas une de plus.</h2>
-          <ol className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] bg-paper/10 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="bg-ink p-6">
-                <span className="font-display text-5xl font-bold text-lime">{String(i + 1).padStart(2, "0")}</span>
-                <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">{s.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-paper/70">{s.desc}</p>
-              </li>
-            ))}
-          </ol>
+      <section className="border-y border-line bg-paper-2">
+        <div className="container-w grid gap-6 py-20 md:grid-cols-2">
+          {AUDIENCES.map(({ icon: Icon, title, points, cta }) => (
+            <div key={title} className="card flex flex-col p-6 sm:p-8">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-brand-soft text-brand">
+                <Icon size={20} />
+              </span>
+              <h2 className="display mt-5 text-xl">{title}</h2>
+              <ul className="mt-5 flex-1 space-y-3">
+                {points.map((p) => (
+                  <li key={p} className="flex gap-3 text-sm text-ink-2">
+                    <Check size={16} className="mt-0.5 shrink-0 text-brand" /> {p}
+                  </li>
+                ))}
+              </ul>
+              <Link href={cta.href} className="btn btn-outline mt-8 self-start">
+                {cta.label} <ArrowRight size={15} />
+              </Link>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ══════════ CONFIANCE ══════════ */}
       <section className="container-w py-20">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: BadgeCheck,
-              title: "Profils et avis publics",
-              desc: "Études, expériences et avis reçus : vous savez à qui vous avez affaire.",
-            },
-            {
-              icon: MessageSquare,
-              title: "Messagerie intégrée",
-              desc: "Posez vos questions et fixez les détails sans partager votre numéro.",
-            },
-            {
-              icon: ShieldCheck,
-              title: "Signalement et support",
-              desc: "Un problème ? Signalez un message ou ouvrez un ticket, l'équipe vous répond.",
-            },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="card p-6">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-soft text-brand">
-                <Icon size={20} />
-              </span>
-              <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{desc}</p>
+        <div className="max-w-2xl">
+          <p className="eyebrow">Confiance</p>
+          <h2 className="display mt-2 text-3xl">Des outils pour travailler sereinement.</h2>
+        </div>
+        <div className="mt-10 grid gap-8 md:grid-cols-3">
+          {TRUST.map(({ icon: Icon, title, desc }) => (
+            <div key={title}>
+              <Icon size={22} className="text-brand" />
+              <h3 className="mt-4 font-semibold">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{desc}</p>
             </div>
           ))}
         </div>
@@ -462,36 +356,32 @@ export default function HomePage() {
 
       {/* ══════════ AVIS ══════════ */}
       {reviews.length > 0 && (
-        <section id="avis" className="border-t border-line bg-white py-20">
-          <div className="container-w">
+        <section id="avis" className="border-t border-line bg-paper-2">
+          <div className="container-w py-20">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="eyebrow">Avis</p>
-                <h2 className="display mt-2 text-3xl sm:text-4xl">Ce qu&apos;en disent les membres</h2>
+                <h2 className="display mt-2 text-3xl">Ce qu&apos;en disent les membres</h2>
               </div>
               {rating && (
                 <div className="flex items-center gap-3">
-                  <span className="display text-3xl">{rating.avg.toFixed(1).replace(".", ",")}</span>
+                  <span className="text-3xl font-semibold">{rating.avg.toFixed(1).replace(".", ",")}</span>
                   <div>
                     <Stars rating={rating.avg} />
-                    <p className="mt-1 text-xs text-muted">
-                      sur {rating.count} avis
-                    </p>
+                    <p className="mt-1 text-xs text-muted">sur {rating.count} avis</p>
                   </div>
                 </div>
               )}
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {reviews.map((r) => (
-                <figure key={r.id} className="card flex flex-col p-6">
+                <figure key={r.id} className="card flex flex-col p-5">
                   <Stars rating={r.rating} />
-                  <blockquote className="mt-4 flex-1 leading-relaxed text-ink-2">« {r.text} »</blockquote>
-                  <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-4">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand">
-                      {r.name.charAt(0).toUpperCase()}
-                    </span>
+                  <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-ink-2">« {r.text} »</blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3 border-t border-line pt-4">
+                    <Avatar name={r.name} size={32} />
                     <div>
-                      <p className="text-sm font-semibold">{r.name}</p>
+                      <p className="text-sm font-medium">{r.name}</p>
                       {r.role && <p className="text-xs text-muted">{r.role}</p>}
                     </div>
                   </figcaption>
@@ -504,16 +394,14 @@ export default function HomePage() {
 
       {/* ══════════ CTA ══════════ */}
       <section className="container-w py-20">
-        <div className="relative overflow-hidden rounded-[2rem] bg-lime px-6 py-14 text-center sm:px-12 sm:py-20">
-          <h2 className="display mx-auto max-w-2xl text-4xl leading-tight sm:text-6xl">On s&apos;y met ?</h2>
-          <p className="mx-auto mt-4 max-w-md text-ink-2">L&apos;inscription est gratuite, pour les étudiants comme pour les particuliers.</p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/auth/register" className="btn btn-primary btn-lg">
-              Créer un compte <ArrowRight size={18} />
-            </Link>
-            <Link href="/jobs" className="btn btn-lg border border-ink/20 bg-transparent hover:border-ink">
-              Voir les annonces
-            </Link>
+        <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-ink px-6 py-10 text-white sm:px-10 md:flex-row md:items-center">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Prêt à commencer ?</h2>
+            <p className="mt-2 text-white/70">L&apos;inscription est gratuite, pour les étudiants comme pour les particuliers.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/auth/register" className="btn btn-primary btn-lg">Créer un compte</Link>
+            <Link href="/jobs" className="btn btn-lg border border-white/20 text-white hover:bg-white/10">Voir les annonces</Link>
           </div>
         </div>
       </section>

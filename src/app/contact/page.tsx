@@ -16,7 +16,7 @@ const inputCls = `
   focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
   transition-all
 `
-const labelCls = "block text-xs font-bold text-muted uppercase tracking-widest mb-1.5"
+const labelCls = "block text-sm font-semibold text-ink mb-1.5"
 
 const CATEGORIES = [
   { value: 'question', label: 'Question générale' },
@@ -161,7 +161,7 @@ export default function ContactPage() {
               </div>
 
               <div className="bg-paper-2 border border-line rounded-xl p-4">
-                <p className="text-xs font-bold text-muted uppercase tracking-widest mb-1.5">Email direct</p>
+                <p className="text-sm font-semibold text-ink mb-1.5">Email direct</p>
                 <a href="mailto:support@woppy.be" className="text-sm font-semibold text-brand hover:underline">
                   support@woppy.be
                 </a>
@@ -185,7 +185,7 @@ export default function ContactPage() {
                   {/* Ticket ID + lien */}
                   <div className="inline-flex flex-col items-center gap-3 bg-paper-2 border border-line rounded-xl px-6 py-4 mb-4">
                     <div>
-                      <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Numéro de ticket</p>
+                      <p className="text-xs font-medium text-muted mb-1">Numéro de ticket</p>
                       <p className="font-bold text-ink tracking-widest text-lg" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
                         {ticketId}
                       </p>
@@ -211,7 +211,7 @@ export default function ContactPage() {
               ) : (
                 <div className="bg-white rounded-2xl border border-line overflow-hidden">
                   <div className="px-6 py-4 border-b border-line">
-                    <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Nouvelle demande</h2>
+                    <h2 className="text-sm font-semibold text-ink">Nouvelle demande</h2>
                   </div>
 
                   <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
@@ -285,7 +285,7 @@ export default function ContactPage() {
           <div className="bg-white rounded-2xl border border-line overflow-hidden">
             <div className="px-6 py-4 border-b border-line flex items-center gap-2">
               <Search size={14} className="text-muted" />
-              <h2 className="text-xs font-bold text-muted uppercase tracking-widest">Retrouver mes tickets</h2>
+              <h2 className="text-sm font-semibold text-ink">Retrouver mes tickets</h2>
             </div>
 
             <div className="px-6 py-6">

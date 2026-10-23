@@ -7,13 +7,14 @@ import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import { formatRate, shortPlace } from "@/lib/annonce";
+import { Badge, EmptyState, Loading, Page, PageHeader, Tabs } from "@/components/ui";
 import cityMapJson from "../../../public/data/city-abbreviations.json";
 const cityMap: Record<string, string> = cityMapJson;
 
 import {
-  Search, Map as MapIcon, LayoutGrid, X, ChevronRight,
-  MapPin, Calendar, Clock, AlertCircle, SlidersHorizontal,
-  TrendingUp, Briefcase, ArrowUpRight,
+  Search, Map as MapIcon, LayoutGrid, X, Plus,
+  MapPin, Calendar, SlidersHorizontal, Briefcase, ArrowUpRight,
 } from "lucide-react";
 
 const AnnoncesMap = dynamic(() => import("@/components/AnnoncesMap"), { ssr: false });
@@ -27,6 +28,7 @@ interface Annonce {
   lieu: string;
   coords: { lat: number; lon: number } | null;
   remuneration: number;
+  rateMode?: string;
   statut: "ouverte" | "en cours" | "fini";
   photos: string[];
   maxApplicants: number;
@@ -56,19 +58,11 @@ function resolveCityAlias(input: string): string {
 }
 
 const STATUS = {
-  ouverte:   { label: "Ouverte",   dot: "#22c55e", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  "en cours":{ label: "En cours",  dot: "#f59e0b", color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
-  fini:      { label: "Terminée",  dot: "#94a3b8", color: "#64748b", bg: "#f8fafc", border: "#e2e8f0" },
-};
+  ouverte:    { label: "Ouverte",  tone: "success" },
+  "en cours": { label: "En cours", tone: "warning" },
+  fini:       { label: "Terminée", tone: "neutral" },
+} as const;
 
-/* ── input style ── */
-const inputCls = `
-  w-full px-4 py-2.5 text-sm rounded-xl
-  border border-line bg-white text-ink
-  placeholder:text-muted
-  focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
-  transition-all
-`;
 
 export default function AnnoncesPage() {
   return (
@@ -145,384 +139,157 @@ function AnnoncesContent() {
   const resetFilters = () => { setFilterCity(""); setCityCoords(null); setFilterMinRate(""); setFilterStatus("all"); setSortBy("recent"); };
   const isNew = (a: Annonce) => a.createdAt && Date.now() - new Date(a.createdAt?.toDate?.() || a.createdAt).getTime() < 24 * 3600 * 1000;
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-paper-2">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center animate-pulse">
-          <Briefcase size={18} className="text-white" />
-        </div>
-        <p className="text-sm text-muted font-medium">Chargement…</p>
+  if (loading) return <Loading full />;
+
+  const filters = (
+    <div className="space-y-5">
+      <div>
+        <label htmlFor="f-city" className="label">Ville</label>
+        <input id="f-city" className="input" placeholder="Bruxelles, Wavre…" value={filterCity} onChange={(e) => setFilterCity(e.target.value)} />
       </div>
+      <div>
+        <div className="flex items-center justify-between">
+          <label htmlFor="f-radius" className="label">Rayon</label>
+          <span className="text-xs text-muted">{filterRadius} km</span>
+        </div>
+        <input id="f-radius" type="range" min={2} max={50} className="w-full accent-brand" value={filterRadius} onChange={(e) => setFilterRadius(Number(e.target.value))} />
+      </div>
+      <div>
+        <label htmlFor="f-rate" className="label">Rémunération minimum</label>
+        <div className="relative">
+          <input id="f-rate" type="number" min={0} className="input pr-12" placeholder="12" value={filterMinRate} onChange={(e) => setFilterMinRate(e.target.value)} />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">€/h</span>
+        </div>
+      </div>
+      <div>
+        <span className="label">Statut</span>
+        <div className="grid grid-cols-3 gap-1.5">
+          {([
+            { value: "all", label: "Tous" },
+            { value: "ouverte", label: "Ouverte" },
+            { value: "en cours", label: "En cours" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFilterStatus(opt.value)}
+              aria-pressed={filterStatus === opt.value}
+              className={`btn btn-sm ${filterStatus === opt.value ? "btn-dark" : "btn-outline"}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {activeFiltersCount > 0 && (
+        <button onClick={resetFilters} className="btn btn-ghost btn-sm w-full">Réinitialiser les filtres</button>
+      )}
     </div>
   );
 
   return (
-    <>
-      <style>{`
-        
-        .jobs-root { font-family: system-ui, -apple-system, sans-serif; }
-        .jobs-title { font-family: var(--font-bricolage),system-ui, sans-serif; }
-        .drawer-in { animation: drawerSlide .28s cubic-bezier(.22,1,.36,1); }
-        @keyframes drawerSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
-      `}</style>
+    <Page>
+      <PageHeader
+        title="Annonces"
+        description={`${filtered.length} mission${filtered.length !== 1 ? "s" : ""} disponible${filtered.length !== 1 ? "s" : ""}`}
+        actions={
+          <Link href="/jobs/create" className="btn btn-primary">
+            <Plus size={16} /> Publier une annonce
+          </Link>
+        }
+      />
 
-      <div className="jobs-root min-h-screen bg-paper-2 text-ink">
+      {/* Barre d'outils */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-[200px] flex-1">
+          <span className="sr-only">Rechercher</span>
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input className="input pl-9 pr-9" placeholder="Titre, ville, mission…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} aria-label="Effacer" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink">
+              <X size={15} />
+            </button>
+          )}
+        </label>
+        <label className="sr-only" htmlFor="sort">Trier</label>
+        <select id="sort" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="input w-auto">
+          <option value="recent">Plus récentes</option>
+          <option value="price-high">Prix décroissant</option>
+          <option value="price-low">Prix croissant</option>
+        </select>
+        <button onClick={() => setShowFilters((s) => !s)} className="btn btn-outline lg:hidden" aria-expanded={showFilters}>
+          <SlidersHorizontal size={15} /> Filtres{activeFiltersCount > 0 && ` (${activeFiltersCount})`}
+        </button>
+        <Tabs
+          value={viewMode}
+          onChange={setViewMode}
+          items={[
+            { value: "list", label: "Liste", icon: LayoutGrid },
+            { value: "map", label: "Carte", icon: MapIcon },
+          ]}
+        />
+      </div>
 
-        {/* ════════ TOPBAR ════════ */}
-        <div className="sticky top-16 z-40 bg-white border-b border-line"
-          style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.05)' }}>
-          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
+      {showFilters && <div className="card mt-3 p-5 lg:hidden">{filters}</div>}
 
-            {/* Search */}
-            <div className="relative flex-1 max-w-sm">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-              <input
-                className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-line bg-paper-2
-                           placeholder:text-muted text-ink
-                           focus:outline-none focus:ring-2 focus:ring-brand/25 focus:border-brand
-                           focus:bg-white transition-all"
-                placeholder="Titre, ville, mission…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink-2 transition">
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            {/* Sort */}
-            <div className="hidden sm:flex items-center gap-1.5">
-              <TrendingUp size={13} className="text-muted" />
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="text-sm text-ink-2 bg-transparent focus:outline-none cursor-pointer">
-                <option value="recent">Récentes</option>
-                <option value="price-high">Prix ↓</option>
-                <option value="price-low">Prix ↑</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              {/* Filters button */}
-              <button onClick={() => setShowFilters(true)}
-                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-xl
-                           border border-line bg-white text-ink-2
-                           hover:border-brand/50 hover:text-brand transition-all">
-                <SlidersHorizontal size={14} />
-                <span className="hidden sm:inline">Filtres</span>
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-ink text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-
-              {/* View toggle */}
-              <div className="flex bg-paper-2 p-0.5 rounded-xl">
-                {([["list", <LayoutGrid size={14} />], ["map", <MapIcon size={14} />]] as const).map(([mode, icon]) => (
-                  <button key={mode} onClick={() => setViewMode(mode)}
-                    className={`p-2 rounded-lg transition-all ${viewMode === mode
-                      ? "bg-white shadow-sm text-brand"
-                      : "text-muted hover:text-ink-2"}`}>
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
+        <aside className="hidden lg:block">
+          <div className="card sticky top-24 p-5">
+            <p className="mb-4 text-sm font-semibold">Filtres</p>
+            {filters}
           </div>
-        </div>
+        </aside>
 
-        {/* ════════ PAGE HEADER ════════ */}
-        <div className="bg-white border-b border-line">
-          <div className="max-w-6xl mx-auto px-6 py-8">
-            <div className="flex items-end justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="jobs-title font-bold text-2xl text-ink tracking-tight mb-1">
-                  Annonces disponibles
-                </h1>
-                <p className="text-sm text-muted">
-                  {filtered.length} mission{filtered.length !== 1 ? "s" : ""} ouverte{filtered.length !== 1 ? "s" : ""}
-                  {activeFiltersCount > 0 && (
-                    <button onClick={resetFilters} className="ml-2 text-brand hover:text-brand-dark font-medium transition-colors">
-                      · Réinitialiser les filtres
-                    </button>
-                  )}
-                </p>
-              </div>
-
-              {/* Active filter tags */}
-              {activeFiltersCount > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {filterCity && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
-                                     border border-brand/30 px-2.5 py-1 rounded-full">
-                      <MapPin size={10} /> {filterCity}
-                      <button onClick={() => setFilterCity("")} className="hover:text-brand-dark transition"><X size={10} /></button>
-                    </span>
-                  )}
-                  {filterMinRate && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
-                                     border border-brand/30 px-2.5 py-1 rounded-full">
-                      ≥{filterMinRate}€/h
-                      <button onClick={() => setFilterMinRate("")} className="hover:text-brand-dark transition"><X size={10} /></button>
-                    </span>
-                  )}
-                  {filterStatus !== "all" && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-brand-soft text-brand-dark
-                                     border border-brand/30 px-2.5 py-1 rounded-full">
-                      {STATUS[filterStatus]?.label}
-                      <button onClick={() => setFilterStatus("all")} className="hover:text-brand-dark transition"><X size={10} /></button>
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ════════ CONTENT ════════ */}
-        <div className="max-w-6xl mx-auto px-6 py-8 pb-20">
-          {viewMode === "list" ? (
-            filtered.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((a) => {
-                  const cfg = STATUS[a.statut] || STATUS["ouverte"];
-                  return (
-                    <Link key={a.id} href={`/jobs/${a.id}`}
-                      className="group relative bg-white rounded-2xl flex flex-col overflow-hidden
-                                 border border-line hover:border-brand/30
-                                 hover:shadow-[0_8px_32px_rgba(124,95,230,0.1)]
-                                 transition-all duration-200">
-
-                      {/* Photo or placeholder */}
-                      {a.photos?.length > 0 ? (
-                        <div className="relative h-36 overflow-hidden bg-paper-2">
-                          <img src={a.photos[0]} alt={a.titre}
-                            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                          {isNew(a) && (
-                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-ink text-white
-                                             px-2 py-0.5 rounded-full">
-                              Nouveau
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="relative h-24 bg-paper-2 border-b border-line flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-xl bg-brand-soft border border-brand-soft flex items-center justify-center">
-                            <Briefcase size={18} className="text-brand" />
-                          </div>
-                          {isNew(a) && (
-                            <span className="absolute top-2.5 left-2.5 text-[10px] font-bold bg-ink text-white
-                                             px-2 py-0.5 rounded-full">
-                              Nouveau
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col flex-1 p-4">
-                        {/* Status + duration */}
-                        <div className="flex items-center justify-between mb-2.5">
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
-                            {cfg.label}
-                          </span>
-                          <span className="text-xs text-muted flex items-center gap-1">
-                            <Clock size={11} /> {a.duree}h
-                          </span>
-                        </div>
-
-                        {/* Title */}
-                        <h3 className="jobs-title font-semibold text-sm text-ink mb-1 line-clamp-1
-                                       group-hover:text-brand-dark transition-colors tracking-tight">
-                          {a.titre}
-                        </h3>
-
-                        {/* Description */}
-                        <p className="text-xs text-muted line-clamp-2 mb-3 flex-1 leading-relaxed">
-                          {a.description}
-                        </p>
-
-                        {/* Meta */}
-                        <div className="flex flex-col gap-1 text-[11px] text-muted mb-3">
-                          <span className="flex items-center gap-1.5">
-                            <MapPin size={11} className="text-brand shrink-0" />
-                            <span className="truncate">{a.lieu || "—"}</span>
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <Calendar size={11} className="text-brand shrink-0" />
-                            {a.date}
-                          </span>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex items-center justify-between pt-3 border-t border-line">
-                          <div className="flex items-baseline gap-1">
-                            <span className="jobs-title font-bold text-xl text-ink tracking-tight">
-                              {a.remuneration}
-                            </span>
-                            <span className="text-xs font-medium text-muted">€/h</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs font-semibold text-brand
-                                          opacity-0 group-hover:opacity-100 transition-all">
-                            Voir <ArrowUpRight size={12} />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-32 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-paper-2 flex items-center justify-center mb-4">
-                  <AlertCircle size={22} className="text-muted" />
-                </div>
-                <h3 className="text-base font-semibold text-ink mb-1">Aucune annonce trouvée</h3>
-                <p className="text-sm text-muted mb-5">Modifie ta recherche ou réinitialise les filtres.</p>
-                {activeFiltersCount > 0 && (
-                  <button onClick={resetFilters}
-                    className="px-4 py-2 bg-ink text-white rounded-xl text-sm font-semibold hover:bg-ink-2 transition">
-                    Réinitialiser
-                  </button>
-                )}
-              </div>
-            )
-          ) : (
-            <div className="rounded-2xl overflow-hidden border border-line shadow-sm"
-              style={{ height: "calc(100vh - 280px)", minHeight: 500 }}>
+        <div className="min-w-0">
+          {viewMode === "map" ? (
+            <div className="card overflow-hidden" style={{ height: "calc(100vh - 260px)", minHeight: 480 }}>
               <AnnoncesMap annonces={filtered} />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="card">
+              <EmptyState
+                icon={Briefcase}
+                title="Aucune annonce trouvée"
+                description="Modifiez votre recherche ou vos filtres."
+                action={activeFiltersCount > 0 || searchQuery ? (
+                  <button onClick={() => { resetFilters(); setSearchQuery(""); }} className="btn btn-outline">Tout réinitialiser</button>
+                ) : (
+                  <Link href="/jobs/create" className="btn btn-primary">Publier une annonce</Link>
+                )}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((a) => {
+                const cfg = STATUS[a.statut] || STATUS.ouverte;
+                return (
+                  <Link key={a.id} href={`/jobs/${a.id}`} className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+                    {a.photos?.length > 0 && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={a.photos[0]} alt="" className="h-36 w-full object-cover" />
+                    )}
+                    <div className="flex flex-1 flex-col p-4">
+                      <div className="flex items-center gap-2">
+                        <Badge tone={cfg.tone} dot>{cfg.label}</Badge>
+                        {isNew(a) && <Badge tone="brand">Nouveau</Badge>}
+                      </div>
+                      <h3 className="mt-3 line-clamp-1 font-semibold group-hover:text-brand">{a.titre}</h3>
+                      <p className="mt-1 line-clamp-2 flex-1 text-sm text-muted">{a.description}</p>
+                      <div className="mt-4 space-y-1 text-sm text-muted">
+                        <p className="flex items-center gap-1.5"><MapPin size={14} className="shrink-0" /><span className="truncate">{shortPlace(a.lieu) || "—"}</span></p>
+                        <p className="flex items-center gap-1.5"><Calendar size={14} className="shrink-0" />{a.date || "—"}{a.duree ? ` · ${a.duree} h` : ""}</p>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
+                        <span className="text-lg font-semibold">{formatRate(a.remuneration, a.rateMode)}</span>
+                        <ArrowUpRight size={16} className="text-muted group-hover:text-brand" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
-
-        {/* ════════ FILTER DRAWER ════════ */}
-        {showFilters && (
-          <div className="fixed inset-0 z-50 flex">
-            <button className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
-
-            <div className="drawer-in absolute right-0 top-0 w-full sm:w-[380px] h-full bg-white flex flex-col shadow-2xl">
-
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-line">
-                <div>
-                  <h2 className="jobs-title font-bold text-base text-ink">Filtres</h2>
-                  {activeFiltersCount > 0 && (
-                    <p className="text-xs text-brand font-medium mt-0.5">
-                      {activeFiltersCount} actif{activeFiltersCount > 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-                <button onClick={() => setShowFilters(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-paper-2 transition text-muted">
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-
-                {/* City */}
-                <div>
-                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">Ville</label>
-                  <input className={inputCls} placeholder="Bruxelles, Louvain-la-Neuve…"
-                    value={filterCity} onChange={(e) => setFilterCity(e.target.value)} />
-                </div>
-
-                {/* Radius */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-muted uppercase tracking-widest">Rayon</label>
-                    <span className="text-xs font-semibold text-brand bg-brand-soft border border-brand-soft px-2 py-0.5 rounded-full">
-                      {filterRadius} km
-                    </span>
-                  </div>
-                  <input type="range" min={2} max={50} className="w-full accent-brand"
-                    value={filterRadius} onChange={(e) => setFilterRadius(Number(e.target.value))} />
-                  <div className="flex justify-between text-[10px] text-muted mt-1">
-                    <span>2 km</span><span>50 km</span>
-                  </div>
-                </div>
-
-                {/* Rate */}
-                <div>
-                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
-                    Rémunération minimum
-                  </label>
-                  <div className="relative">
-                    <input type="number" className={inputCls + " pr-12"} placeholder="12"
-                      value={filterMinRate} onChange={(e) => setFilterMinRate(e.target.value)} />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">€/h</span>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2.5">Statut</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "all",      label: "Tous" },
-                      { value: "ouverte",  label: "Ouverte" },
-                      { value: "en cours", label: "En cours" },
-                      { value: "fini",     label: "Terminée" },
-                    ].map((opt) => (
-                      <button key={opt.value} onClick={() => setFilterStatus(opt.value as typeof filterStatus)}
-                        className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                          filterStatus === opt.value
-                            ? "bg-ink text-white border-brand"
-                            : "bg-white text-ink-2 border-line hover:border-brand/50"
-                        }`}>
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sort */}
-                <div>
-                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2.5">Trier par</label>
-                  <div className="space-y-1.5">
-                    {[
-                      { value: "recent",     label: "Plus récentes" },
-                      { value: "price-high", label: "Prix décroissant" },
-                      { value: "price-low",  label: "Prix croissant" },
-                    ].map((opt) => (
-                      <button key={opt.value} onClick={() => setSortBy(opt.value as typeof sortBy)}
-                        className={`w-full px-4 py-2.5 rounded-xl text-sm font-medium border text-left
-                                    flex items-center justify-between transition-all ${
-                          sortBy === opt.value
-                            ? "bg-brand-soft text-brand-dark border-brand/30"
-                            : "bg-white text-ink-2 border-line hover:border-line"
-                        }`}>
-                        {opt.label}
-                        {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-line flex gap-3">
-                <button onClick={resetFilters}
-                  className="flex-1 py-2.5 rounded-xl border border-line text-sm font-semibold
-                             text-ink-2 hover:bg-paper-2 transition">
-                  Réinitialiser
-                </button>
-                <button onClick={() => setShowFilters(false)}
-                  className="flex-1 py-2.5 bg-ink hover:bg-ink-2 text-white rounded-xl
-                             text-sm font-semibold transition shadow-sm shadow-brand/30">
-                  Appliquer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </>
+    </Page>
   );
 }

@@ -43,7 +43,7 @@ function Empty() {
       <div className="w-12 h-12 rounded-2xl bg-brand-soft mx-auto mb-4 flex items-center justify-center">
         <Briefcase className="w-5 h-5 text-brand" />
       </div>
-      <p className="font-[var(--font-bricolage),system-ui] font-bold text-lg text-[#15131f] mb-2">
+      <p className="font-[var(--font-bricolage),system-ui] font-bold text-lg text-[#111118] mb-2">
         Aucun poste disponible
       </p>
       <p className="text-sm text-muted max-w-sm mx-auto leading-relaxed">
@@ -92,11 +92,11 @@ export default function CareersList() {
           >
             {/* Top : type badge + "Nouveau" */}
             <div className="flex items-center justify-between">
-              <span className={`text-[11px] font-['DM_Sans',system-ui] font-semibold px-2.5 py-1 rounded-full ${typeClass(job.type)}`}>
+              <span className={`text-[11px]  font-semibold px-2.5 py-1 rounded-full ${typeClass(job.type)}`}>
                 {job.type}
               </span>
               {index === 0 && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-bold font-['DM_Sans',system-ui] uppercase tracking-[0.06em] px-2 py-1 rounded-full bg-brand-soft text-brand border border-brand/30">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full bg-brand-soft text-brand border border-brand/30">
                   <Zap className="w-2 h-2" /> Nouveau
                 </span>
               )}
@@ -104,10 +104,10 @@ export default function CareersList() {
 
             {/* Title + description */}
             <div>
-              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[15px] text-[#15131f] group-hover:text-brand transition-colors duration-150 mb-1">
+              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[15px] text-[#111118] group-hover:text-brand transition-colors duration-150 mb-1">
                 {job.title}
               </p>
-              <p className="text-[12px] font-['DM_Sans',system-ui] text-muted leading-relaxed line-clamp-2">
+              <p className="text-[12px]  text-muted leading-relaxed line-clamp-2">
                 {job.description}
               </p>
             </div>
@@ -116,13 +116,13 @@ export default function CareersList() {
             <div className="flex items-center justify-between pt-1 border-t border-line">
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3 h-3 text-muted shrink-0" />
-                <span className="text-[12px] font-['DM_Sans',system-ui] text-muted">
+                <span className="text-[12px]  text-muted">
                   {job.location}
                 </span>
               </div>
               <Link
                 href={`/careers/${job.id}`}
-                className="inline-flex items-center gap-1.5 text-[12px] font-['DM_Sans',system-ui] font-semibold px-3.5 py-2 rounded-xl border transition-all duration-150 no-underline bg-brand-soft text-brand border-brand/30 group-hover:bg-brand group-hover:text-white group-hover:border-brand"
+                className="inline-flex items-center gap-1.5 text-[12px]  font-semibold px-3.5 py-2 rounded-xl border transition-all duration-150 no-underline bg-brand-soft text-brand border-brand/30 group-hover:bg-brand group-hover:text-white group-hover:border-brand"
               >
                 Voir l'offre
                 <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -134,10 +134,10 @@ export default function CareersList() {
 
       {/* Footer */}
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs font-['DM_Sans',system-ui] text-muted">
+        <span className="text-xs  text-muted">
           {jobs.length} offre{jobs.length > 1 ? "s" : ""} ouverte{jobs.length > 1 ? "s" : ""}
         </span>
-        <span className="text-xs font-['DM_Sans',system-ui] text-muted">
+        <span className="text-xs  text-muted">
           Mis à jour en temps réel
         </span>
       </div>

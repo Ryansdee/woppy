@@ -85,13 +85,13 @@ export default function Navbar() {
       href={href}
       title={label}
       aria-label={label}
-      className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
-        isActive(href) ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-paper-2 hover:text-ink'
+      className={`relative grid h-9 w-9 place-items-center rounded-lg transition-colors ${
+        isActive(href) ? 'bg-paper-2 text-ink' : 'text-muted hover:bg-paper-2 hover:text-ink'
       }`}
     >
       {icon}
       {badge > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-lime px-1 text-[10px] font-bold text-ink ring-2 ring-paper">
+        <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white ring-2 ring-white">
           {badge > 9 ? '9+' : badge}
         </span>
       )}
@@ -99,12 +99,12 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-line/80 bg-paper/85 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 w-full border-b border-line bg-white/90 backdrop-blur-md">
       <div className="container-w flex h-16 items-center justify-between gap-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <Image src="/images/logo.png" alt="" width={30} height={30} priority />
-          <span className="font-display text-xl font-bold tracking-tight text-ink">woppy</span>
+          <span className="text-lg font-semibold tracking-tight text-ink">woppy</span>
         </Link>
 
         {/* Liens desktop */}
@@ -113,8 +113,8 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
-                isActive(link.href) ? 'bg-paper-2 text-ink' : 'text-ink-2 hover:text-ink'
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isActive(link.href) ? 'bg-paper-2 text-ink' : 'text-muted hover:text-ink'
               }`}
             >
               {link.name}
@@ -133,9 +133,9 @@ export default function Navbar() {
                 <button
                   onClick={() => setUserMenuOpen((o) => !o)}
                   aria-expanded={userMenuOpen}
-                  className="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-3 transition-colors hover:border-ink"
+                  className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-paper-2"
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-brand text-xs font-bold text-white">
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-brand-dark">
                     {initial}
                   </span>
                   <span className="max-w-[110px] truncate text-sm font-medium">
@@ -154,7 +154,7 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
                       transition={{ duration: 0.12 }}
-                      className="card absolute right-0 top-full mt-2 w-52 p-1.5 shadow-xl shadow-ink/5"
+                      className="card absolute right-0 top-full mt-2 w-52 p-1.5 shadow-lg"
                     >
                       <Link href="/dashboard" className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-paper-2">
                         <LayoutDashboard size={15} /> Tableau de bord
@@ -176,10 +176,10 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/auth/login" className="btn btn-ghost">
+              <Link href="/auth/login" className="btn btn-ghost btn-sm">
                 Connexion
               </Link>
-              <Link href="/auth/register" className="btn btn-primary">
+              <Link href="/auth/register" className="btn btn-primary btn-sm">
                 S&apos;inscrire
               </Link>
             </>
@@ -188,14 +188,14 @@ export default function Navbar() {
 
         {/* Burger mobile */}
         <button
-          className="relative grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-paper-2 md:hidden"
+          className="relative grid h-9 w-9 place-items-center rounded-lg text-ink hover:bg-paper-2 md:hidden"
           onClick={() => setMenuOpen((o) => !o)}
           aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOpen}
         >
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
           {!menuOpen && notifCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-lime ring-2 ring-paper" />
+            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-white" />
           )}
         </button>
       </div>
@@ -215,7 +215,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`rounded-xl px-3 py-3 text-base font-medium ${
+                  className={`rounded-lg px-3 py-2.5 text-[15px] font-medium ${
                     isActive(link.href) ? 'bg-paper-2 text-ink' : 'text-ink-2'
                   }`}
                 >
@@ -226,21 +226,21 @@ export default function Navbar() {
               {user ? (
                 <>
                   <div className="my-2 border-t border-line" />
-                  <Link href="/messages" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                  <Link href="/messages" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2">
                     <MessageSquare size={18} /> Messages
                   </Link>
-                  <Link href="/notifications" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                  <Link href="/notifications" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2">
                     <Bell size={18} /> Notifications
                     {notifCount > 0 && (
-                      <span className="ml-auto rounded-full bg-lime px-2 py-0.5 text-xs font-bold text-ink">
+                      <span className="ml-auto rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white">
                         {notifCount}
                       </span>
                     )}
                   </Link>
-                  <Link href="/dashboard" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                  <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2">
                     <LayoutDashboard size={18} /> Tableau de bord
                   </Link>
-                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-ink-2">
+                  <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2">
                     <UserRound size={18} /> Mon profil
                   </Link>
                   <div className="my-2 border-t border-line" />

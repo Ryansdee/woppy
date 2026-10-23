@@ -198,7 +198,7 @@ export default function SupportTicketPage() {
           <div className="bg-white rounded-2xl border border-line p-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-[11px] font-bold text-muted uppercase tracking-widest mb-1">
+                <p className="text-xs font-medium text-muted mb-1">
                   {ticket.ticketId} · {CATEGORY_LABELS[ticket.category] ?? ticket.category}
                 </p>
                 <h1 className="text-xl font-bold text-ink leading-snug" style={{ fontFamily: 'var(--font-bricolage), system-ui' }}>
@@ -240,7 +240,7 @@ export default function SupportTicketPage() {
                     <div className={`flex items-center gap-2 text-[11px] text-muted ${isSupport ? 'flex-row-reverse' : ''}`}>
                       <span className="font-semibold text-ink-2">{isSupport ? 'Support Woppy' : msg.name}</span>
                       {(msg as any).isOriginal && (
-                        <span className="bg-paper-2 text-muted text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="bg-paper-2 text-muted text-[11px] font-medium px-1.5 py-0.5 rounded">
                           Original
                         </span>
                       )}
@@ -270,7 +270,7 @@ export default function SupportTicketPage() {
           ) : (
             <div className="bg-white rounded-2xl border border-line overflow-hidden">
               <div className="px-5 py-3 border-b border-line">
-                <h2 className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-1.5">
+                <h2 className="text-sm font-semibold text-ink flex items-center gap-1.5">
                   <MessageSquare size={11} /> Répondre à ce ticket
                 </h2>
               </div>

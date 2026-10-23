@@ -19,7 +19,7 @@ const CONTRACT_TYPES = [
   { value: "Stage",     color: "#c2410c", bg: "#fff7ed", border: "#fed7aa" },
   { value: "Freelance", color: "#9333ea", bg: "#fdf4ff", border: "#e9d5ff" },
   { value: "Étudiant",  color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" },
-  { value: "Autre",     color: "#6e6a7c", bg: "#f9fafb", border: "#e5e7eb" },
+  { value: "Autre",     color: "#6b6b78", bg: "#f9fafb", border: "#e5e7eb" },
 ];
 
 const FIELD_LABEL: React.CSSProperties = {
@@ -28,7 +28,7 @@ const FIELD_LABEL: React.CSSProperties = {
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
-  color: "#6e6a7c",
+  color: "#6b6b78",
   marginBottom: 7,
   fontFamily: "'DM Sans', system-ui",
 };
@@ -37,10 +37,10 @@ const INPUT_BASE: React.CSSProperties = {
   width: "100%",
   padding: "10px 14px",
   borderRadius: 10,
-  border: "1px solid #e7e3ec",
-  background: "#fbfaf7",
+  border: "1px solid #e6e6eb",
+  background: "#ffffff",
   fontSize: 14,
-  color: "#15131f",
+  color: "#111118",
   outline: "none",
   transition: "border-color 0.15s, box-shadow 0.15s",
   fontFamily: "'DM Sans', system-ui",
@@ -58,7 +58,7 @@ function PreviewDescription({ text }: { text: string }) {
         {bullets.map((b, i) => (
           <li key={i} style={{ display: "flex", gap: 9, marginBottom: 6 }}>
             <span style={{ marginTop: 7, width: 5, height: 5, borderRadius: "50%", background: "#7357f6", flexShrink: 0 }} />
-            <span style={{ fontSize: 14, color: "#3a3747", lineHeight: 1.65 }}>{b}</span>
+            <span style={{ fontSize: 14, color: "#3d3d48", lineHeight: 1.65 }}>{b}</span>
           </li>
         ))}
       </ul>
@@ -76,7 +76,7 @@ function PreviewDescription({ text }: { text: string }) {
     if (isTitle) {
       nodes.push(<p key={i} style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7357f6", marginBottom: 8, marginTop: nodes.length ? 20 : 0 }}>{l.replace(/:$/, "")}</p>);
     } else {
-      nodes.push(<p key={i} style={{ fontSize: 14, color: "#3a3747", lineHeight: 1.75, marginBottom: 10 }}>{l}</p>);
+      nodes.push(<p key={i} style={{ fontSize: 14, color: "#3d3d48", lineHeight: 1.75, marginBottom: 10 }}>{l}</p>);
     }
   });
   flush("end");
@@ -187,17 +187,17 @@ function CareerForm() {
 
             {/* ── Form ── */}
             <form onSubmit={handleSubmit}>
-              <div style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, overflow: "hidden" }}>
+              <div style={{ background: "#fff", border: "1px solid #f6f6f8", borderRadius: 20, overflow: "hidden" }}>
 
                 {/* Form header */}
-                <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f1ec", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6e6a7c" }}>
+                <div style={{ padding: "18px 24px", borderBottom: "1px solid #f6f6f8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b6b78" }}>
                     Informations du poste
                   </p>
                   {canPreview && (
                     <button type="button" className="preview-toggle"
                       onClick={() => setShowPreview(p => !p)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: showPreview ? "#7357f6" : "#6e6a7c", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: showPreview ? "#7357f6" : "#6b6b78", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                       {showPreview ? <EyeOff style={{ width: 13, height: 13 }} /> : <Eye style={{ width: 13, height: 13 }} />}
                       {showPreview ? "Masquer l'aperçu" : "Aperçu"}
                     </button>
@@ -217,7 +217,7 @@ function CareerForm() {
                       <input style={INPUT_BASE} placeholder="Développeur·se Full-Stack"
                         value={title} onChange={e => setTitle(e.target.value)} required
                         onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                        onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
+                        onBlur={e => { e.target.style.borderColor = "#e6e6eb"; e.target.style.boxShadow = "none"; }} />
                     </div>
                     <div>
                       <label style={FIELD_LABEL}>
@@ -228,7 +228,7 @@ function CareerForm() {
                       <input style={INPUT_BASE} placeholder="Bruxelles, Remote…"
                         value={location} onChange={e => setLocation(e.target.value)} required
                         onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                        onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
+                        onBlur={e => { e.target.style.borderColor = "#e6e6eb"; e.target.style.boxShadow = "none"; }} />
                     </div>
                   </div>
 
@@ -241,9 +241,9 @@ function CareerForm() {
                           onClick={() => setType(c.value)}
                           style={{
                             padding: "7px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                            background: type === c.value ? c.bg : "#fbfaf7",
-                            color: type === c.value ? c.color : "#6e6a7c",
-                            border: `1px solid ${type === c.value ? c.border : "#e7e3ec"}`,
+                            background: type === c.value ? c.bg : "#ffffff",
+                            color: type === c.value ? c.color : "#6b6b78",
+                            border: `1px solid ${type === c.value ? c.border : "#e6e6eb"}`,
                             boxShadow: type === c.value ? `0 2px 8px ${c.bg}` : "none",
                           }}>
                           {c.value}
@@ -260,16 +260,16 @@ function CareerForm() {
                           <FileText style={{ width: 10, height: 10 }} /> Description *
                         </span>
                       </label>
-                      <span style={{ fontSize: 10, color: "#6e6a7c", fontFamily: "'DM Mono', monospace" }}>{description.length} car.</span>
+                      <span style={{ fontSize: 10, color: "#6b6b78", fontFamily: "'DM Mono', monospace" }}>{description.length} car.</span>
                     </div>
                     <textarea
                       style={{ ...INPUT_BASE, minHeight: 200, resize: "vertical", lineHeight: 1.65 }}
                       placeholder={`Décris le poste...\n\nMissions :\n- Développer les fonctionnalités front-end\n- Participer aux code reviews\n\nProfil recherché :\n- 2+ ans d'expérience React\n- Bonne communication`}
                       value={description} onChange={e => setDescription(e.target.value)} required
                       onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                      onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }}
+                      onBlur={e => { e.target.style.borderColor = "#e6e6eb"; e.target.style.boxShadow = "none"; }}
                     />
-                    <p style={{ fontSize: 11, color: "#6e6a7c", marginTop: 6 }}>
+                    <p style={{ fontSize: 11, color: "#6b6b78", marginTop: 6 }}>
                       Astuce : les lignes en majuscules, se terminant par «&nbsp;:&nbsp;» ou les listes avec «&nbsp;-&nbsp;» seront automatiquement mises en forme.
                     </p>
                   </div>
@@ -279,28 +279,28 @@ function CareerForm() {
                     <label style={FIELD_LABEL}>
                       <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <LinkIcon style={{ width: 10, height: 10 }} /> Lien de candidature
-                        <span style={{ fontWeight: 400, color: "#6e6a7c", textTransform: "none", letterSpacing: 0 }}>— optionnel</span>
+                        <span style={{ fontWeight: 400, color: "#6b6b78", textTransform: "none", letterSpacing: 0 }}>— optionnel</span>
                       </span>
                     </label>
                     <input style={INPUT_BASE} type="url" placeholder="https://forms.gle/… ou mailto:jobs@woppy.be"
                       value={applyUrl} onChange={e => setApplyUrl(e.target.value)}
                       onFocus={e => { e.target.style.borderColor = "#7357f6"; e.target.style.boxShadow = "0 0 0 3px rgba(138,107,254,0.11)"; }}
-                      onBlur={e => { e.target.style.borderColor = "#e7e3ec"; e.target.style.boxShadow = "none"; }} />
+                      onBlur={e => { e.target.style.borderColor = "#e6e6eb"; e.target.style.boxShadow = "none"; }} />
                   </div>
 
                   {/* Visibility toggle */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 12, background: "#fbfaf7", border: "1px solid #f3f1ec" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 12, background: "#ffffff", border: "1px solid #f6f6f8" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? "#efebff" : "#f3f1ec", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: active ? "#f1eeff" : "#f6f6f8", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {active
                           ? <Eye style={{ width: 13, height: 13, color: "#7357f6" }} />
-                          : <EyeOff style={{ width: 13, height: 13, color: "#6e6a7c" }} />}
+                          : <EyeOff style={{ width: 13, height: 13, color: "#6b6b78" }} />}
                       </div>
                       <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#15131f" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#111118" }}>
                           {active ? "Offre visible" : "Offre masquée"}
                         </p>
-                        <p style={{ fontSize: 11, color: "#6e6a7c" }}>
+                        <p style={{ fontSize: 11, color: "#6b6b78" }}>
                           {active ? "Publiée sur /careers dès soumission" : "Non visible au public"}
                         </p>
                       </div>
@@ -308,7 +308,7 @@ function CareerForm() {
                     <button type="button" onClick={() => setActive(a => !a)}
                       style={{
                         width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                        background: active ? "#7357f6" : "#e7e3ec",
+                        background: active ? "#7357f6" : "#e6e6eb",
                         position: "relative", transition: "background 0.2s", flexShrink: 0,
                       }}>
                       <span style={{
@@ -323,8 +323,8 @@ function CareerForm() {
                 </div>
 
                 {/* Form footer */}
-                <div style={{ padding: "16px 24px", borderTop: "1px solid #f3f1ec", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <p style={{ fontSize: 11, color: "#6e6a7c" }}>* champs obligatoires</p>
+                <div style={{ padding: "16px 24px", borderTop: "1px solid #f6f6f8", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <p style={{ fontSize: 11, color: "#6b6b78" }}>* champs obligatoires</p>
                   <button type="submit" disabled={loading} className="submit-btn"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 8,
@@ -348,9 +348,9 @@ function CareerForm() {
               {showPreview && canPreview && (
                 <motion.div
                   initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}
-                  style={{ background: "#fff", border: "1px solid #f3f1ec", borderRadius: 20, overflow: "hidden", position: "sticky", top: 20 }}>
+                  style={{ background: "#fff", border: "1px solid #f6f6f8", borderRadius: 20, overflow: "hidden", position: "sticky", top: 20 }}>
 
-                  <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f1ec", display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ padding: "14px 20px", borderBottom: "1px solid #f6f6f8", display: "flex", alignItems: "center", gap: 7 }}>
                     <Eye style={{ width: 12, height: 12, color: "#7357f6" }} />
                     <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7357f6" }}>
                       Aperçu
@@ -364,14 +364,14 @@ function CareerForm() {
                         {type}
                       </span>
                       {location && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6e6a7c" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6b6b78" }}>
                           <MapPin style={{ width: 10, height: 10 }} />{location}
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: 20, color: "#15131f", letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.25 }}>
+                    <h2 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: 20, color: "#111118", letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.25 }}>
                       {title}
                     </h2>
 
@@ -382,7 +382,7 @@ function CareerForm() {
 
                     {/* Apply URL */}
                     {applyUrl && (
-                      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f3f1ec" }}>
+                      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f6f6f8" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#7357f6" }}>
                           <LinkIcon style={{ width: 11, height: 11 }} /> {applyUrl}
                         </span>
@@ -398,9 +398,9 @@ function CareerForm() {
                   </div>
 
                   {/* Visibility badge */}
-                  <div style={{ padding: "12px 20px", background: "#fbfaf7", borderTop: "1px solid #f3f1ec", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Zap style={{ width: 11, height: 11, color: active ? "#22c55e" : "#6e6a7c" }} />
-                    <span style={{ fontSize: 11, fontWeight: 600, color: active ? "#15803d" : "#6e6a7c" }}>
+                  <div style={{ padding: "12px 20px", background: "#ffffff", borderTop: "1px solid #f6f6f8", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Zap style={{ width: 11, height: 11, color: active ? "#22c55e" : "#6b6b78" }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: active ? "#15803d" : "#6b6b78" }}>
                       {active ? "Sera publiée immédiatement" : "Restera masquée"}
                     </span>
                   </div>

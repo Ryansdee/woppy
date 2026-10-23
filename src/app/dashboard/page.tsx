@@ -25,7 +25,7 @@ function NavList({ items }: { items: NavItem[] }) {
     <div className="card divide-y divide-line overflow-hidden">
       {items.map(({ href, icon: Icon, label, desc }) => (
         <Link key={href} href={href} className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-paper">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
             <Icon size={18} />
           </span>
           <span className="min-w-0 flex-1">
@@ -111,11 +111,11 @@ export default function DashboardPage() {
     <main className="container-w py-10 sm:py-14">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <p className="eyebrow">Tableau de bord</p>
-        <h1 className="display mt-2 text-4xl sm:text-5xl">
+        <h1 className="display mt-1 text-2xl sm:text-3xl">
           {greeting}, {firstName || '…'}
         </h1>
         {isStaff && (
-          <span className="chip mt-4 !border-transparent !bg-lime-soft !text-ink">
+          <span className="chip mt-3 !border-brand/20 !bg-brand-soft !text-brand-dark">
             {role === 'admin' ? 'Administrateur' : 'Collaborateur'}
           </span>
         )}

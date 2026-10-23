@@ -60,7 +60,7 @@ const commitments = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen" style={{ background: '#fbfaf7' }}>
+    <main className="min-h-screen" style={{ background: '#ffffff' }}>
       <style>{`
         
         .about-root, .about-root * { font-family: 'DM Sans', system-ui, sans-serif; }

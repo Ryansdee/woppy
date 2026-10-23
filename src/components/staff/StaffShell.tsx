@@ -103,14 +103,14 @@ export default function StaffShell({ title, description, adminOnly, actions, chi
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Équipe Woppy</p>
-          <h1 className="display mt-1 text-3xl sm:text-4xl">{title}</h1>
+          <h1 className="display mt-1 text-2xl sm:text-3xl">{title}</h1>
           {description && <p className="mt-2 max-w-xl text-muted">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
 
       <nav aria-label="Pages de l’équipe" className="-mx-4 mt-6 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <ul className="flex w-max gap-1 rounded-full border border-line bg-white p-1">
+        <ul className="flex w-max gap-1 rounded-lg border border-line bg-paper-2 p-1">
           {pages.map((p) => {
             const active = pathname === p.href || pathname.startsWith(`${p.href}/`);
             return (
@@ -118,8 +118,8 @@ export default function StaffShell({ title, description, adminOnly, actions, chi
                 <Link
                   href={p.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`block whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    active ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-paper-2 hover:text-ink'
+                  className={`block whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {p.label}
