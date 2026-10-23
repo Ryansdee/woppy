@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Megaphone, ListChecks, Users, MessageSquare, UserCog,
-  TrendingUp, Briefcase, Activity, ChevronRight, UserCheck, LifeBuoy,
+  TrendingUp, Briefcase, Activity, ChevronRight, UserCheck, LifeBuoy, ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
@@ -97,12 +97,13 @@ export default function DashboardPage() {
   const staff: NavItem[] = [
     { href: '/dashboard/collaborateur', icon: UserCheck, label: 'Espace collaborateur', desc: 'Profils et signalements' },
     { href: '/contact/admin', icon: MessageSquare, label: 'Support', desc: 'Gérer les tickets' },
+    { href: '/dashboard/recap', icon: TrendingUp, label: 'Statistiques', desc: 'Activité de la plateforme' },
   ];
   if (role === 'admin') {
     staff.push(
-      { href: '/dashboard/recap', icon: TrendingUp, label: 'Récapitulatif', desc: 'Statistiques détaillées' },
       { href: '/dashboard/jobs-career', icon: Briefcase, label: 'Postes internes', desc: 'Offres d’emploi Woppy' },
-      { href: '/dashboard/applications', icon: ListChecks, label: 'Candidatures internes', desc: 'Réponses aux offres Woppy' },
+      { href: '/dashboard/applications', icon: ListChecks, label: 'Candidatures', desc: 'Réponses aux offres Woppy' },
+      { href: '/dashboard/market-survey', icon: ClipboardList, label: 'Enquête de marché', desc: 'Réponses au formulaire' },
     );
   }
 

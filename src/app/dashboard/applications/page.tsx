@@ -5,10 +5,11 @@ import { collection, onSnapshot, orderBy, query, doc, getDoc } from "firebase/fi
 import { db } from "@/lib/firebase";
 import Link from "next/link";
 import {
-  FileText, Search, Filter, Calendar, Mail, Briefcase,
+  Search, Filter, Calendar, Mail, Briefcase,
   ArrowRight, Inbox, CheckCircle, Clock, Loader2, X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import StaffShell from "@/components/staff/StaffShell";
 
 interface Application {
   id: string;
@@ -33,6 +34,14 @@ function CareerTitle({ careerId }: { careerId: string }) {
 }
 
 export default function ApplicationsDashboardPage() {
+  return (
+    <StaffShell adminOnly title="Candidatures" description="Réponses reçues pour les offres d’emploi de Woppy.">
+      {() => <Applications />}
+    </StaffShell>
+  );
+}
+
+function Applications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading]           = useState(true);
   const [searchTerm, setSearchTerm]     = useState("");
@@ -44,6 +53,10 @@ export default function ApplicationsDashboardPage() {
       (snap) => {
         setApplications(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Application, "id">) })));
         setLoading(false);
+      },
+      () => {
+        setApplications([]);
+        setLoading(false);
       }
     );
     return () => unsub();
@@ -51,8 +64,8 @@ export default function ApplicationsDashboardPage() {
 
   const filtered = applications.filter((app) => {
     const matchSearch =
-      app.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (app.fullName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.email ?? "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus =
       filterStatus === "all" ||
       (filterStatus === "new" && (!app.status || app.status !== "seen")) ||
@@ -67,10 +80,9 @@ export default function ApplicationsDashboardPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
-      <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
-      <p className="font-['DM_Sans',system-ui] text-muted">Chargement des candidatures...</p>
-    </div>
+    <p className="flex items-center gap-2 py-10 text-sm text-muted">
+      <Loader2 className="h-4 w-4 animate-spin" /> Chargement des candidatures…
+    </p>
   );
 
   return (
@@ -79,32 +91,9 @@ export default function ApplicationsDashboardPage() {
         
       `}</style>
 
-      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
-
-        {/* ── Hero ── */}
-        <section className="max-w-[960px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
-
-          {/* Badge */}
-          <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
-              <FileText className="w-3.5 h-3.5" />
-              Recrutement
-            </span>
-          </div>
-
-          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
-            Candidatures{" "}
-            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
-              reçues
-            </span>
-          </h1>
-
-          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[440px] mx-auto mb-10 leading-[1.7]">
-            Gérez et suivez toutes les candidatures reçues pour vos offres d'emploi.
-          </p>
-
+      <div>
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+          <div className="grid grid-cols-3 gap-3 max-w-md">
             {([
               { key: "all",  label: "Total",     value: stats.total, color: "text-brand", activeBg: "bg-brand" },
               { key: "new",  label: "Nouvelles",  value: stats.new,   color: "text-amber-500",  activeBg: "bg-amber-500"  },
@@ -130,9 +119,8 @@ export default function ApplicationsDashboardPage() {
               </button>
             ))}
           </div>
-        </section>
 
-        <div className="max-w-[960px] mx-auto px-5 pb-20 space-y-4">
+        <div className="mt-6 space-y-4">
 
           {/* ── Search bar ── */}
           <div className="bg-white border border-line rounded-2xl p-4">
@@ -310,7 +298,7 @@ export default function ApplicationsDashboardPage() {
           )}
 
         </div>
-      </main>
+      </div>
     </>
   );
 }

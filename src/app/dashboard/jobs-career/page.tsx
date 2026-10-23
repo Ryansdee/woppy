@@ -9,6 +9,8 @@ import {
   Loader2, ArrowRight, Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import StaffShell from "@/components/staff/StaffShell";
+import PublishedCareers from "./PublishedCareers";
 
 /* ─── Helpers ────────────────────────────────────────────── */
 const CONTRACT_TYPES = [
@@ -83,6 +85,19 @@ function PreviewDescription({ text }: { text: string }) {
 
 /* ─── Page ───────────────────────────────────────────────── */
 export default function JobsCareerDashboardPage() {
+  return (
+    <StaffShell adminOnly title="Postes internes" description="Offres d’emploi de Woppy, publiées sur la page Carrières.">
+      {() => (
+        <div className="space-y-12">
+          <CareerForm />
+          <PublishedCareers />
+        </div>
+      )}
+    </StaffShell>
+  );
+}
+
+function CareerForm() {
   const [title, setTitle]           = useState("");
   const [location, setLocation]     = useState("");
   const [type, setType]             = useState("CDI");
@@ -130,9 +145,6 @@ export default function JobsCareerDashboardPage() {
     <>
       <style>{`
         
-        body { background: #fbfaf7 !important; margin: 0; }
-        * { box-sizing: border-box; font-family: 'DM Sans', system-ui; }
-        h1,h2,h3 { font-family: var(--font-bricolage),system-ui; }
         input:focus, textarea:focus { border-color: #7357f6 !important; box-shadow: 0 0 0 3px rgba(138,107,254,0.11) !important; }
         .contract-btn { transition: all 0.13s; }
         .contract-btn:hover { transform: translateY(-1px); }
@@ -140,32 +152,11 @@ export default function JobsCareerDashboardPage() {
         .submit-btn:hover:not(:disabled) { background: #7357f6 !important; box-shadow: 0 8px 24px rgba(138,107,254,0.3) !important; transform: translateY(-1px); }
         .preview-toggle { transition: color 0.12s, background 0.12s; }
         .preview-toggle:hover { color: #7357f6 !important; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #e7e3ec; border-radius: 4px; }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: "#fbfaf7" }}>
-
-        {/* ── Header ── */}
-        <div style={{ background: "#fff", borderBottom: "1px solid #f3f1ec" }}>
-          <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: "#efebff", border: "1px solid #d9d0fd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Briefcase style={{ width: 18, height: 18, color: "#7357f6" }} />
-              </div>
-              <div>
-                <h1 style={{ fontFamily: "var(--font-bricolage),system-ui", fontWeight: 800, fontSize: 20, color: "#15131f", letterSpacing: "-0.02em", marginBottom: 2 }}>
-                  Nouvelle offre d'emploi
-                </h1>
-                <p style={{ fontSize: 13, color: "#6e6a7c" }}>
-                  Publiée automatiquement sur <span style={{ color: "#7357f6", fontWeight: 600 }}>/careers</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 80px" }}>
+      <div>
+        <h2 className="display text-2xl">Nouvelle offre</h2>
+        <div className="mt-4">
 
           {/* ── Feedback ── */}
           <AnimatePresence>

@@ -1,18 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { db, auth } from '@/lib/firebase';
-import {
-  collection, query, orderBy, onSnapshot, getDoc, doc,
-} from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  Flag, Loader2, CheckCircle, ThumbsUp, Ban, ArrowLeft,
-  User, Trash2, Shield, Calendar, MessageSquare, Filter,
-} from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { ArrowLeft, Ban, CheckCircle2, Flag, Loader2, ThumbsUp, Trash2 } from 'lucide-react';
+import StaffShell from '@/components/staff/StaffShell';
 
 interface ReportResolved {
   id: string;
@@ -22,347 +15,125 @@ interface ReportResolved {
   text: string;
   decision: string;
   resolvedBy: string;
-  resolvedAt?: any;
+  resolvedAt?: { toDate?: () => Date };
 }
 
-interface UserData {
-  firstName?: string;
-  lastName?: string;
-  displayName?: string;
-}
-
-const DECISION_CONFIG = {
-  not_offensive: {
-    icon: <ThumbsUp className="w-3.5 h-3.5" />,
-    label: 'Pas offensif',
-    badge: 'bg-green-50 text-green-600 border border-green-200',
-    hover: 'hover:border-green-200',
-  },
-  blocked: {
-    icon: <Ban className="w-3.5 h-3.5" />,
-    label: 'Utilisateur bloqué',
-    badge: 'bg-red-50 text-red-500 border border-red-200',
-    hover: 'hover:border-red-200',
-  },
-  deleted: {
-    icon: <Trash2 className="w-3.5 h-3.5" />,
-    label: 'Message supprimé',
-    badge: 'bg-paper-2 text-ink-2 border border-line',
-    hover: 'hover:border-line',
-  },
+const DECISIONS = {
+  not_offensive: { icon: ThumbsUp, label: 'Pas offensif', badge: 'border-green-200 bg-green-50 text-green-700' },
+  deleted: { icon: Trash2, label: 'Message supprimé', badge: 'border-line bg-paper-2 text-ink-2' },
+  blocked: { icon: Ban, label: 'Auteur bloqué', badge: 'border-red-200 bg-red-50 text-danger' },
 } as const;
 
-type FilterType = 'all' | 'not_offensive' | 'blocked' | 'deleted';
+type Filter = 'all' | keyof typeof DECISIONS;
 
 export default function ReportsResolvedPage() {
-  const [loading, setLoading]     = useState(true);
-  const [reports, setReports]     = useState<ReportResolved[]>([]);
-  const [userCache, setUserCache] = useState<Record<string, UserData>>({});
-  const [authorized, setAuthorized] = useState(false);
-  const [filter, setFilter]       = useState<FilterType>('all');
-  const router = useRouter();
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) { router.push('/auth/login'); return; }
-      const snap = await getDoc(doc(db, 'users', user.uid));
-      const role = snap.exists() ? snap.data()?.role : null;
-      if (role === 'collaborator' || role === 'admin') {
-        setAuthorized(true);
-      } else {
-        router.push('/dashboard');
+  return (
+    <StaffShell
+      title="Historique de modération"
+      description="Signalements traités et décision prise pour chacun."
+      actions={
+        <Link href="/dashboard/collaborateur" className="btn btn-outline">
+          <ArrowLeft size={16} /> Signalements en cours
+        </Link>
       }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [router]);
+    >
+      {() => <History />}
+    </StaffShell>
+  );
+}
+
+function History() {
+  const [reports, setReports] = useState<ReportResolved[] | null>(null);
+  const [names, setNames] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
-    if (!authorized) return;
-    const q = query(collection(db, 'reportsResolved'), orderBy('resolvedAt', 'desc'));
-    const unsub = onSnapshot(q, async (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as ReportResolved[];
-      setReports(list);
+    return onSnapshot(
+      query(collection(db, 'reportsResolved'), orderBy('resolvedAt', 'desc')),
+      (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ReportResolved, 'id'>) }))),
+      () => setReports([])
+    );
+  }, []);
 
-      const uids = new Set<string>();
-      list.forEach((r) => {
-        if (r.reporterId) uids.add(r.reporterId);
-        if (r.senderId)   uids.add(r.senderId);
-        if (r.resolvedBy) uids.add(r.resolvedBy);
-      });
+  /* Noms des personnes citées */
+  useEffect(() => {
+    if (!reports) return;
+    const missing = [...new Set(reports.flatMap((r) => [r.reporterId, r.senderId, r.resolvedBy]))].filter(
+      (id) => id && !(id in names)
+    );
+    if (!missing.length) return;
+    Promise.all(
+      missing.map(async (id) => {
+        const d = (await getDoc(doc(db, 'users', id))).data();
+        const name = d ? d.displayName || [d.firstName, d.lastName].filter(Boolean).join(' ') : '';
+        return [id, name || 'Utilisateur inconnu'] as const;
+      })
+    ).then((entries) => setNames((prev) => ({ ...prev, ...Object.fromEntries(entries) })));
+  }, [reports, names]);
 
-      const updatedCache = { ...userCache };
-      await Promise.all(Array.from(uids).map(async (uid) => {
-        if (!uid || updatedCache[uid]) return;
-        const s = await getDoc(doc(db, 'users', uid));
-        if (s.exists()) {
-          const d = s.data();
-          updatedCache[uid] = {
-            displayName: d.displayName || `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Utilisateur',
-            firstName: d.firstName, lastName: d.lastName,
-          };
-        } else {
-          updatedCache[uid] = { displayName: 'Utilisateur inconnu' };
-        }
-      }));
+  const nameOf = (id: string) => names[id] ?? '…';
+  const count = (f: Filter) => (f === 'all' ? reports?.length ?? 0 : reports?.filter((r) => r.decision === f).length ?? 0);
+  const shown = filter === 'all' ? reports : reports?.filter((r) => r.decision === filter);
 
-      setUserCache(updatedCache);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [authorized]);
-
-  const nameOf = (uid: string) => userCache[uid]?.displayName || 'Utilisateur inconnu';
-
-  const filteredReports = filter === 'all' ? reports : reports.filter(r => r.decision === filter);
-
-  const stats = {
-    total:        reports.length,
-    notOffensive: reports.filter(r => r.decision === 'not_offensive').length,
-    blocked:      reports.filter(r => r.decision === 'blocked').length,
-    deleted:      reports.filter(r => r.decision === 'deleted').length,
-  };
-
-  /* ── Loading ── */
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
-      <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
-      <p className="font-['DM_Sans',system-ui] text-muted font-medium">
-        Chargement de l'historique...
-      </p>
-    </div>
-  );
-
-  if (!authorized) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7] px-5">
-      <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-5">
-        <Ban className="w-7 h-7 text-red-500" />
-      </div>
-      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-xl text-[#15131f] mb-2">Accès refusé</h2>
-      <p className="text-muted text-sm mb-6 font-['DM_Sans',system-ui]">
-        Vous n'avez pas les permissions nécessaires.
-      </p>
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-ink transition-colors"
-      >
-        Retour au tableau de bord
-      </button>
-    </div>
-  );
+  const filters: { key: Filter; label: string }[] = [
+    { key: 'all', label: 'Tout' },
+    ...Object.entries(DECISIONS).map(([key, d]) => ({ key: key as Filter, label: d.label })),
+  ];
 
   return (
     <>
-      <style>{`
-        
-      `}</style>
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            aria-pressed={filter === f.key}
+            className={`btn ${filter === f.key ? 'btn-primary' : 'btn-outline'}`}
+          >
+            {f.label}
+            <span className={`rounded-full px-2 py-0.5 text-xs ${filter === f.key ? 'bg-paper/15' : 'bg-paper-2'}`}>{count(f.key)}</span>
+          </button>
+        ))}
+      </div>
 
-      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
-
-        {/* ── Hero ── */}
-        <section className="max-w-[960px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
-
-          {/* Retour */}
-          <div className="flex justify-center mb-6">
-            <Link
-              href="/dashboard/collaborateur"
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted hover:text-brand transition-colors no-underline"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Retour à l'espace collaborateur
-            </Link>
-          </div>
-
-          {/* Badge */}
-          <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
-              <Shield className="w-3.5 h-3.5" />
-              Historique
-            </span>
-          </div>
-
-          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
-            Signalements{" "}
-            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
-              résolus
-            </span>
-          </h1>
-
-          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[440px] mx-auto mb-10 leading-[1.7]">
-            Consultez l'ensemble des signalements traités et les décisions prises par l'équipe.
+      <section className="mt-6 space-y-3">
+        {shown === null && (
+          <p className="flex items-center gap-2 py-10 text-sm text-muted">
+            <Loader2 size={16} className="animate-spin" /> Chargement…
           </p>
-
-          {/* Stats cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {([
-              { key: 'all',           label: 'Total',        value: stats.total,        icon: <Shield className="w-4 h-4" />,   color: 'text-brand', activeBg: 'bg-brand' },
-              { key: 'not_offensive', label: 'Pas offensif', value: stats.notOffensive, icon: <ThumbsUp className="w-4 h-4" />, color: 'text-green-500',  activeBg: 'bg-green-500'  },
-              { key: 'blocked',       label: 'Bloqués',      value: stats.blocked,      icon: <Ban className="w-4 h-4" />,      color: 'text-red-500',    activeBg: 'bg-red-500'    },
-              { key: 'deleted',       label: 'Supprimés',    value: stats.deleted,      icon: <Trash2 className="w-4 h-4" />,   color: 'text-muted',   activeBg: 'bg-[#15131f]' },
-            ] as const).map((s) => (
-              <button
-                key={s.key}
-                onClick={() => setFilter(s.key)}
-                className={`rounded-2xl p-4 text-left border transition-all duration-150
-                  ${filter === s.key
-                    ? `${s.activeBg} border-transparent shadow-md`
-                    : 'bg-white border-line hover:border-brand/30 hover:shadow-sm'
-                  }`}
-              >
-                <div className={`mb-2 ${filter === s.key ? 'text-white/80' : s.color}`}>
-                  {s.icon}
-                </div>
-                <p className={`font-[var(--font-bricolage),system-ui] font-bold text-xl ${filter === s.key ? 'text-white' : 'text-[#15131f]'}`}>
-                  {s.value}
-                </p>
-                <p className={`text-[11px] font-medium mt-0.5 ${filter === s.key ? 'text-white/70' : 'text-muted'}`}>
-                  {s.label}
-                </p>
-              </button>
-            ))}
+        )}
+        {shown?.length === 0 && (
+          <div className="card flex flex-col items-center gap-3 py-14 text-center">
+            <CheckCircle2 size={28} className="text-success" />
+            <p className="text-ink-2">{filter === 'all' ? 'Aucun signalement traité pour l’instant.' : 'Aucun signalement pour ce filtre.'}</p>
           </div>
-        </section>
-
-        <div className="max-w-[960px] mx-auto px-5 pb-20">
-
-          {/* Filtre actif */}
-          <AnimatePresence>
-            {filter !== 'all' && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="flex items-center gap-2 mb-5"
-              >
-                <Filter className="w-3.5 h-3.5 text-muted" />
-                <span className="text-[13px] text-muted">
-                  Filtre actif :{" "}
-                  <span className="font-semibold text-[#15131f]">
-                    {filter === 'not_offensive' && 'Pas offensif'}
-                    {filter === 'blocked'       && 'Bloqués'}
-                    {filter === 'deleted'       && 'Supprimés'}
-                  </span>
+        )}
+        {shown?.map((r) => {
+          const d = DECISIONS[r.decision as keyof typeof DECISIONS];
+          const Icon = d?.icon ?? Flag;
+          return (
+            <article key={r.id} className="card p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
+                <p>
+                  <span className="text-muted">Signalé par </span>
+                  <span className="font-semibold">{nameOf(r.reporterId)}</span>
+                  <span className="text-muted"> · message de </span>
+                  <span className="font-semibold">{nameOf(r.senderId)}</span>
+                </p>
+                <span className={`chip ${d?.badge ?? ''}`}>
+                  <Icon size={12} /> {d?.label ?? 'Traité'}
                 </span>
-                <button
-                  onClick={() => setFilter('all')}
-                  className="text-[13px] text-brand font-semibold hover:text-brand transition-colors"
-                >
-                  Réinitialiser
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Empty */}
-          {filteredReports.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-line rounded-2xl p-16 text-center"
-            >
-              <div className="w-14 h-14 bg-brand-soft rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-7 h-7 text-brand" />
               </div>
-              <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
-                Aucun résultat
+              <blockquote className="mt-3 whitespace-pre-line rounded-xl bg-paper-2 p-4 text-ink-2">{r.text}</blockquote>
+              <p className="mt-3 text-xs text-muted">
+                Traité par <span className="font-semibold text-ink-2">{nameOf(r.resolvedBy)}</span>
+                {r.resolvedAt?.toDate && ` · ${r.resolvedAt.toDate().toLocaleString('fr-BE', { dateStyle: 'medium', timeStyle: 'short' })}`}
+                <span className="ml-2 font-mono">chat {r.chatId}</span>
               </p>
-              <p className="text-sm text-muted">
-                {filter === 'all'
-                  ? "Aucun signalement résolu pour l'instant."
-                  : 'Aucun signalement ne correspond à ce filtre.'}
-              </p>
-            </motion.div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {filteredReports.map((r, index) => {
-                const cfg = DECISION_CONFIG[r.decision as keyof typeof DECISION_CONFIG] ?? {
-                  icon: <Flag className="w-3.5 h-3.5" />,
-                  label: 'Traité',
-                  badge: 'bg-brand-soft text-brand border border-brand/30',
-                  hover: 'hover:border-brand/30',
-                };
-
-                return (
-                  <motion.div
-                    key={r.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04 }}
-                    className={`bg-white border border-line rounded-2xl p-5 transition-all duration-150 ${cfg.hover} hover:shadow-[0_2px_20px_rgba(0,0,0,0.06)]`}
-                  >
-                    {/* Top : qui + badge décision */}
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-brand-soft rounded-lg flex items-center justify-center shrink-0">
-                            <Flag className="w-3 h-3 text-brand" />
-                          </div>
-                          <span className="text-[13px] font-semibold text-[#15131f]">
-                            Signalé par{" "}
-                            <span className="text-brand">{nameOf(r.reporterId)}</span>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 pl-8">
-                          <User className="w-3 h-3 text-muted" />
-                          <span className="text-[12px] text-muted">
-                            Expéditeur :{" "}
-                            <span className="font-semibold text-ink-2">{nameOf(r.senderId)}</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Badge décision */}
-                      <span className={`self-start inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${cfg.badge}`}>
-                        {cfg.icon}
-                        {cfg.label}
-                      </span>
-                    </div>
-
-                    {/* Message */}
-                    <div className="bg-paper-2 border border-line rounded-xl p-4 mb-4">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <MessageSquare className="w-3 h-3 text-muted" />
-                        <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
-                          Contenu signalé
-                        </span>
-                      </div>
-                      <p className="text-sm text-ink-2 leading-relaxed whitespace-pre-line">
-                        {r.text}
-                      </p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-line">
-                      <div className="flex items-center gap-1.5">
-                        <Shield className="w-3 h-3 text-brand" />
-                        <span className="text-[12px] text-muted">
-                          Traité par{" "}
-                          <span className="font-semibold text-brand">{nameOf(r.resolvedBy)}</span>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3 h-3 text-muted" />
-                          <span className="text-[11px] text-muted">
-                            {r.resolvedAt?.toDate &&
-                              new Date(r.resolvedAt.toDate()).toLocaleString('fr-BE', {
-                                day: '2-digit', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit',
-                              })}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-muted font-mono bg-paper-2 px-2 py-0.5 rounded-lg">
-                          {r.chatId}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
+            </article>
+          );
+        })}
+      </section>
     </>
   );
 }

@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { db, auth } from "@/lib/firebase";
-import { getDoc, doc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import type { User } from "firebase/auth";
+import StaffShell from "@/components/staff/StaffShell";
 import {
   Users,
   Briefcase,
@@ -16,12 +14,10 @@ import {
   Ban,
   Loader2,
   BarChart2,
-  ArrowLeft,
   UserCheck,
   AlertTriangle,
   Star,
 } from "lucide-react";
-import Link from "next/link";
 import {
   AreaChart,
   Area,
@@ -188,10 +184,15 @@ function EmptyChart() {
 }
 
 export default function AnalyticsPage() {
-  const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(false);
+  return (
+    <StaffShell title="Statistiques" description="Utilisateurs, annonces, candidatures et modération sur la période choisie.">
+      {({ user }) => <Analytics user={user} />}
+    </StaffShell>
+  );
+}
+
+function Analytics({ user }: { user: User }) {
+  const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [period, setPeriod] = useState<Period>("30d");
 
@@ -202,35 +203,11 @@ export default function AnalyticsPage() {
   const [resolved, setResolved] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
 
-  /* ── Auth check ── */
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push("/auth/login");
-        return;
-      }
 
-      // On récupère le token pour le passer à l'API
-      const token = await user.getIdToken();
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const role = snap.data()?.role;
-
-      if (role === "admin" || role === "collaborator") {
-        setAuthorized(true);
-        await fetchAnalytics(token);
-      } else {
-        router.push("/dashboard");
-      }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [router]);
-
-  const fetchAnalytics = async (token?: string) => {
+  const fetchAnalytics = async () => {
     setFetching(true);
     try {
-      // Récupère le token courant si non fourni
-      const t = token ?? (await auth.currentUser?.getIdToken());
+      const t = await user.getIdToken();
       const res = await fetch("/api/admin/analytics", {
         headers: { Authorization: `Bearer ${t}` },
       });
@@ -244,12 +221,18 @@ export default function AnalyticsPage() {
       setReviews(data.reviews);
       setLoadError(false);
     } catch (e) {
-      console.error("Analytics fetch error:", e);
+      console.warn("Analytics fetch error:", e);
       setLoadError(true);
     } finally {
       setFetching(false);
     }
   };
+
+  /* Chargement une fois l'accès vérifié */
+  useEffect(() => {
+    fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   /* ── Computed ── */
   const start = startOf(period);
@@ -355,58 +338,10 @@ const heuresMoyennes = annoncesAvecData.length
   ? (annoncesAvecData.reduce((s, a) => s + a.duree, 0) / annoncesAvecData.length).toFixed(1)
   : '—';
 
-  /* ── Loading ── */
-  if (loading)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
-        <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
-        <p className="font-['DM_Sans',system-ui] text-muted">
-          Vérification des autorisations...
-        </p>
-      </div>
-    );
-
-  if (!authorized) return null;
-
   return (
     <>
-      <style>{`
-        
-      `}</style>
-
-      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
-        {/* ── Hero ── */}
-        <section className="max-w-[1080px] mx-auto px-5 pt-12 pb-10 sm:pt-16 sm:pb-12">
-          <div className="flex justify-center mb-6">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted hover:text-brand transition-colors no-underline"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Retour au dashboard
-            </Link>
-          </div>
-
-          <div className="flex justify-center mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
-              <BarChart2 className="w-3.5 h-3.5" />
-              Analytics
-            </span>
-          </div>
-
-          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[1.9rem] sm:text-[2.8rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
-            Tableau de bord{" "}
-            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
-              Woppy
-            </span>
-          </h1>
-          <p className="text-center text-[14px] sm:text-[16px] text-muted max-w-[480px] mx-auto mb-8 leading-[1.7]">
-            Vue d'ensemble de la plateforme — utilisateurs, annonces,
-            modération.
-          </p>
-
           {/* Period selector */}
-          <div className="flex justify-center">
+          <div className="flex">
             <div className="bg-white border border-line rounded-2xl p-1.5 flex gap-1">
               {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(
                 ([key, label]) => (
@@ -426,10 +361,9 @@ const heuresMoyennes = annoncesAvecData.length
               )}
             </div>
           </div>
-        </section>
 
         {/* ── Content ── */}
-        <div className="max-w-[1080px] mx-auto px-5 pb-24 space-y-8">
+        <div className="mt-6 space-y-8">
           {loadError && !fetching && (
             <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               Impossible de charger les statistiques : la route <code>/api/admin/analytics</code> a échoué.
@@ -907,7 +841,6 @@ const heuresMoyennes = annoncesAvecData.length
             </>
           )}
         </div>
-      </main>
     </>
   );
 }

@@ -10,6 +10,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import StaffShell from '@/components/staff/StaffShell';
 
 type Interest = 'yes' | 'no' | 'maybe' | '' ;
 
@@ -31,6 +32,14 @@ interface MarketSurveyDoc {
 }
 
 export default function MarketSurveyDashboardPage() {
+  return (
+    <StaffShell adminOnly title="Enquête de marché" description="Réponses au formulaire d’enquête : intérêt, profil, fonctionnalités demandées.">
+      {() => <MarketSurvey />}
+    </StaffShell>
+  );
+}
+
+function MarketSurvey() {
   const [data, setData] = useState<MarketSurveyDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,27 +158,11 @@ export default function MarketSurveyDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-paper text-ink px-4 py-6 sm:px-6 lg:px-10">
-      <div className="max-w-6xl mx-auto">
-        {/* HEADER */}
-        <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold">
-              Enquête de marché Woppy
-            </h1>
-            <p className="text-sm text-muted mt-1">
-              Vue interne pour analyser les réponses au formulaire (intérêt,
-              profil, features demandées).
-            </p>
-          </div>
-          <div className="text-right text-sm text-muted">
-            <p>Total réponses :{' '}
-              <span className="font-semibold text-brand">
-                {stats.total}
-              </span>
-            </p>
-          </div>
-        </header>
+    <div>
+      <div>
+        <p className="mb-6 text-sm text-muted">
+          Total des réponses : <span className="font-semibold text-ink">{stats.total}</span>
+        </p>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -420,7 +413,7 @@ export default function MarketSurveyDashboardPage() {
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 

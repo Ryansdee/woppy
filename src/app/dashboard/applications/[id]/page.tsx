@@ -1,405 +1,174 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Link from "next/link";
-import { 
-  ArrowLeft, 
-  User, 
-  Mail, 
-  Calendar, 
-  FileText, 
-  Briefcase, 
-  MapPin, 
-  Eye, 
-  Download,
-  CheckCircle,
-  Clock,
-  Loader2,
-  MessageSquare,
-  ExternalLink,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, CheckCircle2, Download, Eye, Loader2, Mail, MapPin } from "lucide-react";
+import StaffShell from "@/components/staff/StaffShell";
 
-export default function ApplicationDetails({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Application = {
+  id: string;
+  fullName?: string;
+  email?: string;
+  message?: string;
+  careerId?: string;
+  cvUrl?: string | null;
+  status?: string;
+  createdAt?: { seconds: number };
+};
+
+type Career = { title?: string; location?: string; type?: string };
+
+export default function ApplicationDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  return (
+    <StaffShell
+      adminOnly
+      title="Candidature"
+      actions={
+        <Link href="/dashboard/applications" className="btn btn-outline">
+          <ArrowLeft size={16} /> Toutes les candidatures
+        </Link>
+      }
+    >
+      {() => <ApplicationDetails id={id} />}
+    </StaffShell>
+  );
+}
 
-  const [application, setApplication] = useState<any>(null);
-  const [career, setCareer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+function ApplicationDetails({ id }: { id: string }) {
+  const [application, setApplication] = useState<Application | null>(null);
+  const [career, setCareer] = useState<Career | null>(null);
+  const [state, setState] = useState<"loading" | "ok" | "missing" | "error">("loading");
   const [marking, setMarking] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const appSnap = await getDoc(doc(db, "applications", id));
-
-      if (!appSnap.exists()) {
-        setApplication(null);
-        setLoading(false);
-        return;
+    (async () => {
+      try {
+        const appSnap = await getDoc(doc(db, "applications", id));
+        if (!appSnap.exists()) {
+          setState("missing");
+          return;
+        }
+        const data = { id, ...(appSnap.data() as Omit<Application, "id">) };
+        setApplication(data);
+        if (data.careerId) {
+          const careerSnap = await getDoc(doc(db, "careers", data.careerId));
+          if (careerSnap.exists()) setCareer(careerSnap.data() as Career);
+        }
+        setState("ok");
+      } catch {
+        setState("error");
       }
-
-      const appData = appSnap.data();
-      setApplication({ id, ...appData });
-
-      // Charger l'offre
-      const careerSnap = await getDoc(doc(db, "careers", appData.careerId));
-      if (careerSnap.exists()) setCareer(careerSnap.data());
-
-      setLoading(false);
-    }
-
-    load();
+    })();
   }, [id]);
 
   async function markAsSeen() {
+    setMarking(true);
     try {
-      setMarking(true);
-      await updateDoc(doc(db, "applications", id), {
-        status: "seen",
-      });
-      setApplication((prev: any) => ({ ...prev, status: "seen" }));
+      await updateDoc(doc(db, "applications", id), { status: "seen" });
+      setApplication((prev) => (prev ? { ...prev, status: "seen" } : prev));
     } finally {
       setMarking(false);
     }
   }
 
-  if (loading) {
+  if (state === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20 px-4">
-        <Loader2 className="w-12 h-12 animate-spin text-[#7357f6] mb-4" />
-        <p className="text-ink-2 font-medium text-center">Chargement de la candidature...</p>
+      <p className="flex items-center gap-2 py-10 text-sm text-muted">
+        <Loader2 size={16} className="animate-spin" /> Chargement…
+      </p>
+    );
+  }
+
+  if (state !== "ok" || !application) {
+    return (
+      <div className="card p-10 text-center">
+        <p className="text-ink-2">
+          {state === "missing" ? "Cette candidature n’existe pas ou a été supprimée." : "Impossible de charger la candidature."}
+        </p>
       </div>
     );
   }
 
-  if (!application) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center bg-white rounded-2xl shadow-xl p-8 sm:p-12 max-w-md border border-line w-full"
-        >
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl">
-            <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-ink mb-2 sm:mb-3">
-            Candidature introuvable
-          </h2>
-          <p className="text-sm sm:text-base text-ink-2 mb-6 sm:mb-8">
-            Cette candidature n'existe pas ou a été supprimée.
-          </p>
-          <Link
-            href="/dashboard/applications"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            Retour aux candidatures
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
+  const seen = application.status === "seen";
+  const date = application.createdAt
+    ? new Date(application.createdAt.seconds * 1000).toLocaleString("fr-BE", { dateStyle: "long", timeStyle: "short" })
+    : "—";
+  const mailSubject = encodeURIComponent(`Votre candidature${career?.title ? ` – ${career.title}` : ""}`);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-paper-2 via-brand-soft/30 to-blue-50/20">
-      {/* Header avec gradient Woppy */}
-      <div className="bg-gradient-to-r from-[#5a3fe0] via-[#7357f6] to-[#7b5bef] text-white shadow-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Link
-              href="/dashboard/applications"
-              className="inline-flex items-center gap-2 text-brand-soft hover:text-white mb-4 sm:mb-6 transition-colors group text-sm sm:text-base"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:-translate-x-1 transition-transform" />
-              Retour
-            </Link>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 sm:w-8 sm:h-8" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">Détails</h1>
-                  <p className="text-brand-soft text-sm sm:text-base truncate">
-                    <span className="font-semibold">{application.fullName}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Status Badge */}
-              {application.status === "seen" ? (
-                <div className="bg-green-500/20 backdrop-blur-sm border-2 border-green-300 text-white px-3 sm:px-5 py-2 sm:py-3 rounded-xl font-semibold flex items-center gap-2 text-sm sm:text-base self-start sm:self-auto">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Vue</span>
-                </div>
-              ) : (
-                <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="bg-amber-500/20 backdrop-blur-sm border-2 border-amber-300 text-white px-3 sm:px-5 py-2 sm:py-3 rounded-xl font-semibold flex items-center gap-2 text-sm sm:text-base self-start sm:self-auto"
-                >
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Nouveau</span>
-                </motion.div>
+    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="space-y-6">
+        <section className="card p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="display text-2xl">{application.fullName || "Sans nom"}</h2>
+              {application.email && (
+                <a href={`mailto:${application.email}`} className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+                  <Mail size={13} /> {application.email}
+                </a>
               )}
+              <p className="mt-1 text-sm text-muted">Reçue le {date}</p>
             </div>
-          </motion.div>
-        </div>
+            <span className={`chip ${seen ? "!border-green-200 !bg-green-50 !text-green-700" : "!border-amber-200 !bg-amber-50 !text-amber-700"}`}>
+              {seen ? "Vue" : "Nouvelle"}
+            </span>
+          </div>
+
+          <h3 className="eyebrow mt-6">Message</h3>
+          <p className="mt-2 whitespace-pre-line rounded-xl bg-paper-2 p-4 leading-relaxed text-ink-2">
+            {application.message || "Aucun message."}
+          </p>
+        </section>
+
+        {application.cvUrl && (
+          <section className="card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-line px-5 py-3">
+              <h3 className="font-semibold">CV</h3>
+              <a href={application.cvUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+                <Download size={14} /> Télécharger
+              </a>
+            </div>
+            <iframe src={application.cvUrl} title="CV du candidat" className="h-[600px] w-full" />
+          </section>
+        )}
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Main Content - Left Side */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Candidate Information */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-line"
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#7357f6] to-[#5a3fe0] rounded-xl flex items-center justify-center text-white shadow-lg">
-                  <User className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-ink">
-                  Informations
-                </h2>
-              </div>
+      <aside className="space-y-4">
+        <section className="card p-5">
+          <h3 className="eyebrow">Offre concernée</h3>
+          {career ? (
+            <>
+              <p className="mt-2 font-display text-lg font-semibold">{career.title}</p>
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+                {career.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {career.location}</span>}
+                {career.type && <span className="chip">{career.type}</span>}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-muted">Offre supprimée.</p>
+          )}
+        </section>
 
-              <div className="space-y-3 sm:space-y-4">
-                {/* Nom */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
-                      Nom complet
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-ink break-words">
-                      {application.fullName}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
-                      Email
-                    </p>
-                    <a 
-                      href={`mailto:${application.email}`}
-                      className="text-base sm:text-lg font-bold text-[#7357f6] hover:underline flex items-center gap-2 break-all"
-                    >
-                      <span className="break-all">{application.email}</span>
-                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Date */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-brand-soft/50 to-blue-50/50 rounded-xl border border-brand-soft">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#7357f6]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-ink-2 font-semibold mb-1">
-                      Date de candidature
-                    </p>
-                    <p className="text-base sm:text-lg font-bold text-ink">
-                      {application.createdAt
-                        ? new Date(
-                            application.createdAt.seconds * 1000
-                          ).toLocaleDateString("fr-FR", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "-"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* CV Preview */}
-                {application.cvUrl && (
-                  <div className="bg-white rounded-xl border-2 border-line shadow-md overflow-hidden">
-                    <div className="bg-gradient-to-r from-brand-soft to-blue-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-line flex items-center justify-between">
-                      <p className="text-xs sm:text-sm font-semibold text-ink-2 flex items-center gap-2">
-                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-[#7357f6]" />
-                        Aperçu du CV
-                      </p>
-                      <a
-                        href={application.cvUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs sm:text-sm text-[#7357f6] hover:underline font-medium flex items-center gap-1"
-                      >
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">Télécharger</span>
-                      </a>
-                    </div>
-                    <div className="w-full h-[400px] sm:h-[500px] lg:h-[600px]">
-                      <iframe
-                        src={application.cvUrl}
-                        className="w-full h-full"
-                        title="Aperçu du CV"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Message */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-md p-4 sm:p-8 border border-line"
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-                  <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-ink">
-                  Message
-                </h2>
-              </div>
-              
-              <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 p-4 sm:p-6 rounded-xl border-2 border-blue-100">
-                <p className="text-sm sm:text-base text-ink whitespace-pre-line leading-relaxed">
-                  {application.message}
-                </p>
-              </div>
-
-              {/* Stats message */}
-              <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted">
-                <span>{application.message.length} caractères</span>
-                <span>•</span>
-                <span>{application.message.split(/\s+/).length} mots</span>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Sidebar - Right Side */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Job Offer Card */}
-            {career && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white rounded-2xl shadow-md p-4 sm:p-6 border border-line lg:sticky lg:top-6"
-              >
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-                    <Briefcase className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-ink">
-                    Offre concernée
-                  </h2>
-                </div>
-
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="p-4 sm:p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-xl border-2 border-green-100">
-                    <p className="font-bold text-base sm:text-lg text-ink mb-2 sm:mb-3 break-words">
-                      {career.title}
-                    </p>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm sm:text-base text-ink-2">
-                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
-                        <span className="font-medium">{career.location}</span>
-                      </div>
-                      
-                      {career.type && (
-                        <div className="inline-block px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-semibold">
-                          {career.type}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mark as Seen Button */}
-                  {application.status !== "seen" && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={markAsSeen}
-                      disabled={marking}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#7357f6] to-[#5a3fe0] disabled:from-muted disabled:to-muted text-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-sm sm:text-base"
-                    >
-                      {marking ? (
-                        <>
-                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                          <span>Mise à jour...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <span>Marquer comme vue</span>
-                        </>
-                      )}
-                    </motion.button>
-                  )}
-
-                  {application.status === "seen" && (
-                    <div className="p-3 sm:p-4 bg-green-50 border-2 border-green-200 rounded-xl">
-                      <div className="flex items-center gap-2 text-green-700 text-sm sm:text-base">
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                        <span className="font-semibold">Déjà vue</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick Actions */}
-                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-line">
-                  <p className="text-xs sm:text-sm font-semibold text-ink-2 mb-2 sm:mb-3">Actions rapides</p>
-                  <div className="space-y-2">
-                    <Link
-                      href={`mailto:${application.email}?subject=Votre candidature - ${career.title}`}
-                      className="flex items-center gap-2 text-xs sm:text-sm text-[#7357f6] hover:underline font-medium"
-                    >
-                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                      Envoyer un email
-                    </Link>
-                    {application.cvUrl && (
-                      <Link
-                        href={application.cvUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs sm:text-sm text-[#7357f6] hover:underline font-medium"
-                      >
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                        Télécharger le CV
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        </div>
-      </main>
+        <section className="card space-y-2 p-5">
+          {seen ? (
+            <p className="flex items-center gap-2 text-sm text-green-700">
+              <CheckCircle2 size={16} /> Candidature déjà vue
+            </p>
+          ) : (
+            <button onClick={markAsSeen} disabled={marking} className="btn btn-primary w-full">
+              {marking ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />} Marquer comme vue
+            </button>
+          )}
+          {application.email && (
+            <a href={`mailto:${application.email}?subject=${mailSubject}`} className="btn btn-outline w-full">
+              <Mail size={16} /> Répondre par email
+            </a>
+          )}
+        </section>
+      </aside>
     </div>
   );
 }

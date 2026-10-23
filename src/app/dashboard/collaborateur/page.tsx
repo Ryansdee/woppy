@@ -1,21 +1,21 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { db } from '@/lib/firebase';
 import {
   doc, getDoc, getDocs, collection, query,
   where, orderBy, updateDoc, onSnapshot,
   deleteDoc, addDoc, serverTimestamp,
 } from 'firebase/firestore';
-import Image from 'next/image';
+import type { User } from 'firebase/auth';
 import {
-  Loader2, Check, X, ZoomIn, XCircle, Flag, AlertTriangle,
-  Trash2, Ban, ThumbsUp, Shield, Clock, UserCheck,
-  MessageSquare, History, CheckCircle,
+  Loader2, Check, X, ZoomIn, Flag, Trash2, Ban, ThumbsUp,
+  UserCheck, History, CheckCircle2,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import StaffShell from '@/components/staff/StaffShell';
 
 interface UserData {
   id: string;
@@ -35,491 +35,274 @@ interface ReportData {
   text: string;
   chatId: string;
   messageId: string;
-  createdAt?: any;
+  createdAt?: { toDate?: () => Date };
 }
 
+type Decision = 'not_offensive' | 'deleted' | 'blocked';
+
+const fullName = (u?: UserData) => (u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Sans nom' : '…');
+
 export default function CollaborateurPage() {
-  const [loading, setLoading]         = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [pendingCards, setPendingCards] = useState<UserData[]>([]);
-  const [reports, setReports]           = useState<ReportData[]>([]);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab]       = useState<'cards' | 'reports'>('cards');
-  const [userCache, setUserCache]       = useState<Record<string, UserData>>({});
-  const router = useRouter();
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) { router.push('/auth/login'); return; }
-      const snap = await getDoc(doc(db, 'users', user.uid));
-      const data = snap.data();
-      if (data?.role === 'collaborator' || data?.role === 'admin') {
-        setIsAuthorized(true);
-        fetchPendingCards();
-        fetchReports();
-      } else {
-        router.push('/dashboard');
+  return (
+    <StaffShell
+      title="Modération"
+      description="Cartes étudiantes à vérifier et messages signalés par les utilisateurs."
+      actions={
+        <Link href="/dashboard/collaborateur/reportsResolved" className="btn btn-outline">
+          <History size={16} /> Historique
+        </Link>
       }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, [router]);
+    >
+      {({ user }) => <Moderation me={user} />}
+    </StaffShell>
+  );
+}
 
-  const getUserName = useCallback(async (uid: string) => {
-    if (userCache[uid]) return userCache[uid];
-    const snap = await getDoc(doc(db, 'users', uid));
-    const data = snap.exists()
-      ? (snap.data() as UserData)
-      : { id: uid, firstName: 'Utilisateur', lastName: 'Inconnu' };
-    setUserCache((prev) => ({ ...prev, [uid]: data }));
-    return data;
-  }, [userCache]);
+function Moderation({ me }: { me: User }) {
+  const [pendingCards, setPendingCards] = useState<UserData[] | null>(null);
+  const [reports, setReports] = useState<ReportData[] | null>(null);
+  const [users, setUsers] = useState<Record<string, UserData>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [tab, setTab] = useState<'reports' | 'cards'>('reports');
 
+  /* Cartes en attente */
   useEffect(() => {
-    reports.forEach(async (r) => {
-      await getUserName(r.reporterId);
-      await getUserName(r.senderId);
-    });
-  }, [reports, getUserName]);
+    getDocs(query(collection(db, 'users'), where('studentProfile.verificationStatus', '==', 'pending')))
+      .then((snap) => setPendingCards(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<UserData, 'id'>) }))))
+      .catch(() => setPendingCards([]));
+  }, []);
 
-  const fetchPendingCards = async () => {
-    const q = query(collection(db, 'users'), where('studentProfile.verificationStatus', '==', 'pending'));
-    const snap = await getDocs(q);
-    setPendingCards(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+  /* Signalements en temps réel, écouteur arrêté au démontage */
+  useEffect(() => {
+    return onSnapshot(
+      query(collection(db, 'reports'), orderBy('createdAt', 'desc')),
+      (snap) => setReports(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ReportData, 'id'>) }))),
+      () => setReports([])
+    );
+  }, []);
+
+  /* Noms des personnes impliquées dans les signalements */
+  useEffect(() => {
+    if (!reports) return;
+    const missing = [...new Set(reports.flatMap((r) => [r.reporterId, r.senderId]))].filter((id) => id && !users[id]);
+    if (!missing.length) return;
+    Promise.all(
+      missing.map(async (id) => {
+        const snap = await getDoc(doc(db, 'users', id));
+        return [id, { id, ...(snap.data() as Omit<UserData, 'id'> | undefined) }] as const;
+      })
+    ).then((entries) => setUsers((prev) => ({ ...prev, ...Object.fromEntries(entries) })));
+  }, [reports, users]);
+
+  const run = async (key: string, action: () => Promise<void>, success: string) => {
+    setBusy(key);
+    setNotice(null);
+    try {
+      await action();
+      setNotice({ kind: 'ok', text: success });
+    } catch {
+      setNotice({ kind: 'error', text: 'L’action a échoué. Vérifiez vos droits et réessayez.' });
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const fetchReports = () => {
-    const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      setReports(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
-    });
-    return () => unsub();
-  };
-
-  const handleDecision = async (userId: string, decision: 'verified' | 'rejected') => {
-    if (!confirm(`Confirmer la carte comme ${decision === 'verified' ? 'acceptée' : 'refusée'} ?`)) return;
-    setProcessingId(userId);
-    await updateDoc(doc(db, 'users', userId), { 'studentProfile.verificationStatus': decision });
-    setPendingCards((prev) => prev.filter((u) => u.id !== userId));
-    setProcessingId(null);
-  };
-
-  const deleteMessage = async (report: ReportData) => {
-    if (!confirm('Supprimer ce message définitivement ?')) return;
-    await deleteDoc(doc(db, 'chats', report.chatId, 'messages', report.messageId));
-    await deleteDoc(doc(db, 'reports', report.id));
-    alert('Message supprimé avec succès.');
-  };
-
-  const blockUser = async (uid: string) => {
-    if (!confirm('Bloquer cet utilisateur définitivement ?')) return;
-    await updateDoc(doc(db, 'users', uid), { blocked: true });
-    alert('Utilisateur bloqué avec succès.');
-  };
-
-  const markNotOffensive = async (r: ReportData) => {
-    if (!confirm("Confirmer que ce message n'est pas offensif ?")) return;
+  /* Chaque décision est archivée dans reportsResolved avant de fermer le signalement */
+  const resolve = async (r: ReportData, decision: Decision) => {
     await addDoc(collection(db, 'reportsResolved'), {
-      ...r, resolvedAt: serverTimestamp(),
-      resolvedBy: auth.currentUser?.uid, decision: 'not_offensive',
+      ...r,
+      resolvedAt: serverTimestamp(),
+      resolvedBy: me.uid,
+      decision,
     });
     await deleteDoc(doc(db, 'reports', r.id));
-    alert('Signalement classé comme non offensif.');
   };
 
-  /* ── Loading ── */
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
-      <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
-      <p className="font-['DM_Sans',system-ui] text-muted font-medium">
-        Vérification des autorisations...
-      </p>
-    </div>
-  );
+  const decideCard = (u: UserData, decision: 'verified' | 'rejected') => {
+    if (!confirm(`${decision === 'verified' ? 'Accepter' : 'Refuser'} la carte de ${fullName(u)} ?`)) return;
+    run(u.id, async () => {
+      await updateDoc(doc(db, 'users', u.id), { 'studentProfile.verificationStatus': decision });
+      setPendingCards((prev) => prev?.filter((p) => p.id !== u.id) ?? null);
+    }, decision === 'verified' ? 'Carte acceptée.' : 'Carte refusée.');
+  };
 
-  /* ── Non autorisé ── */
-  if (!isAuthorized) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7] px-5">
-      <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-5">
-        <Ban className="w-8 h-8 text-red-500" />
-      </div>
-      <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-xl text-[#15131f] mb-2">
-        Accès refusé
-      </h2>
-      <p className="text-muted text-sm mb-6 font-['DM_Sans',system-ui]">
-        Vous n'avez pas les permissions nécessaires.
-      </p>
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold font-['DM_Sans',system-ui] hover:bg-ink transition-colors"
-      >
-        Retour au tableau de bord
-      </button>
-    </div>
-  );
+  const deleteMessage = (r: ReportData) => {
+    if (!confirm('Supprimer ce message définitivement ?')) return;
+    run(r.id, async () => {
+      await deleteDoc(doc(db, 'chats', r.chatId, 'messages', r.messageId));
+      await resolve(r, 'deleted');
+    }, 'Message supprimé et signalement archivé.');
+  };
 
-  /* ── Render ── */
+  const blockSender = (r: ReportData) => {
+    if (!confirm(`Bloquer ${fullName(users[r.senderId])} ?`)) return;
+    run(r.id, async () => {
+      await updateDoc(doc(db, 'users', r.senderId), { blocked: true });
+      await resolve(r, 'blocked');
+    }, 'Utilisateur bloqué et signalement archivé.');
+  };
+
+  const notOffensive = (r: ReportData) => {
+    if (!confirm('Classer ce message comme non offensif ?')) return;
+    run(r.id, () => resolve(r, 'not_offensive'), 'Signalement classé sans suite.');
+  };
+
+  const tabs = [
+    { key: 'reports' as const, label: 'Signalements', icon: Flag, count: reports?.length ?? 0 },
+    { key: 'cards' as const, label: 'Cartes étudiantes', icon: UserCheck, count: pendingCards?.length ?? 0 },
+  ];
+
   return (
     <>
-      <style>{`
-        
-      `}</style>
+      <div className="flex flex-wrap gap-2" role="tablist">
+        {tabs.map(({ key, label, icon: Icon, count }) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`btn ${tab === key ? 'btn-primary' : 'btn-outline'}`}
+          >
+            <Icon size={16} /> {label}
+            <span className={`rounded-full px-2 py-0.5 text-xs ${tab === key ? 'bg-paper/15' : 'bg-paper-2'}`}>{count}</span>
+          </button>
+        ))}
+      </div>
 
-      <main className="min-h-screen bg-[#fbfaf7] font-['DM_Sans',system-ui,sans-serif]">
+      {notice && (
+        <p
+          role="status"
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            notice.kind === 'ok' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
 
-        {/* ── Hero ── */}
-        <section className="max-w-[960px] mx-auto px-5 pt-14 pb-10 sm:pt-20 sm:pb-14">
-
-          {/* Badge */}
-          <div className="flex justify-center mb-7">
-            <span className="inline-flex items-center gap-2 px-4 py-[7px] rounded-full bg-brand-soft border border-brand/30 text-[13px] font-semibold text-brand">
-              <Shield className="w-3.5 h-3.5" />
-              Espace Collaborateur
-            </span>
-          </div>
-
-          <h1 className="font-[var(--font-bricolage),system-ui] text-center font-extrabold text-[2rem] sm:text-[3rem] leading-[1.15] tracking-[-0.03em] text-[#15131f] mb-4">
-            Modération{" "}
-            <span className="bg-gradient-to-br from-brand to-brand/50 bg-clip-text text-transparent">
-              Woppy
-            </span>
-          </h1>
-
-          <p className="text-center text-[15px] text-muted max-w-[480px] mx-auto mb-10 leading-[1.7]">
-            Gérez les vérifications de cartes étudiantes et modérez les signalements de la plateforme.
-          </p>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
-            <div className="bg-white border border-line rounded-2xl p-4 text-center">
-              <p className="font-[var(--font-bricolage),system-ui] font-bold text-2xl text-[#15131f]">
-                {pendingCards.length}
-              </p>
-              <p className="text-[11px] text-muted font-medium uppercase tracking-wider mt-0.5">
-                Cartes en attente
-              </p>
-            </div>
-            <div className="bg-white border border-line rounded-2xl p-4 text-center">
-              <p className="font-[var(--font-bricolage),system-ui] font-bold text-2xl text-[#15131f]">
-                {reports.length}
-              </p>
-              <p className="text-[11px] text-muted font-medium uppercase tracking-wider mt-0.5">
-                Signalements
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <div className="max-w-[960px] mx-auto px-5 pb-20">
-
-          {/* ── Tabs ── */}
-          <div className="bg-white border border-line rounded-2xl p-1.5 mb-6 flex gap-1.5">
-            {([
-              { key: 'cards',   label: 'Cartes étudiantes', icon: <UserCheck className="w-4 h-4" />, count: pendingCards.length, countColor: 'bg-brand-soft text-brand border border-brand/30' },
-              { key: 'reports', label: 'Signalements',       icon: <Flag className="w-4 h-4" />,      count: reports.length,      countColor: 'bg-red-50 text-red-500 border border-red-200' },
-            ] as const).map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150
-                  ${activeTab === tab.key
-                    ? 'bg-brand text-white shadow-sm'
-                    : 'text-muted hover:text-ink-2 hover:bg-paper-2'
-                  }`}
-              >
-                {tab.icon}
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full
-                    ${activeTab === tab.key ? 'bg-white/25 text-white' : tab.countColor}`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* ── Cartes étudiantes ── */}
-          {activeTab === 'cards' && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-line rounded-2xl p-5 sm:p-6"
-            >
-              {/* Header section */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-brand-soft rounded-xl flex items-center justify-center">
-                    <UserCheck className="w-4 h-4 text-brand" />
-                  </div>
-                  <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-lg text-[#15131f]">
-                    Vérification des cartes
-                  </h2>
-                </div>
-                {pendingCards.length > 0 && (
-                  <span className="text-[11px] font-semibold text-muted bg-paper-2 px-3 py-1 rounded-full">
-                    {pendingCards.length} en attente
-                  </span>
-                )}
+      {/* ── Signalements ── */}
+      {tab === 'reports' && (
+        <section className="mt-6 space-y-3">
+          {reports === null && <Loading />}
+          {reports?.length === 0 && <Empty text="Aucun signalement en attente." />}
+          {reports?.map((r) => (
+            <article key={r.id} className="card p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
+                <p>
+                  <span className="text-muted">Signalé par </span>
+                  <span className="font-semibold">{fullName(users[r.reporterId])}</span>
+                  <span className="text-muted"> · message de </span>
+                  <span className="font-semibold">{fullName(users[r.senderId])}</span>
+                  {users[r.senderId]?.blocked && <span className="chip ml-2 !border-red-200 !text-danger">bloqué</span>}
+                </p>
+                <time className="text-xs text-muted">
+                  {r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('fr-BE') : '—'}
+                </time>
               </div>
+              <blockquote className="mt-3 whitespace-pre-line rounded-xl bg-paper-2 p-4 text-ink-2">{r.text}</blockquote>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button disabled={busy === r.id} onClick={() => notOffensive(r)} className="btn btn-outline">
+                  <ThumbsUp size={15} /> Pas offensif
+                </button>
+                <button disabled={busy === r.id} onClick={() => deleteMessage(r)} className="btn btn-outline !text-danger hover:!border-danger">
+                  <Trash2 size={15} /> Supprimer le message
+                </button>
+                <button disabled={busy === r.id} onClick={() => blockSender(r)} className="btn bg-danger text-white hover:bg-red-700">
+                  <Ban size={15} /> Bloquer l’auteur
+                </button>
+                {busy === r.id && <Loader2 size={16} className="animate-spin text-muted" />}
+                <span className="ml-auto font-mono text-[11px] text-muted">chat {r.chatId}</span>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
 
-              {pendingCards.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-7 h-7 text-green-500" />
-                  </div>
-                  <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
-                    Tout est à jour !
-                  </p>
-                  <p className="text-sm text-muted">
-                    Aucune carte étudiante en attente de vérification.
-                  </p>
-                </div>
+      {/* ── Cartes étudiantes ── */}
+      {tab === 'cards' && (
+        <section className="mt-6 space-y-3">
+          <p className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-muted">
+            Aucun parcours ne met encore un profil en attente : cette liste restera vide tant que l’envoi de la carte
+            étudiante n’est pas construit (voir le rapport d’incident n° 9).
+          </p>
+          {pendingCards === null && <Loading />}
+          {pendingCards?.length === 0 && <Empty text="Aucune carte en attente de vérification." />}
+          {pendingCards?.map((u) => (
+            <article key={u.id} className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+              {u.studentProfile?.cardURL ? (
+                <button
+                  onClick={() => setPreview(u.studentProfile!.cardURL!)}
+                  className="group relative shrink-0 self-start overflow-hidden rounded-xl border border-line"
+                  aria-label="Agrandir la carte"
+                >
+                  <Image src={u.studentProfile.cardURL} alt="Carte étudiante" width={160} height={100} className="object-cover" />
+                  <span className="absolute inset-0 grid place-items-center bg-ink/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <ZoomIn className="text-white" size={22} />
+                  </span>
+                </button>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {pendingCards.map((user, index) => (
-                    <motion.div
-                      key={user.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border border-line rounded-2xl p-4 sm:p-5 hover:border-brand/30 hover:shadow-[0_2px_20px_rgba(138,107,254,0.08)] transition-all duration-150"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-
-                        {/* Image carte */}
-                        {user.studentProfile?.cardURL ? (
-                          <div
-                            className="relative cursor-pointer group shrink-0 self-start"
-                            onClick={() => setSelectedImage(user.studentProfile!.cardURL!)}
-                          >
-                            <Image
-                              src={user.studentProfile.cardURL}
-                              alt="Carte étudiante"
-                              width={160}
-                              height={100}
-                              className="rounded-xl border border-line object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-xl">
-                              <ZoomIn className="text-white w-6 h-6" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-[160px] h-[100px] bg-paper-2 rounded-xl flex items-center justify-center border border-dashed border-line shrink-0 self-start">
-                            <span className="text-xs text-muted">Pas d'image</span>
-                          </div>
-                        )}
-
-                        {/* Infos */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-[var(--font-bricolage),system-ui] font-bold text-[15px] text-[#15131f] mb-1">
-                            {user.firstName} {user.lastName}
-                          </p>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Clock className="w-3 h-3 text-brand" />
-                            <span className="text-[12px] text-muted">En attente de vérification</span>
-                          </div>
-                          <span className="text-[10px] text-muted bg-paper-2 px-2.5 py-1 rounded-lg font-mono">
-                            {user.id}
-                          </span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex sm:flex-col gap-2 shrink-0">
-                          <button
-                            disabled={processingId === user.id}
-                            onClick={() => handleDecision(user.id, 'verified')}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processingId === user.id
-                              ? <Loader2 className="w-4 h-4 animate-spin" />
-                              : <Check className="w-4 h-4" />
-                            }
-                            Accepter
-                          </button>
-                          <button
-                            disabled={processingId === user.id}
-                            onClick={() => handleDecision(user.id, 'rejected')}
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <X className="w-4 h-4" />
-                            Refuser
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                <div className="grid h-[100px] w-[160px] shrink-0 place-items-center rounded-xl border border-dashed border-line text-xs text-muted">
+                  Pas d’image
                 </div>
               )}
-            </motion.div>
-          )}
-
-          {/* ── Signalements ── */}
-          {activeTab === 'reports' && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-line rounded-2xl p-5 sm:p-6"
-            >
-              {/* Header section */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
-                    <Flag className="w-4 h-4 text-red-500" />
-                  </div>
-                  <h2 className="font-[var(--font-bricolage),system-ui] font-bold text-lg text-[#15131f]">
-                    Messages signalés
-                  </h2>
-                </div>
-                <button
-                  onClick={() => router.push('/dashboard/collaborateur/reportsResolved')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-paper-2 hover:bg-line text-ink-2 rounded-xl text-sm font-semibold transition-colors"
-                >
-                  <History className="w-3.5 h-3.5" />
-                  Historique
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-lg font-semibold">{fullName(u)}</p>
+                <p className="mt-1 font-mono text-[11px] text-muted">{u.id}</p>
+              </div>
+              <div className="flex gap-2">
+                <button disabled={busy === u.id} onClick={() => decideCard(u, 'verified')} className="btn btn-primary">
+                  <Check size={15} /> Accepter
+                </button>
+                <button disabled={busy === u.id} onClick={() => decideCard(u, 'rejected')} className="btn btn-outline">
+                  <X size={15} /> Refuser
                 </button>
               </div>
+            </article>
+          ))}
+        </section>
+      )}
 
-              {reports.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-7 h-7 text-green-500" />
-                  </div>
-                  <p className="font-[var(--font-bricolage),system-ui] font-bold text-[#15131f] mb-1">
-                    Aucun signalement
-                  </p>
-                  <p className="text-sm text-muted">
-                    Tous les signalements ont été traités.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {reports.map((r, index) => {
-                    const reporter = userCache[r.reporterId];
-                    const sender   = userCache[r.senderId];
-                    return (
-                      <motion.div
-                        key={r.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="border border-line rounded-2xl p-4 sm:p-5 hover:border-red-200 hover:shadow-[0_2px_20px_rgba(239,68,68,0.06)] transition-all duration-150"
-                      >
-                        {/* Top : qui + quand */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
-                                <AlertTriangle className="w-3 h-3 text-red-500" />
-                              </div>
-                              <span className="text-[13px] font-semibold text-[#15131f]">
-                                Signalé par{" "}
-                                <span className="text-brand">
-                                  {reporter ? `${reporter.firstName} ${reporter.lastName}` : 'Inconnu'}
-                                </span>
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 pl-8">
-                              <MessageSquare className="w-3 h-3 text-muted" />
-                              <span className="text-[12px] text-muted">
-                                Expéditeur :{" "}
-                                <span className="font-semibold text-ink-2">
-                                  {sender ? `${sender.firstName} ${sender.lastName}` : 'Inconnu'}
-                                </span>
-                              </span>
-                            </div>
-                          </div>
-                          <span className="self-start sm:self-auto text-[11px] font-semibold text-red-500 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            {r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('fr-FR') : '—'}
-                          </span>
-                        </div>
-
-                        {/* Message signalé */}
-                        <div className="bg-paper-2 border border-line rounded-xl p-4 mb-3">
-                          <p className="text-sm text-ink-2 whitespace-pre-line leading-relaxed">
-                            {r.text}
-                          </p>
-                        </div>
-
-                        {/* Chat ID */}
-                        <p className="text-[10px] text-muted font-mono bg-paper-2 inline-block px-2.5 py-1 rounded-lg mb-4">
-                          Chat: {r.chatId}
-                        </p>
-
-                        {/* Actions */}
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => deleteMessage(r)}
-                            className="inline-flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Supprimer
-                          </button>
-                          <button
-                            onClick={() => blockUser(r.senderId)}
-                            className="inline-flex items-center gap-1.5 bg-[#15131f] hover:bg-[#2a2a3e] text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors"
-                          >
-                            <Ban className="w-3.5 h-3.5" />
-                            Bloquer
-                          </button>
-                          <button
-                            onClick={() => markNotOffensive(r)}
-                            className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors"
-                          >
-                            <ThumbsUp className="w-3.5 h-3.5" />
-                            Pas offensif
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </div>
-      </main>
-
-      {/* ── Image preview ── */}
       <AnimatePresence>
-        {selectedImage && (
+        {preview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-5"
-            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-[60] grid place-items-center bg-ink/70 p-5 backdrop-blur-sm"
+            onClick={() => setPreview(null)}
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative max-w-4xl w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Image
-                src={selectedImage}
-                alt="Carte étudiante"
-                width={1200}
-                height={800}
-                className="rounded-2xl shadow-2xl object-contain max-h-[85vh] w-full"
-              />
+            <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+              <Image src={preview} alt="Carte étudiante" width={1200} height={800} className="max-h-[85vh] w-full rounded-2xl object-contain" />
               <button
-                className="absolute -top-3 -right-3 bg-white text-ink-2 hover:text-ink rounded-full p-1.5 shadow-lg transition-colors"
-                onClick={() => setSelectedImage(null)}
+                onClick={() => setPreview(null)}
+                aria-label="Fermer"
+                className="absolute -right-3 -top-3 grid h-9 w-9 place-items-center rounded-full bg-white shadow-lg"
               >
-                <XCircle className="w-6 h-6" />
+                <X size={18} />
               </button>
-              <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3">
-                <p className="text-sm text-ink-2 font-medium">
-                  💡 Vérifiez que la carte est valide et correspond à l'utilisateur
-                </p>
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function Loading() {
+  return (
+    <p className="flex items-center gap-2 py-10 text-sm text-muted">
+      <Loader2 size={16} className="animate-spin" /> Chargement…
+    </p>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return (
+    <div className="card flex flex-col items-center gap-3 py-14 text-center">
+      <CheckCircle2 size={28} className="text-success" />
+      <p className="text-ink-2">{text}</p>
+    </div>
   );
 }
