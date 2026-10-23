@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import StaffShell from "@/components/staff/StaffShell";
 import {
   Users,
@@ -62,6 +64,46 @@ function toDate(v: any): Date | null {
   if (v.toDate) return v.toDate();
   if (v.seconds) return new Date(v.seconds * 1000);
   return new Date(v);
+}
+
+/* ── Chargement direct depuis Firestore (secours si la route API échoue) ── */
+type AnalyticsData = {
+  users: any[];
+  annonces: any[];
+  candidatures: any[];
+  reports: any[];
+  resolved: any[];
+  reviews: any[];
+};
+
+const ANALYTICS_COLLECTIONS: { key: keyof AnalyticsData; name: string; sortBy?: string }[] = [
+  { key: "users", name: "users" },
+  { key: "annonces", name: "annonces", sortBy: "createdAt" },
+  { key: "candidatures", name: "candidatures" },
+  { key: "reports", name: "reports" },
+  { key: "resolved", name: "reportsResolved", sortBy: "resolvedAt" },
+  { key: "reviews", name: "reviews" },
+];
+
+async function loadAnalyticsDirect(): Promise<{ data: AnalyticsData; failed: string[] }> {
+  const data = { users: [], annonces: [], candidatures: [], reports: [], resolved: [], reviews: [] } as AnalyticsData;
+  const failed: string[] = [];
+  await Promise.all(
+    ANALYTICS_COLLECTIONS.map(async ({ key, name, sortBy }) => {
+      try {
+        const snap = await getDocs(collection(db, name));
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // Tri en mémoire : un orderBy Firestore exclurait les documents sans ce champ
+        if (sortBy) {
+          docs.sort((a: any, b: any) => (toDate(b[sortBy])?.getTime() ?? 0) - (toDate(a[sortBy])?.getTime() ?? 0));
+        }
+        data[key] = docs;
+      } catch {
+        failed.push(name);
+      }
+    })
+  );
+  return { data, failed };
 }
 
 function monthLabel(date: Date) {
@@ -194,6 +236,7 @@ export default function AnalyticsPage() {
 function Analytics({ user }: { user: User }) {
   const [fetching, setFetching] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [missing, setMissing] = useState<string[]>([]);
   const [period, setPeriod] = useState<Period>("30d");
 
   const [users, setUsers] = useState<any[]>([]);
@@ -204,25 +247,33 @@ function Analytics({ user }: { user: User }) {
   const [reviews, setReviews] = useState<any[]>([]);
 
 
+  const applyData = (data: AnalyticsData) => {
+    setUsers(data.users);
+    setAnnonces(data.annonces);
+    setCandidatures(data.candidatures);
+    setReports(data.reports);
+    setResolved(data.resolved);
+    setReviews(data.reviews);
+  };
+
+  /* La route API (Firebase Admin) est essayée d'abord ; si elle n'est pas configurée,
+     les collections sont lues directement avec les droits du compte connecté. */
   const fetchAnalytics = async () => {
     setFetching(true);
+    setLoadError(false);
+    setMissing([]);
     try {
       const t = await user.getIdToken();
       const res = await fetch("/api/admin/analytics", {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setUsers(data.users);
-      setAnnonces(data.annonces);
-      setCandidatures(data.candidatures);
-      setReports(data.reports);
-      setResolved(data.resolved);
-      setReviews(data.reviews);
-      setLoadError(false);
-    } catch (e) {
-      console.warn("Analytics fetch error:", e);
-      setLoadError(true);
+      applyData(await res.json());
+    } catch {
+      const { data, failed } = await loadAnalyticsDirect();
+      applyData(data);
+      setMissing(failed);
+      setLoadError(failed.length === ANALYTICS_COLLECTIONS.length);
     } finally {
       setFetching(false);
     }
@@ -366,8 +417,12 @@ const heuresMoyennes = annoncesAvecData.length
         <div className="mt-6 space-y-8">
           {loadError && !fetching && (
             <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              Impossible de charger les statistiques : la route <code>/api/admin/analytics</code> a échoué.
-              En local, vérifiez que les variables <code>FIREBASE_ADMIN_*</code> sont définies dans <code>.env.local</code>.
+              Impossible de charger les statistiques. Vérifiez votre connexion et réessayez.
+            </div>
+          )}
+          {!loadError && missing.length > 0 && !fetching && (
+            <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              Données incomplètes : accès refusé à {missing.join(", ")}. Les chiffres concernés restent à zéro.
             </div>
           )}
           {fetching ? (
