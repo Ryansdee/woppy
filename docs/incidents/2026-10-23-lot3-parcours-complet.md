@@ -28,7 +28,7 @@ Parcours de toutes les pages, connecté en admin, sur ordinateur et en largeur m
 | 34 | Basse | Enquête de marché : thème sombre devenu illisible après le changement de couleurs | Corrigé (thème clair) |
 | 35 | Basse | Carte : popup trop étroite, molette qui bloque le défilement de la page | Corrigé |
 | 36 | Basse | Finance : « net » estimé à 85 % du brut, chiffre sans base | Ouvert (affiché comme estimation) |
-| 2 | Haute | `/admin/fix-chats` toujours en ligne (voir l'audit) | Ouvert |
+| 2 | Haute | `/admin/fix-chats` toujours en ligne (voir l’audit) | Corrigé (page supprimée) |
 
 ### 26 et 27. Textes juridiques
 Je n'ai pas modifié les CGU ni la politique de confidentialité, car ce sont des engagements juridiques :

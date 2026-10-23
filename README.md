@@ -28,7 +28,7 @@ Site : https://woppy.be · Contact : contact@woppy.be
 
 **Pages publiques** : accueil, démo, à propos, statut du service (`/status`), journal des mises à jour (`/updates`, alimenté par l'historique GitHub), CGU, confidentialité, cookies.
 
-Au total : 39 pages et 3 routes API.
+Au total : 38 pages et 3 routes API.
 
 ## Stack
 
